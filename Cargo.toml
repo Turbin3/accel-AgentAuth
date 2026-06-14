@@ -1,0 +1,18 @@
+[package]
+name = "agent-auth"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+pinocchio = "0.9.3"
+pinocchio-pubkey = "0.3"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
