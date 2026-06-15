@@ -23,6 +23,7 @@ pub const MAX_DISCRIMINATORS: usize = 8;
 
 // value of the discriminator byte for an initialised mandate
 pub const MANDATE_DISCRIMINATOR: u8 = 1;
+pub const MANDATE_SEED: &[u8] = b"mandate";
 
 // header field offsets
 pub const OFF_DISC: usize = 0;
