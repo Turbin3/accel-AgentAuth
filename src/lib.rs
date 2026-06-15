@@ -38,7 +38,9 @@ pub fn process_instruction(
     match Instruction::from_tag(*tag)? {
         Instruction::CreateMandate => instructions::create_mandate(program_id, accounts, data),
         Instruction::AddPermission => instructions::add_permission(program_id, accounts, data),
-        Instruction::RemovePermission => instructions::remove_permission(program_id, accounts, data),
+        Instruction::RemovePermission => {
+            instructions::remove_permission(program_id, accounts, data)
+        }
         Instruction::Verify => instructions::verify(program_id, accounts, data),
         Instruction::RevokeMandate => instructions::revoke_mandate(program_id, accounts, data),
     }

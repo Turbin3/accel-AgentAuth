@@ -21,6 +21,7 @@ pub enum MandateError {
     AccountOwnerMismatch = 14,
     InvalidInstructionData = 15,
     InvalidAccountType = 16,
+    UnknownAgent = 17,
 }
 
 impl From<MandateError> for ProgramError {
