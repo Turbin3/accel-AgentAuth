@@ -20,6 +20,7 @@ pub enum MandateError {
     ArithmeticOverflow = 13,
     AccountOwnerMismatch = 14,
     InvalidInstructionData = 15,
+    InvalidAccountType = 16,
 }
 
 impl From<MandateError> for ProgramError {
