@@ -4,38 +4,16 @@
 
 mod common;
 
-use common::{MandateFixture, PermissionSpec};
+use common::{assert_matches_golden, golden_fixture};
 
 use agent_auth::{
     HEADER_SIZE, OFF_ACTIVE, OFF_AGENT, OFF_DISC, OFF_EXPIRY, OFF_OWNER, OFF_PERM_LEN,
     PERMISSION_SIZE, P_PER_TX_LIMIT, P_PROGRAM_ID, P_SPEND_LIMIT,
 };
 
-fn golden() -> MandateFixture {
-    MandateFixture {
-        owner: [1u8; 32],
-        agent: [2u8; 32],
-        expiry: 1_900_000_000,
-        permissions: vec![
-            PermissionSpec {
-                program_id: [0xAA; 32],
-                spend_limit: 1_000_000,
-                per_tx_limit: 50_000,
-                discriminators: vec![[1, 2, 3, 4, 5, 6, 7, 8]],
-            },
-            PermissionSpec {
-                program_id: [0xBB; 32],
-                spend_limit: 9,
-                per_tx_limit: 9,
-                discriminators: vec![],
-            },
-        ],
-    }
-}
-
 #[test]
 fn offsets_match_spec() {
-    let bytes = golden().to_bytes();
+    let bytes = golden_fixture().to_bytes();
 
     // header
     assert_eq!(bytes[OFF_DISC], 1);
@@ -68,8 +46,7 @@ fn offsets_match_spec() {
     assert_eq!(&bytes[p1 + P_PROGRAM_ID..p1 + P_PROGRAM_ID + 32], &[0xBBu8; 32]);
 
     // and it matches the committed golden blob byte-for-byte
-    let want = include_bytes!("../fixtures/golden_mandate.bin");
-    assert_eq!(&bytes[..], &want[..]);
+    assert_matches_golden(&bytes);
 }
 
 /// Regenerate fixtures/golden_mandate.bin. Run by hand when the layout changes:
@@ -77,6 +54,6 @@ fn offsets_match_spec() {
 #[test]
 #[ignore]
 fn write_golden() {
-    let bytes = golden().to_bytes();
+    let bytes = golden_fixture().to_bytes();
     std::fs::write("fixtures/golden_mandate.bin", bytes).unwrap();
 }
