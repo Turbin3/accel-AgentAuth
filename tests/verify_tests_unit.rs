@@ -1,15 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use std::i64;
-
     use agent_auth::state::Mandate;
     use agent_auth::*;
-    use pinocchio::account_info::AccountInfo;
 
     //helpers
     const OWNER: [u8; 32] = [1u8; 32];
     const AGENT: [u8; 32] = [2u8; 32];
-    const PROGRAM_ID: [u8; 32] = [9u8; 32];
     const TARGET_PROGRAM: [u8; 32] = [3u8; 32];
     const DISC: [u8; 8] = [0xb, 0xa, 0xb, 0xe, 0, 0, 0, 0];
 
@@ -44,24 +40,6 @@ mod tests {
         buf
     }
 
-    //build 48 byte verify instruction data
-    fn make_ix_data(program_id: [u8; 32], disc: [u8; 8], amount: u64) -> [u8; 48] {
-        let mut d = [0u8; 48];
-        d[0..32].copy_from_slice(&program_id);
-        d[32..40].copy_from_slice(&disc);
-        d[40..48].copy_from_slice(&amount.to_le_bytes());
-        d
-    }
-
-    fn make_account_info(
-        key: [u8; 32],
-        owner: [u8; 32],
-        data: &mut Vec<u8>,
-        writable: bool,
-    ) -> AccountInfo {
-        todo!("Later fix")
-    }
-
     #[test]
     fn verifies_mandate() {
         let mut buf = make_mandate(true, i64::MAX, 1_000, 500, 0, 0);
@@ -75,7 +53,7 @@ mod tests {
         let perm = mandate.permission(idx);
         assert!(perm.allows(&DISC));
         assert_eq!(perm.spend_total(), 0);
-        assert_eq!(perm.spend_total(), 0);
+        assert_eq!(perm.call_count(), 0);
 
         //writeback
         let amount = 100u64;

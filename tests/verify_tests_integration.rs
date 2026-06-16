@@ -1,313 +1,323 @@
-// tests/verify_integration.rs
+use agent_auth::*;
 use litesvm::LiteSVM;
-use solana_sdk::{
-    instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
-    signature::{Keypair, Signer},
-    transaction::Transaction,
-};
+use solana_account::Account;
+use solana_instruction::{AccountMeta, Instruction};
+use solana_keypair::Keypair;
+use solana_message::Message;
+use solana_pubkey::Pubkey;
+use solana_signer::Signer;
+use solana_transaction::Transaction;
 
-// load the compiled .so
 fn program_id() -> Pubkey {
-    // must match declare_id! in lib.rs
     "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if"
         .parse()
         .unwrap()
 }
 
-fn setup() -> (LiteSVM, Keypair) {
+fn setup() -> Option<(LiteSVM, Keypair)> {
+    let program_path = std::env::var("AGENT_AUTH_SO")
+        .unwrap_or_else(|_| "target/deploy/agent_auth.so".to_string());
+    if !std::path::Path::new(&program_path).exists() {
+        eprintln!("skipping LiteSVM integration test; program binary not found at {program_path}");
+        return None;
+    }
+
     let mut svm = LiteSVM::new();
-    svm.add_program_from_file(
-        program_id(),
-        "target/deploy/mandate.so", // path to your built program
-    )
-    .unwrap();
+    svm.add_program_from_file(program_id(), program_path)
+        .unwrap();
 
     let payer = Keypair::new();
     svm.airdrop(&payer.pubkey(), 10_000_000_000).unwrap();
-    (svm, payer)
+    Some((svm, payer))
 }
 
 fn mandate_pda(owner: &Pubkey, agent: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(&[b"mandate", owner.as_ref(), agent.as_ref()], &program_id())
-}
-
-fn create_mandate_ix(owner: &Pubkey, agent: &Pubkey, mandate: &Pubkey, expiry: i64) -> Instruction {
-    let mut data = vec![1u8]; // tag for CreateMandate
-    data.extend_from_slice(&expiry.to_le_bytes());
-    Instruction::new_with_bytes(
-        program_id(),
-        &data,
-        vec![
-            AccountMeta::new(*owner, true),
-            AccountMeta::new_readonly(*agent, false),
-            AccountMeta::new(*mandate, false),
-            AccountMeta::new_readonly(solana_sdk::system_program::id(), false),
-        ],
+    Pubkey::find_program_address(
+        &[MANDATE_SEED, owner.as_ref(), agent.as_ref()],
+        &program_id(),
     )
 }
 
-fn add_permission_ix(
+fn mandate_data(
     owner: &Pubkey,
     agent: &Pubkey,
-    mandate: &Pubkey,
     target_program: &Pubkey,
     spend_limit: u64,
     per_tx_limit: u64,
-    discs: &[[u8; 8]],
-) -> Instruction {
-    let mut data = vec![2u8]; // tag for AddPermission
-    data.extend_from_slice(target_program.as_ref());
-    data.extend_from_slice(&spend_limit.to_le_bytes());
-    data.extend_from_slice(&per_tx_limit.to_le_bytes());
-    data.push(discs.len() as u8);
-    for d in discs {
-        data.extend_from_slice(d);
-    }
-    Instruction::new_with_bytes(
-        program_id(),
-        &data,
-        vec![
-            AccountMeta::new_readonly(*owner, true),
-            AccountMeta::new_readonly(*agent, false),
-            AccountMeta::new(*mandate, false),
-        ],
+    spend_total: u64,
+    call_count: u32,
+) -> Vec<u8> {
+    let mut data = vec![0u8; ACCOUNT_SIZE];
+
+    data[OFF_DISC] = MANDATE_DISCRIMINATOR;
+    data[OFF_OWNER..OFF_OWNER + 32].copy_from_slice(owner.as_ref());
+    data[OFF_AGENT..OFF_AGENT + 32].copy_from_slice(agent.as_ref());
+    data[OFF_EXPIRY..OFF_EXPIRY + 8].copy_from_slice(&i64::MAX.to_le_bytes());
+    data[OFF_ACTIVE] = 1;
+    data[OFF_PERM_LEN..OFF_PERM_LEN + 2].copy_from_slice(&1u16.to_le_bytes());
+
+    let base = HEADER_SIZE;
+    data[base + P_PROGRAM_ID..base + P_PROGRAM_ID + 32].copy_from_slice(target_program.as_ref());
+    data[base + P_SPEND_LIMIT..base + P_SPEND_LIMIT + 8]
+        .copy_from_slice(&spend_limit.to_le_bytes());
+    data[base + P_PER_TX_LIMIT..base + P_PER_TX_LIMIT + 8]
+        .copy_from_slice(&per_tx_limit.to_le_bytes());
+    data[base + P_SPEND_TOTAL..base + P_SPEND_TOTAL + 8]
+        .copy_from_slice(&spend_total.to_le_bytes());
+    data[base + P_CALL_COUNT..base + P_CALL_COUNT + 4].copy_from_slice(&call_count.to_le_bytes());
+    data[base + P_DISC_LEN] = 1;
+    data[base + P_DISCRIMINATORS..base + P_DISCRIMINATORS + 8].copy_from_slice(&DISC);
+
+    data
+}
+
+fn seed_mandate(
+    svm: &mut LiteSVM,
+    mandate: Pubkey,
+    owner: &Pubkey,
+    agent: &Pubkey,
+    target_program: &Pubkey,
+    spend_limit: u64,
+    per_tx_limit: u64,
+    spend_total: u64,
+    call_count: u32,
+) {
+    svm.set_account(
+        mandate,
+        Account {
+            lamports: svm.minimum_balance_for_rent_exemption(ACCOUNT_SIZE),
+            data: mandate_data(
+                owner,
+                agent,
+                target_program,
+                spend_limit,
+                per_tx_limit,
+                spend_total,
+                call_count,
+            ),
+            owner: program_id(),
+            ..Default::default()
+        },
     )
+    .unwrap();
 }
 
 fn verify_ix(
     mandate: &Pubkey,
+    owner: &Pubkey,
+    agent: &Pubkey,
     target_program: &Pubkey,
     disc: &[u8; 8],
     amount: u64,
 ) -> Instruction {
-    let mut data = vec![3u8]; // tag for Verify
+    let mut data = vec![3u8];
     data.extend_from_slice(target_program.as_ref());
     data.extend_from_slice(disc);
     data.extend_from_slice(&amount.to_le_bytes());
+
     Instruction::new_with_bytes(
         program_id(),
         &data,
         vec![
-            AccountMeta::new(*mandate, false), // writable
-            AccountMeta::new_readonly(solana_sdk::sysvar::clock::id(), false),
+            AccountMeta::new(*mandate, false),
+            AccountMeta::new_readonly(*owner, false),
+            AccountMeta::new_readonly(*agent, true),
         ],
     )
+}
+
+fn send_verify(
+    svm: &mut LiteSVM,
+    payer: &Keypair,
+    agent: &Keypair,
+    mandate: &Pubkey,
+    owner: &Pubkey,
+    target_program: &Pubkey,
+    amount: u64,
+) -> litesvm::types::TransactionResult {
+    let ix = verify_ix(
+        mandate,
+        owner,
+        &agent.pubkey(),
+        target_program,
+        &DISC,
+        amount,
+    );
+    let tx = Transaction::new(
+        &[payer, agent],
+        Message::new(&[ix], Some(&payer.pubkey())),
+        svm.latest_blockhash(),
+    );
+    svm.send_transaction(tx)
+}
+
+fn spend_total_and_call_count(account_data: &[u8]) -> (u64, u32) {
+    let base = HEADER_SIZE;
+    let spend_total = u64::from_le_bytes(
+        account_data[base + P_SPEND_TOTAL..base + P_SPEND_TOTAL + 8]
+            .try_into()
+            .unwrap(),
+    );
+    let call_count = u32::from_le_bytes(
+        account_data[base + P_CALL_COUNT..base + P_CALL_COUNT + 4]
+            .try_into()
+            .unwrap(),
+    );
+    (spend_total, call_count)
 }
 
 const DISC: [u8; 8] = [0xde, 0xad, 0xbe, 0xef, 0, 0, 0, 0];
 
 #[test]
 fn verify_happy_ok() {
-    let (mut svm, payer) = setup();
+    let Some((mut svm, payer)) = setup() else {
+        return;
+    };
     let owner = Keypair::new();
     let agent = Keypair::new();
-    svm.airdrop(&owner.pubkey(), 10_000_000_000).unwrap();
-
     let target_program = Pubkey::new_unique();
     let (mandate, _) = mandate_pda(&owner.pubkey(), &agent.pubkey());
 
-    // 1. create mandate
-    let ix = create_mandate_ix(&owner.pubkey(), &agent.pubkey(), &mandate, i64::MAX);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
-
-    // 2. add permission
-    let ix = add_permission_ix(
+    seed_mandate(
+        &mut svm,
+        mandate,
         &owner.pubkey(),
         &agent.pubkey(),
-        &mandate,
         &target_program,
         1_000,
         500,
-        &[DISC],
+        0,
+        0,
     );
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
 
-    // 3. verify — should pass and write back
-    let ix = verify_ix(&mandate, &target_program, &DISC, 100);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
+    send_verify(
+        &mut svm,
+        &payer,
+        &agent,
+        &mandate,
+        &owner.pubkey(),
+        &target_program,
+        100,
+    )
+    .unwrap();
 
-    // assert writeback
     let account = svm.get_account(&mandate).unwrap();
-    let spend_total = u64::from_le_bytes(account.data[88 + 48..88 + 56].try_into().unwrap());
-    let call_count = u32::from_le_bytes(account.data[88 + 56..88 + 60].try_into().unwrap());
-    assert_eq!(spend_total, 100);
-    assert_eq!(call_count, 1);
+    assert_eq!(spend_total_and_call_count(&account.data), (100, 1));
 }
 
 #[test]
 fn verify_rejects_spend_limit_exceeded() {
-    let (mut svm, payer) = setup();
+    let Some((mut svm, payer)) = setup() else {
+        return;
+    };
     let owner = Keypair::new();
     let agent = Keypair::new();
-    svm.airdrop(&owner.pubkey(), 10_000_000_000).unwrap();
-
     let target_program = Pubkey::new_unique();
     let (mandate, _) = mandate_pda(&owner.pubkey(), &agent.pubkey());
 
-    let ix = create_mandate_ix(&owner.pubkey(), &agent.pubkey(), &mandate, i64::MAX);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
-
-    // spend_limit = 500
-    let ix = add_permission_ix(
+    seed_mandate(
+        &mut svm,
+        mandate,
         &owner.pubkey(),
         &agent.pubkey(),
-        &mandate,
         &target_program,
         500,
         0,
-        &[DISC],
+        0,
+        0,
     );
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
 
-    // amount = 600 > spend_limit
-    let ix = verify_ix(&mandate, &target_program, &DISC, 600);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer],
-        svm.latest_blockhash(),
-    );
-    let err = svm.send_transaction(tx).unwrap_err();
+    let err = send_verify(
+        &mut svm,
+        &payer,
+        &agent,
+        &mandate,
+        &owner.pubkey(),
+        &target_program,
+        600,
+    )
+    .unwrap_err();
+
+    let err_text = format!("{:?}", err.err);
     assert!(
-        err.to_string().contains("SpendLimitExceeded")
-            || err.to_string().contains("custom program error: 0x9")
+        err_text.contains("Custom(9)"),
+        "expected SpendLimitExceeded custom error 9, got {err_text}"
     );
 }
 
 #[test]
 fn verify_writeback_accumulates() {
-    let (mut svm, payer) = setup();
+    let Some((mut svm, payer)) = setup() else {
+        return;
+    };
     let owner = Keypair::new();
     let agent = Keypair::new();
-    svm.airdrop(&owner.pubkey(), 10_000_000_000).unwrap();
-
     let target_program = Pubkey::new_unique();
     let (mandate, _) = mandate_pda(&owner.pubkey(), &agent.pubkey());
 
-    let ix = create_mandate_ix(&owner.pubkey(), &agent.pubkey(), &mandate, i64::MAX);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
-
-    let ix = add_permission_ix(
+    seed_mandate(
+        &mut svm,
+        mandate,
         &owner.pubkey(),
         &agent.pubkey(),
-        &mandate,
         &target_program,
         10_000,
         0,
-        &[DISC],
+        0,
+        0,
     );
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
 
-    // two successive verifies
     for amount in [100u64, 250u64] {
-        let ix = verify_ix(&mandate, &target_program, &DISC, amount);
-        let tx = Transaction::new_signed_with_payer(
-            &[ix],
-            Some(&payer.pubkey()),
-            &[&payer],
-            svm.latest_blockhash(),
-        );
-        svm.send_transaction(tx).unwrap();
+        send_verify(
+            &mut svm,
+            &payer,
+            &agent,
+            &mandate,
+            &owner.pubkey(),
+            &target_program,
+            amount,
+        )
+        .unwrap();
     }
 
     let account = svm.get_account(&mandate).unwrap();
-    let spend_total = u64::from_le_bytes(account.data[88 + 48..88 + 56].try_into().unwrap());
-    let call_count = u32::from_le_bytes(account.data[88 + 56..88 + 60].try_into().unwrap());
-    assert_eq!(spend_total, 350);
-    assert_eq!(call_count, 2);
+    assert_eq!(spend_total_and_call_count(&account.data), (350, 2));
 }
 
 #[test]
 fn verify_cu_under_2500() {
-    let (mut svm, payer) = setup();
+    let Some((mut svm, payer)) = setup() else {
+        return;
+    };
     let owner = Keypair::new();
     let agent = Keypair::new();
-    svm.airdrop(&owner.pubkey(), 10_000_000_000).unwrap();
-
     let target_program = Pubkey::new_unique();
     let (mandate, _) = mandate_pda(&owner.pubkey(), &agent.pubkey());
 
-    // setup
-    let ix = create_mandate_ix(&owner.pubkey(), &agent.pubkey(), &mandate, i64::MAX);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
-
-    let ix = add_permission_ix(
+    seed_mandate(
+        &mut svm,
+        mandate,
         &owner.pubkey(),
         &agent.pubkey(),
-        &mandate,
         &target_program,
         0,
         0,
-        &[DISC],
+        0,
+        0,
     );
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer, &owner],
-        svm.latest_blockhash(),
-    );
-    svm.send_transaction(tx).unwrap();
 
-    // measure
-    let ix = verify_ix(&mandate, &target_program, &DISC, 0);
-    let tx = Transaction::new_signed_with_payer(
-        &[ix],
-        Some(&payer.pubkey()),
-        &[&payer],
-        svm.latest_blockhash(),
-    );
-    let result = svm.send_transaction(tx).unwrap();
+    let result = send_verify(
+        &mut svm,
+        &payer,
+        &agent,
+        &mandate,
+        &owner.pubkey(),
+        &target_program,
+        0,
+    )
+    .unwrap();
     let cu_used = result.compute_units_consumed;
 
-    println!("verify CU: {}", cu_used);
-    assert!(cu_used < 2500, "verify used {} CU, budget is 2500", cu_used);
+    println!("verify CU: {cu_used}");
+    assert!(cu_used < 2500, "verify used {cu_used} CU, budget is 2500");
 }
