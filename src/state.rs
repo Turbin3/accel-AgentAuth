@@ -65,7 +65,11 @@ impl<'a> Mandate<'a> {
     }
 
     pub fn permissions_len(&self) -> usize {
-        u16::from_le_bytes(self.data[OFF_PERM_LEN..OFF_PERM_LEN + 2].try_into().unwrap()) as usize
+        u16::from_le_bytes(
+            self.data[OFF_PERM_LEN..OFF_PERM_LEN + 2]
+                .try_into()
+                .unwrap(),
+        ) as usize
     }
 
     pub fn set_permissions_len(&mut self, n: usize) {
@@ -160,19 +164,35 @@ impl<'a> Permission<'a> {
     }
 
     pub fn spend_limit(&self) -> u64 {
-        u64::from_le_bytes(self.data[P_SPEND_LIMIT..P_SPEND_LIMIT + 8].try_into().unwrap())
+        u64::from_le_bytes(
+            self.data[P_SPEND_LIMIT..P_SPEND_LIMIT + 8]
+                .try_into()
+                .unwrap(),
+        )
     }
 
     pub fn per_tx_limit(&self) -> u64 {
-        u64::from_le_bytes(self.data[P_PER_TX_LIMIT..P_PER_TX_LIMIT + 8].try_into().unwrap())
+        u64::from_le_bytes(
+            self.data[P_PER_TX_LIMIT..P_PER_TX_LIMIT + 8]
+                .try_into()
+                .unwrap(),
+        )
     }
 
     pub fn spend_total(&self) -> u64 {
-        u64::from_le_bytes(self.data[P_SPEND_TOTAL..P_SPEND_TOTAL + 8].try_into().unwrap())
+        u64::from_le_bytes(
+            self.data[P_SPEND_TOTAL..P_SPEND_TOTAL + 8]
+                .try_into()
+                .unwrap(),
+        )
     }
 
     pub fn call_count(&self) -> u32 {
-        u32::from_le_bytes(self.data[P_CALL_COUNT..P_CALL_COUNT + 4].try_into().unwrap())
+        u32::from_le_bytes(
+            self.data[P_CALL_COUNT..P_CALL_COUNT + 4]
+                .try_into()
+                .unwrap(),
+        )
     }
 
     pub fn discriminators_len(&self) -> usize {
@@ -241,7 +261,10 @@ mod tests {
     #[test]
     fn mandate_size_is_2136() {
         assert_eq!(ACCOUNT_SIZE, 2136);
-        assert_eq!(HEADER_SIZE + MAX_PERMISSIONS * PERMISSION_SIZE, ACCOUNT_SIZE);
+        assert_eq!(
+            HEADER_SIZE + MAX_PERMISSIONS * PERMISSION_SIZE,
+            ACCOUNT_SIZE
+        );
     }
 
     #[test]
@@ -295,7 +318,8 @@ mod tests {
         let mut m = Mandate::from_bytes(&mut buf).unwrap();
 
         for i in 0..4u8 {
-            m.append_permission(&[i; 32], (i as u64) + 1, 0, &[]).unwrap();
+            m.append_permission(&[i; 32], (i as u64) + 1, 0, &[])
+                .unwrap();
         }
 
         // drop index 1; the last one ([3; 32]) slides into slot 1

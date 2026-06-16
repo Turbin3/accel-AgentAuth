@@ -22,6 +22,7 @@ pub enum MandateError {
     InvalidInstructionData = 15,
     InvalidAccountType = 16,
     UnknownAgent = 17,
+    InvalidSigner = 18,
 }
 
 impl From<MandateError> for ProgramError {

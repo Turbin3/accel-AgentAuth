@@ -18,13 +18,14 @@ pub fn verify(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
         return Err(MandateError::InvalidInstructionData.into());
     }
 
-    let ptr = data.as_ptr();
-    let target_program_id: &[u8; 32] = unsafe { *(ptr as *const &[u8; 32]) };
-    let target_ix_disc: &[u8; 8] = unsafe { *(ptr.add(32) as *const &[u8; 8]) };
-    let amount_bytes: [u8; 8] = unsafe { *(ptr.add(40) as *const [u8; 8]) };
-    let amount = u64::from_le_bytes(amount_bytes);
+    let target_program_id: &[u8; 32] = data[0..32].try_into().unwrap();
+    let target_ix_disc: &[u8; 8] = data[32..40].try_into().unwrap();
+    let amount = u64::from_le_bytes(data[40..48].try_into().unwrap());
 
     // Parse accounts
+    if accounts.len() < 3 {
+        return Err(ProgramError::NotEnoughAccountKeys);
+    }
     let mandate_account = &accounts[0];
     let owner_account = &accounts[1];
     let agent_account = &accounts[2];
@@ -71,6 +72,11 @@ pub fn verify(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     // check if agent in mandate
     if agent_account.key() != mandate.agent() {
         return Err(MandateError::UnknownAgent.into());
+    }
+
+    //check if agent is signer
+    if !agent_account.is_signer() {
+        return Err(MandateError::InvalidSigner.into());
     }
 
     let permission_index = mandate
