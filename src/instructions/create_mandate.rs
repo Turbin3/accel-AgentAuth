@@ -10,18 +10,6 @@ use crate::MandateError;
 // TODO(P3): create + init the mandate PDA, write owner/agent/expiry, mark active.
 pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
 
-    /*
-    let [
-        owner_account,
-        agent_account,
-        mandate_pda,
-        _system_program
-    ] = accounts 
-    else {
-        return Err(MandateError::InvalidInstructionData.into());
-    };
-    */
-
     if accounts.len() < 3 {
         return Err(MandateError::InvalidInstructionData.into());
     }

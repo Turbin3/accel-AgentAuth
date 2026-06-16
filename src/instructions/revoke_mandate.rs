@@ -6,16 +6,6 @@ use crate::MandateError;
 // TODO(P4): owner-only; flip active to false so every later verify fails.
 pub fn revoke_mandate(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
 
-    /*
-    let [
-        owner_account,
-        mandate_pda,
-    ] = accounts 
-    else {
-        return Err(MandateError::InvalidInstructionData.into());
-    };
-    */
-
     if accounts.len() < 2 {
         return Err(MandateError::InvalidInstructionData.into());
     }

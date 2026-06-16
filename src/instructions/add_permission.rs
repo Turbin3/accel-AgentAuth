@@ -6,17 +6,6 @@ use crate::MandateError;
 // TODO(P3): owner-only; append a permission slot for a target program + limits.
 pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
 
-    /*
-    let [
-        owner_account,
-        mandate_pda,
-        _system_program
-    ] = accounts 
-    else {
-        return Err(MandateError::InvalidInstructionData.into());
-    };
-    */
-
     if accounts.len() < 2 {
         return Err(MandateError::InvalidInstructionData.into());
     }

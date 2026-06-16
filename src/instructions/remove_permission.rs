@@ -6,16 +6,6 @@ use crate::MandateError;
 // TODO(P4): owner-only; find the permission for a program and swap-remove it.
 pub fn remove_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
 
-    /*
-    let [
-        owner_account,
-        mandate_pda,
-    ] = accounts 
-    else {
-        return Err(MandateError::InvalidInstructionData.into());
-    };
-    */
-
     if accounts.len() < 2 {
         return Err(MandateError::InvalidInstructionData.into());
     }
