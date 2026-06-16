@@ -68,7 +68,7 @@ impl<'a> Mandate<'a> {
         u16::from_le_bytes(self.data[OFF_PERM_LEN..OFF_PERM_LEN + 2].try_into().unwrap()) as usize
     }
 
-    fn set_permissions_len(&mut self, n: usize) {
+    pub fn set_permissions_len(&mut self, n: usize) {
         self.data[OFF_PERM_LEN..OFF_PERM_LEN + 2].copy_from_slice(&(n as u16).to_le_bytes());
     }
 
