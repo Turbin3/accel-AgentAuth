@@ -26,8 +26,4 @@ cargo test write_golden -- --ignored
 
 ## Status
 
-Foundation only (P1): account layout, byte accessors, instruction dispatch, and
-the test harness are in place. The five instruction handlers in
-`src/instructions/` are stubs (`unimplemented!`) waiting on P2–P4.
-
 Program ID: `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if`
