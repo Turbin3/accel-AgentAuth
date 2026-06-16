@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-pinocchio = "0.9.3"
+pinocchio = { version = "0.9.3", features = ["cpi"] }
 pinocchio-pubkey = "0.3"
 
 [profile.release]
