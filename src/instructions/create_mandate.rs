@@ -1,4 +1,4 @@
-use crate::{ACCOUNT_SIZE, constants::{MANDATE_DISCRIMINATOR, MANDATE_SEED, OFF_ACTIVE, OFF_AGENT, OFF_DISC, OFF_EXPIRY, OFF_OWNER, OFF_PERM_LEN}, state::Mandate};
+use crate::{ACCOUNT_SIZE, constants::{MANDATE_DISCRIMINATOR, MANDATE_SEED, OFF_ACTIVE, OFF_AGENT, OFF_DISC, OFF_EXPIRY, OFF_OWNER, OFF_PERM_LEN}};
 use pinocchio::{ProgramResult, account_info::AccountInfo, program_error::ProgramError, pubkey::{Pubkey, find_program_address},
      sysvars::{Sysvar, rent::Rent}
     };
@@ -10,6 +10,7 @@ use crate::MandateError;
 // TODO(P3): create + init the mandate PDA, write owner/agent/expiry, mark active.
 pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
 
+    /*
     let [
         owner_account,
         agent_account,
@@ -19,6 +20,15 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
     else {
         return Err(MandateError::InvalidInstructionData.into());
     };
+    */
+
+    if accounts.len() < 3 {
+        return Err(MandateError::InvalidInstructionData.into());
+    }
+    let owner_account = &accounts[0];
+    let agent_account = &accounts[1];
+    let mandate_pda = &accounts[2];
+
 
     if !owner_account.is_signer() {
         return Err(MandateError::PermissionNotFound.into())
@@ -38,17 +48,21 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
 
     let mut mandate_data = mandate_pda.try_borrow_mut_data()?;
 
+    /*
     let mandate = Mandate::from_bytes(&mut mandate_data)?;
     if mandate.discriminator() == MANDATE_DISCRIMINATOR {
         return Err(MandateError::AlreadyInitialized.into())
     }
-
+    */
+    if mandate_data[OFF_DISC] == MANDATE_DISCRIMINATOR {
+        return Err(MandateError::AlreadyInitialized.into())
+    }
 
     if data.len() < 8 {
         return Err(MandateError::InvalidInstructionData.into());
     }
 
-    let expiry = unsafe { *(data.as_ptr() as *const &[u8; 32]) };
+    let expiry = unsafe { *(data.as_ptr() as *const &[u8; 8]) };
 
     let bump_arr = [bump];
     let signer_seeds = [

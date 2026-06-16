@@ -6,6 +6,7 @@ use crate::MandateError;
 // TODO(P4): owner-only; find the permission for a program and swap-remove it.
 pub fn remove_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
 
+    /*
     let [
         owner_account,
         mandate_pda,
@@ -13,6 +14,14 @@ pub fn remove_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[
     else {
         return Err(MandateError::InvalidInstructionData.into());
     };
+    */
+
+    if accounts.len() < 2 {
+        return Err(MandateError::InvalidInstructionData.into());
+    }
+    let owner_account = &accounts[0];
+    let mandate_pda = &accounts[1];
+
 
     if !owner_account.is_signer() {
         return Err(MandateError::PermissionNotFound.into())
@@ -33,7 +42,7 @@ pub fn remove_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[
         return Err(MandateError::NotActive.into());
     };
 
-    if owner_account.key() != mandate.owner() {
+    if owner_account.key().as_ref() != mandate.owner() {
         return Err(MandateError::NotOwner.into());
     };
 

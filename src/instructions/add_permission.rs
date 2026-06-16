@@ -6,7 +6,8 @@ use crate::MandateError;
 // TODO(P3): owner-only; append a permission slot for a target program + limits.
 pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
 
-        let [
+    /*
+    let [
         owner_account,
         mandate_pda,
         _system_program
@@ -14,6 +15,13 @@ pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
     else {
         return Err(MandateError::InvalidInstructionData.into());
     };
+    */
+
+    if accounts.len() < 2 {
+        return Err(MandateError::InvalidInstructionData.into());
+    }
+    let owner_account = &accounts[0];
+    let mandate_pda = &accounts[1];
 
     if !owner_account.is_signer() {
         return Err(MandateError::PermissionNotFound.into())
@@ -34,7 +42,7 @@ pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
         return Err(MandateError::NotActive.into());
     };
 
-    if owner_account.key() != mandate.owner() {
+    if owner_account.key().as_ref() != mandate.owner() {
         return Err(MandateError::NotOwner.into());
     };
 
@@ -47,23 +55,22 @@ pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
     let target_program = unsafe { &(data.as_ptr() as *const [u8; 32]).read_unaligned() };
     let spend_limit = unsafe { (data.as_ptr().add(32) as *const u64).read_unaligned() };
     let per_tx_limit = unsafe { (data.as_ptr().add(40) as *const u64).read_unaligned() };
-    //let discriminator: &[[u8; 8]] = unsafe { &(data.as_ptr().add(48) as *const [[u8; 8]]).read_unaligned() };
-    let disc_len = data[48];
+    let disc_len = data[48] as usize;
 
 
-    if disc_len > MAX_DISCRIMINATORS as u8 {
+    if disc_len > MAX_DISCRIMINATORS {
         return Err(MandateError::TooManyDiscriminators.into());
     }
 
-    let expected_len = 49 + (disc_len as usize * 8);
+    let expected_len = 49 + (disc_len * 8);
     if data.len() < expected_len {
         return Err(MandateError::InvalidInstructionData.into());
     }
 
-    let discriminator: &[[u8; 8]] = unsafe {
+    let discriminator = unsafe {
         core::slice::from_raw_parts(
             data.as_ptr().add(49) as *const [u8; 8],
-            disc_len as usize
+            disc_len
         )
     };
 
@@ -80,12 +87,6 @@ pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
     }
 
     let _ = mandate.append_permission(target_program, spend_limit, per_tx_limit, discriminator);
-
-    let next_len = (current_len as u16)
-        .checked_add(1)
-        .ok_or(MandateError::ArithmeticOverflow)?;
-
-    mandate.set_permissions_len(next_len as usize);
 
     Ok(())
 
