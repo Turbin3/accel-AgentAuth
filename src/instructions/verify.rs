@@ -1,7 +1,6 @@
-use crate::constants::{MANDATE_DISCRIMINATOR, MANDATE_SEED};
+use crate::constants::MANDATE_DISCRIMINATOR;
 use crate::error::MandateError;
 use crate::state::Mandate;
-use pinocchio::pubkey::find_program_address;
 use pinocchio::{
     account_info::AccountInfo,
     program_error::ProgramError,
@@ -31,18 +30,9 @@ pub fn verify(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let agent_account = &accounts[2];
 
     //validate accounts
-    let (expected_pda, _bump) = find_program_address(
-        &[
-            MANDATE_SEED,
-            owner_account.key().as_ref(),
-            agent_account.key().as_ref(),
-        ],
-        program_id,
-    );
-
-    if mandate_account.key() != &expected_pda {
+    if mandate_account.owner() != program_id {
         return Err(ProgramError::InvalidAccountData);
-    };
+    }
 
     let mut mandate_acc_data = mandate_account
         .try_borrow_mut_data()
