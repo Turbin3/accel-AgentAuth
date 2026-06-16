@@ -1,6 +1,9 @@
-use std::borrow::Cow::Owned;
-use crate::{constants::{MANDATE_DISCRIMINATOR, MANDATE_SEED}, state::Mandate};
-use pinocchio::{ProgramResult, cpi::{Seed, Signer}, account_info::AccountInfo, instruction::Signer, program_error::ProgramError, pubkey::{Pubkey, find_program_address}};
+use crate::{ACCOUNT_SIZE, constants::{MANDATE_DISCRIMINATOR, MANDATE_SEED, OFF_ACTIVE, OFF_AGENT, OFF_DISC, OFF_EXPIRY, OFF_OWNER, OFF_PERM_LEN}, state::Mandate};
+use pinocchio::{ProgramResult, account_info::AccountInfo, program_error::ProgramError, pubkey::{Pubkey, find_program_address},
+     sysvars::{Sysvar, rent::Rent}
+    };
+use pinocchio_system::instructions::CreateAccount;
+use pinocchio::instruction::{Seed, Signer};
 
 use crate::MandateError;
 
@@ -11,7 +14,7 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
         owner_account,
         agent_account,
         mandate_pda,
-        system_program
+        _system_program
     ] = accounts 
     else {
         return Err(MandateError::InvalidInstructionData.into());
@@ -21,7 +24,7 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
         return Err(MandateError::PermissionNotFound.into())
     }
 
-    let (expected_pda, _bump) = find_program_address(
+    let (expected_pda, bump) = find_program_address(
         &[
             MANDATE_SEED,
             owner_account.key().as_ref(),
@@ -45,17 +48,39 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
         return Err(MandateError::InvalidInstructionData.into());
     }
 
-    let expiry = unsafe { (data.as_ptr() as *const i64).read_unaligned() };
+    let expiry = unsafe { *(data.as_ptr() as *const &[u8; 32]) };
 
-
+    let bump_arr = [bump];
     let signer_seeds = [
         Seed::from(MANDATE_SEED),
         Seed::from(owner_account.key().as_ref()),
         Seed::from(agent_account.key().as_ref()),
-        Seed::from(bump_bytes.as_ref()),
+        Seed::from(&bump_arr),
     ];
+
     let signer = Signer::from(&signer_seeds);
 
 
-    unimplemented!("create_mandate: P3")
+    let rent = Rent::get()?.minimum_balance(ACCOUNT_SIZE);
+
+    CreateAccount {
+        from: owner_account,
+        to: mandate_pda,
+        lamports: rent,
+        space: ACCOUNT_SIZE as u64,
+        owner: program_id
+    }
+    .invoke_signed(&[signer])?;
+
+
+    mandate_data[OFF_DISC] = MANDATE_DISCRIMINATOR;
+    mandate_data[OFF_OWNER..OFF_OWNER + 32].copy_from_slice(owner_account.key().as_ref());
+    mandate_data[OFF_AGENT..OFF_AGENT + 32].copy_from_slice(agent_account.key().as_ref());
+    mandate_data[OFF_EXPIRY..OFF_EXPIRY + 8].copy_from_slice(expiry);
+    mandate_data[OFF_ACTIVE] = 1;
+    
+    mandate_data[OFF_PERM_LEN..OFF_PERM_LEN + 2].copy_from_slice(&0u16.to_le_bytes());
+
+    Ok(())
+
 }
