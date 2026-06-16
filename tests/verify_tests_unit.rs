@@ -3,7 +3,6 @@ mod tests {
     use std::i64;
 
     use agent_auth::state::Mandate;
-    use agent_auth::MandateError;
     use agent_auth::*;
     use pinocchio::account_info::AccountInfo;
 
