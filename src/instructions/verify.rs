@@ -47,6 +47,11 @@ pub fn verify(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> Pro
     let mut mandate_acc_data = mandate_account
         .try_borrow_mut_data()
         .map_err(|_| ProgramError::AccountBorrowFailed)?;
+
+    if !mandate_account.is_writable() {
+        return Err(ProgramError::InvalidAccountData);
+    }
+
     let mut mandate = Mandate::from_bytes(&mut mandate_acc_data)?;
 
     if mandate.discriminator() != MANDATE_DISCRIMINATOR {
