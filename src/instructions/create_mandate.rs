@@ -34,23 +34,25 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
         return Err(ProgramError::InvalidAccountData)
     }
 
-    let mut mandate_data = mandate_pda.try_borrow_mut_data()?;
 
     /*
-    let mandate = Mandate::from_bytes(&mut mandate_data)?;
-    if mandate.discriminator() == MANDATE_DISCRIMINATOR {
+    if mandate_data[OFF_DISC] == MANDATE_DISCRIMINATOR {
         return Err(MandateError::AlreadyInitialized.into())
     }
     */
-    if mandate_data[OFF_DISC] == MANDATE_DISCRIMINATOR {
-        return Err(MandateError::AlreadyInitialized.into())
+
+    if mandate_pda.owner() == program_id {
+        let mandate_data = mandate_pda.try_borrow_data()?;
+        if mandate_data.len() > OFF_DISC && mandate_data[OFF_DISC] == MANDATE_DISCRIMINATOR {
+            return Err(MandateError::AlreadyInitialized.into());
+        }
     }
 
     if data.len() < 8 {
         return Err(MandateError::InvalidInstructionData.into());
     }
 
-    let expiry = unsafe { *(data.as_ptr() as *const &[u8; 8]) };
+    let expiry = unsafe { *(data.as_ptr() as *const [u8; 8]) };
 
     let bump_arr = [bump];
     let signer_seeds = [
@@ -74,11 +76,12 @@ pub fn create_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
     }
     .invoke_signed(&[signer])?;
 
+    let mut mandate_data = mandate_pda.try_borrow_mut_data()?;
 
     mandate_data[OFF_DISC] = MANDATE_DISCRIMINATOR;
     mandate_data[OFF_OWNER..OFF_OWNER + 32].copy_from_slice(owner_account.key().as_ref());
     mandate_data[OFF_AGENT..OFF_AGENT + 32].copy_from_slice(agent_account.key().as_ref());
-    mandate_data[OFF_EXPIRY..OFF_EXPIRY + 8].copy_from_slice(expiry);
+    mandate_data[OFF_EXPIRY..OFF_EXPIRY + 8].copy_from_slice(&expiry);
     mandate_data[OFF_ACTIVE] = 1;
     
     mandate_data[OFF_PERM_LEN..OFF_PERM_LEN + 2].copy_from_slice(&0u16.to_le_bytes());
