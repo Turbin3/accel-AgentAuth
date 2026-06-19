@@ -47,7 +47,7 @@ fn revoke_returns_rent() {
     );
 }
 
-// Test that revoking a mandate then calling verify fails
+// Test that revoking a mandate then calling verify, fails
 #[test]
 fn revoke_then_verify_fails() {
     let Some((mut svm, owner)) = setup() else {

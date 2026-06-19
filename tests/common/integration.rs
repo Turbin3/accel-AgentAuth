@@ -49,7 +49,6 @@ pub fn mandate_pda(owner: &Pubkey, agent: &Pubkey) -> (Pubkey, u8) {
 }
 
 /// Seeds an active mandate with no permissions via `svm.set_account()`.
-/// Consistent with the approach in `verify_tests_integration.rs`.
 /// Returns the mandate PDA pubkey.
 pub fn seed_mandate(svm: &mut LiteSVM, owner: &Pubkey, agent: &Pubkey, active: bool) -> Pubkey {
     let (mandate, _) = mandate_pda(owner, agent);

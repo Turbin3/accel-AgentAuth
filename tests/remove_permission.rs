@@ -1,9 +1,3 @@
-//! State-layer unit tests for the `remove_permission` instruction (tag 2).
-//!
-//! These tests run against the in-memory `Mandate` API directly — no SBF
-//! binary, no LiteSVM, no network.  They prove the swap-remove algorithm
-//! is correct and that the "not found" guard fires at the right moment.
-
 #[cfg(test)]
 mod tests {
     use agent_auth::state::Mandate;

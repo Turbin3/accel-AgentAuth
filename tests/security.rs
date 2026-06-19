@@ -1,3 +1,4 @@
+//! Security-focused tests.  These are a mix of unit and integration tests
 #[cfg(test)]
 mod unit {
     use agent_auth::state::Mandate;
