@@ -255,7 +255,7 @@ mod tests {
 
 
     #[test]
-    fn test_create_already_initialized() {
+    fn test_create_already_init() {
         let mut setup = setup_create_mandate(30);
 
         let expiry_timestamp: u64 = 30 * 86400;
@@ -293,6 +293,53 @@ mod tests {
     }
 
 
+
+
+    #[test]
+    fn test_add_permission_unauthorized() {
+
+        let mut setup = setup_create_mandate(30);
+
+        let malicious_signer = Keypair::new();
+        setup.svm.airdrop(&malicious_signer.pubkey(), 1_000_000_000).unwrap();
+
+        let target_program = Pubkey::new_unique();
+        let discriminators = [[1, 2, 3, 4, 5, 6, 7, 8]];
+
+
+        let ix = Instruction {
+
+            program_id: program_id(),
+            accounts: vec![
+                AccountMeta::new(malicious_signer.pubkey(), true),
+                AccountMeta::new(setup.mandate, false),
+            ],
+
+            data: [
+                vec![1u8],
+                target_program.to_bytes().to_vec(),
+                1_000_000u64.to_le_bytes().to_vec(),
+                100_000u64.to_le_bytes().to_vec(),
+                vec![1u8],
+                discriminators[0].to_vec(),
+            ]
+            .concat(),
+        };
+
+
+        let blockhash = setup.svm.latest_blockhash();
+
+        let tx = Transaction::new(
+            &[&malicious_signer], 
+            Message::new(&[ix], Some(&malicious_signer.pubkey())), 
+            blockhash
+        );
+        
+        let res = setup.svm.send_transaction(tx);
+
+        assert!(res.is_err(), "Adding permission with a different owner must fail");
+
+    }
 
 
 }
