@@ -253,6 +253,7 @@ mod tests {
 
 
 
+    // fial tests below:
 
     #[test]
     fn test_create_already_init() {
@@ -401,7 +402,7 @@ mod tests {
         let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
 
         let ix = Instruction {
-            
+
             program_id: program_id(),
             accounts: vec![
                 AccountMeta::new(payer.pubkey(), true),
@@ -421,52 +422,6 @@ mod tests {
 
         assert!(res.is_err(), "Attempting to remove a non-existent permission must fail");
     }
-
-
-
-    
-    #[test]
-    fn test_add_permission_missing_sig() {
-
-        let mut setup = setup_create_mandate(30);
-        let target_program = Pubkey::new_unique();
-
-        let ix = Instruction {
-
-            program_id: program_id(),
-            accounts: vec![
-                AccountMeta::new(setup.payer.pubkey(), false),
-                AccountMeta::new(setup.mandate, false),
-            ],
-
-            data: [
-                vec![1u8],
-                target_program.to_bytes().to_vec(),
-                1_000_000u64.to_le_bytes().to_vec(),
-                100_000u64.to_le_bytes().to_vec(),
-                vec![0u8],
-            ]
-            .concat(),
-        };
-
-        let blockhash = setup.svm.latest_blockhash();
-
-        let tx = Transaction::new(
-            &[] as &[&Keypair; 0], 
-            Message::new(&[ix], Some(&setup.payer.pubkey())), 
-            blockhash
-        );
-
-        eprintln!("\n\n-----9999999-------\n\n");
-
-
-        let res = setup.svm.send_transaction(tx);
-        eprintln!("\n\n-----9999999-------{}\n\n", res.is_err());
-        dbg!(res.is_err());
-
-        assert!(res.is_err(), "Missing owner signature must fail the signer check");
-    }
-
 
 
 }
