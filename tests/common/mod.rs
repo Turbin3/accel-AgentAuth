@@ -1,8 +1,10 @@
 //! Shared helpers for building mandate account bytes in tests.
-//!
-//! Imported by everyone via `mod common;`: `MandateFixture` builds a valid
-//! 2136-byte account in memory, and `golden_fixture` / `assert_matches_golden`
-//! guard the byte layout against silent drift between people.
+
+pub mod integration;
+//
+// Imported by everyone via `mod common;`: `MandateFixture` builds a valid
+// 2136-byte account in memory, and `golden_fixture` / `assert_matches_golden`
+/// guard the byte layout against silent drift between people.
 
 use agent_auth::state::Mandate;
 use agent_auth::{ACCOUNT_SIZE, MANDATE_DISCRIMINATOR};
