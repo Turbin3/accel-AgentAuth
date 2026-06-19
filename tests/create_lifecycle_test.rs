@@ -216,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_and_remove_permission_lifecycle() {
+    fn test_add_and_remove_permission() {
 
         let setup = setup_create_mandate(30);
         let target_program = Pubkey::new_unique();
@@ -249,4 +249,50 @@ mod tests {
 
         assert_eq!(mandate.permissions_len(), 0);
     }
+
+
+
+
+
+    #[test]
+    fn test_create_already_initialized() {
+        let mut setup = setup_create_mandate(30);
+
+        let expiry_timestamp: u64 = 30 * 86400;
+
+        let ix = Instruction {
+            program_id: program_id(),
+
+            accounts: vec![
+                AccountMeta::new(setup.payer.pubkey(), true),
+                AccountMeta::new(setup.agent.pubkey(), true),
+                AccountMeta::new(setup.mandate, false),
+                AccountMeta::new_readonly(solana_pubkey::Pubkey::default(), false), 
+            ],
+
+            data: [
+                vec![0u8],
+                expiry_timestamp.to_le_bytes().to_vec(),
+            ]
+            .concat(),
+        };
+
+        let blockhash = setup.svm.latest_blockhash();
+
+        let tx = Transaction::new(
+
+            &[&setup.payer, &setup.agent], 
+            Message::new(&[ix], Some(&setup.payer.pubkey())), 
+            blockhash
+        );
+        
+        let res = setup.svm.send_transaction(tx);
+        
+        assert!(res.is_err(), "Double-initialization should be blocked by the discriminator check");
+    
+    }
+
+
+
+
 }
