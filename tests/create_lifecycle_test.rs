@@ -381,13 +381,46 @@ mod tests {
         };
 
         let blockhash = svm.latest_blockhash();
-        
+
         let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
         
         let res = svm.send_transaction(tx);
         assert!(res.is_err(), "Duplicate target permission should return InvalidInstructionData");
     }
 
+
+
+
+
+    #[test]
+    fn test_remove_non_permission() {
+
+        let setup = setup_create_mandate(30);
+        let target_program = Pubkey::new_unique();
+
+        let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
+
+        let ix = Instruction {
+            
+            program_id: program_id(),
+            accounts: vec![
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new(mandate, false),
+            ],
+            data: [
+                vec![2u8],
+                target_program.to_bytes().to_vec(),
+            ]
+            .concat(),
+        };
+
+        let blockhash = svm.latest_blockhash();
+        let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
+        
+        let res = svm.send_transaction(tx);
+
+        assert!(res.is_err(), "Attempting to remove a non-existent permission must fail");
+    }
 
 
 
