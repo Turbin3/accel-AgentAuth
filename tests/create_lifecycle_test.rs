@@ -342,6 +342,55 @@ mod tests {
     }
 
 
+
+
+
+    #[test]
+    fn test_add_duplicate_permission() {
+        let setup = setup_create_mandate(30);
+
+        let target_program = Pubkey::new_unique();
+
+        let discriminators = [[1, 2, 3, 4, 5, 6, 7, 8]];
+
+        let setup = add_permission(
+            setup,
+            target_program,
+            1_000_000,
+            100_000,
+            &discriminators,
+        );
+
+        let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
+
+        let ix = Instruction {
+            program_id: program_id(),
+            accounts: vec![
+                AccountMeta::new(payer.pubkey(), true),
+                AccountMeta::new(mandate, false),
+            ],
+            data: [
+                vec![1u8],
+                target_program.to_bytes().to_vec(),
+                1_000_000u64.to_le_bytes().to_vec(),
+                100_000u64.to_le_bytes().to_vec(),
+                vec![1u8],
+                discriminators[0].to_vec(),
+            ]
+            .concat(),
+        };
+
+        let blockhash = svm.latest_blockhash();
+        
+        let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
+        
+        let res = svm.send_transaction(tx);
+        assert!(res.is_err(), "Duplicate target permission should return InvalidInstructionData");
+    }
+
+
+
+
     
     #[test]
     fn test_add_permission_missing_sig() {
@@ -375,7 +424,12 @@ mod tests {
             blockhash
         );
 
+        eprintln!("\n\n-----9999999-------\n\n");
+
+
         let res = setup.svm.send_transaction(tx);
+        eprintln!("\n\n-----9999999-------{}\n\n", res.is_err());
+        dbg!(res.is_err());
 
         assert!(res.is_err(), "Missing owner signature must fail the signer check");
     }
