@@ -180,7 +180,7 @@ fn remove_permission(
     let blockhash = svm.latest_blockhash();
     let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
     let meta = svm.send_transaction(tx).expect("Add permissions instruction failed");
-    println!("Add permissions CU: {}", meta.compute_units_consumed);
+    println!("Remove permissions CU: {}", meta.compute_units_consumed);
 
     MandateSetup {
         svm,
