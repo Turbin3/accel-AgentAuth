@@ -1,27 +1,7 @@
-//! Integration tests for the `revoke_mandate` instruction (tag 4).
-//!
-//! These tests require the compiled SBF binary.  They are silently skipped
-//! when `target/deploy/agent_auth.so` (or $AGENT_AUTH_SO) is not found.
-//!
-//! Tests
-//! ─────
-//!   revoke_returns_rent      — lamports → 0, data → zeros, owner balance rises
-//!   revoke_then_verify_fails — a closed mandate stops the agent cold
-
 mod common;
 use common::integration::*;
 
-// ──────────────────────────────────────────────────────────────────────────
-// Test 1 — revoke_returns_rent
-// ──────────────────────────────────────────────────────────────────────────
-/// After a successful revoke:
-///   • mandate account lamports == 0
-///   • all 2136 data bytes == 0
-///   • owner balance rose by ≥ (rent − small tx fee)
-///
-/// Why it matters: if rent were not returned the owner permanently loses SOL;
-/// if data were not zeroed an agent could still present the account to verify.
-#[ignore = "failing"]
+/// Test that revoking a mandate returns the rent to the owner.
 #[test]
 fn revoke_returns_rent() {
     let Some((mut svm, owner)) = setup() else {
@@ -67,14 +47,7 @@ fn revoke_returns_rent() {
     );
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// Test 2 — revoke_then_verify_fails
-// ──────────────────────────────────────────────────────────────────────────
-/// After revoke, any subsequent `verify` call against the same PDA must fail.
-///
-/// Why it matters: this is the core invariant of revocation — the agent must
-/// be stopped immediately and permanently with no path back through verify.
-#[ignore = "failing"]
+// Test that revoking a mandate then calling verify fails
 #[test]
 fn revoke_then_verify_fails() {
     let Some((mut svm, owner)) = setup() else {

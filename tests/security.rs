@@ -1,20 +1,3 @@
-//! Security / negative matrix — P4 sprint.
-//!
-//! Proves the program fails closed on every abuse vector.  A security model
-//! is only real if every failure path is tested; this file is that proof.
-//!
-//! Unit / state-layer (always run, no binary needed)
-//! ──────────────────────────────────────────────────
-//!   sec_overflow_spend_total_no_wrap
-//!   sec_type_confusion_rejects_wrong_discriminator
-//!
-//! Integration (auto-skip when .so is absent)
-//! ──────────────────────────────────────────
-//!   sec_reinit_rejects
-//!   sec_signer_check_owner_ix
-
-// ── unit / state-layer section ────────────────────────────────────────────
-
 #[cfg(test)]
 mod unit {
     use agent_auth::state::Mandate;

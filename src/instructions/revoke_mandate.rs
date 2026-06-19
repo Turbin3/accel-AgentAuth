@@ -5,12 +5,10 @@ use crate::{
 };
 use pinocchio::{
     account_info::AccountInfo,
-    instruction::{Seed, Signer},
     program_error::ProgramError,
     pubkey::Pubkey,
     ProgramResult,
 };
-use pinocchio_system::instructions::Transfer;
 
 pub fn revoke_mandate(
     program_id: &Pubkey,
@@ -68,7 +66,7 @@ pub fn revoke_mandate(
 
     // Re-derive the PDA — prevents passing an arbitrary account whose stored
     // owner field was crafted to match.
-    let (expected_pda, bump) = pinocchio::pubkey::find_program_address(
+    let (expected_pda, _) = pinocchio::pubkey::find_program_address(
         &[MANDATE_SEED, owner_account.key().as_ref(), &stored_agent],
         program_id,
     );
@@ -76,34 +74,26 @@ pub fn revoke_mandate(
         return Err(ProgramError::InvalidAccountData);
     }
 
-    // ── close: zero data then drain lamports ───────────────────────────────
+    // ── close: transfer lamports directly and zero data ───────────────────
+    let rent_lamports = mandate_pda.lamports();
+    {
+        let mut owner_lamps = owner_account.try_borrow_mut_lamports()?;
+        *owner_lamps = owner_lamps
+            .checked_add(rent_lamports)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+    }
+    {
+        let mut pda_lamps = mandate_pda.try_borrow_mut_lamports()?;
+        *pda_lamps = 0;
+    }
 
-    // 1. Zero every byte — no lingering readable state.
+    // Zero every byte — no lingering readable state.
     {
         let mut data = mandate_pda
             .try_borrow_mut_data()
             .map_err(|_| ProgramError::AccountBorrowFailed)?;
         data.fill(0);
-    } // data borrow dropped before CPI
-
-    // 2. Return the full rent to the owner via system-program Transfer CPI,
-    //    signed by the mandate PDA using its derivation seeds + bump.
-    let rent_lamports = mandate_pda.lamports();
-    let bump_arr = [bump];
-    let signer_seeds = [
-        Seed::from(MANDATE_SEED),
-        Seed::from(owner_account.key().as_ref()),
-        Seed::from(&stored_agent[..]),
-        Seed::from(&bump_arr[..]),
-    ];
-    let signer = Signer::from(&signer_seeds);
-
-    Transfer {
-        from: mandate_pda,
-        to: owner_account,
-        lamports: rent_lamports,
     }
-    .invoke_signed(&[signer])?;
 
     Ok(())
 }
