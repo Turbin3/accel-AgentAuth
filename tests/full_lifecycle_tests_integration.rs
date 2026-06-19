@@ -1,24 +1,9 @@
-//! Day-3 end-to-end integration test.
-//!
-//! Exercises the complete mandate lifecycle in a single LiteSVM transaction
-//! sequence, proving that every instruction interacts correctly with every other:
-//!
-//!   seed → add_permission
-//!        → verify (ok, within spend_limit)
-//!        → verify (reject, spend_limit exceeded)
-//!        → remove_permission → verify (ProgramNotAllowed)
-//!        → revoke_mandate    → verify (closed account fails)
-//!
-//! This is the "green on devnet" gate for the P4 sprint.
-//! The test is skipped automatically when the SBF binary is not built.
-
+//! Full lifecycle integration test: seed → add → verify (ok) → verify (reject) → remove → revoke → verify (fail)
 mod common;
 use common::integration::*;
 
-/// Full mandate lifecycle — all 7 steps must succeed (or fail) exactly as specified.
-#[ignore = "failing: revoke_mandate InvalidArgument bug"]
 #[test]
-fn day3_full_lifecycle() {
+fn full_lifecycle() {
     let Some((mut svm, owner)) = setup() else {
         return;
     };
@@ -27,15 +12,9 @@ fn day3_full_lifecycle() {
     let target = Pubkey::new_unique();
 
     // ── 1. SEED: create active mandate with no permissions ─────────────────
-    //
-    // Uses svm.set_account() consistent with verify_tests_integration.rs.
-    // (create_mandate CPI is tested separately in sec_reinit_rejects.)
     let mandate = seed_mandate(&mut svm, &owner.pubkey(), &agent.pubkey(), true);
 
     // ── 2. ADD: one permission — spend_limit=500, per_tx=0 (unlimited) ─────
-    //
-    // per_tx=0 means the per-transaction cap is disabled, so only the
-    // cumulative spend_limit gates the total.
     send(
         &mut svm,
         &[&owner],
@@ -66,8 +45,6 @@ fn day3_full_lifecycle() {
     .expect("step 3 (verify ok) must succeed; spend_total becomes 200");
 
     // ── 4. VERIFY (reject): amount=400; 200+400=600 > 500 ─────────────────
-    //
-    // Expected: SpendLimitExceeded = Custom(9)
     let err = send(
         &mut svm,
         &[&owner, &agent],
@@ -157,5 +134,5 @@ fn day3_full_lifecycle() {
         "step 7: verify must fail on a closed mandate"
     );
 
-    println!("Day-3 lifecycle: all 7 steps passed ✓");
+    println!("full lifecycle: all 7 steps passed ✓");
 }
