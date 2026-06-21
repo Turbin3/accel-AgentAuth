@@ -1,5 +1,5 @@
 use crate::{constants::{MANDATE_DISCRIMINATOR, MAX_DISCRIMINATORS, MAX_PERMISSIONS}, state::Mandate};
-use pinocchio::{ProgramResult, account_info::AccountInfo, pubkey::{Pubkey}
+use pinocchio::{ProgramResult, account_info::AccountInfo, pubkey::{Pubkey}, program_error::ProgramError
     };
 use crate::MandateError;
 
@@ -18,6 +18,10 @@ pub fn add_permission(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]
 
     if mandate_pda.owner() != program_id {
         return Err(MandateError::InvalidAccountType.into());
+    }
+
+    if !mandate_pda.is_writable() {
+        return Err(ProgramError::InvalidAccountData);
     }
 
     let mut mandate_data = mandate_pda.try_borrow_mut_data()?;
