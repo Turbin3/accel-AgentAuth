@@ -35,7 +35,7 @@ cargo test write_golden -- --ignored
 ## Devnet tests
 
 `tests/devnet.rs` drives the live program over RPC: the full lifecycle
-(create → add → verify → remove → revoke) plus the reject path for every
+(create, add, verify, remove, revoke) plus the reject path for every
 handler. They're `#[ignore]` by default; run them with a funded payer keypair:
 
 ```sh
