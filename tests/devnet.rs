@@ -13,7 +13,7 @@ mod common;
 
 use common::integration::{
     add_permission_ix, create_mandate_ix, mandate_pda, remove_permission_ix, revoke_mandate_ix,
-    verify_ix, Instruction, Keypair, Message, Pubkey, Signer, Transaction, DISC,
+    verify_ix, Instruction, Keypair, Message, Pubkey, Signer, Transaction,
 };
 // layout constants come through integration's `pub use agent_auth::*`
 use common::integration::{
@@ -26,8 +26,10 @@ use solana_keypair::read_keypair_file;
 use solana_rpc_client::rpc_client::RpcClient;
 
 const DEVNET: &str = "https://api.devnet.solana.com";
-// A real devnet program, used as the permission target.
-const TOKEN_PROGRAM: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+// Permission target: Jupiter v6 aggregator (a real anchor program). ROUTE_DISC
+// is its real `route` discriminator, sha256("global:route")[..8].
+const JUPITER: &str = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
+const ROUTE_DISC: [u8; 8] = [0xe5, 0x17, 0xcb, 0x97, 0x7a, 0xe3, 0xad, 0x2a];
 
 fn client() -> RpcClient {
     RpcClient::new_with_commitment(DEVNET.to_string(), CommitmentConfig::confirmed())
@@ -74,7 +76,7 @@ fn devnet_full_lifecycle() {
     let c = client();
     let owner = payer();
     let agent = Keypair::new(); // signs verify; never funded (not the fee-payer)
-    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+    let jupiter: Pubkey = JUPITER.parse().unwrap();
     let (mandate, _bump) = mandate_pda(&owner.pubkey(), &agent.pubkey());
 
     let far_future = 4_000_000_000i64;
@@ -91,18 +93,18 @@ fn devnet_full_lifecycle() {
     assert_eq!(d[OFF_ACTIVE], 1);
     assert_eq!(perm_len(&d), 0);
 
-    // add a permission for the token program
+    // add a permission for the jupiter program
     send(&c, &owner, &[&owner],
-        &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &token, spend_limit, per_tx, &[DISC])])
+        &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &jupiter, spend_limit, per_tx, &[ROUTE_DISC])])
         .expect("add_permission failed");
     let d = account_data(&c, &mandate);
     assert_eq!(perm_len(&d), 1);
     let p0 = HEADER_SIZE;
-    assert_eq!(&d[p0 + P_PROGRAM_ID..p0 + P_PROGRAM_ID + 32], token.as_ref());
+    assert_eq!(&d[p0 + P_PROGRAM_ID..p0 + P_PROGRAM_ID + 32], jupiter.as_ref());
 
     // happy verify (agent signs)
     send(&c, &owner, &[&owner, &agent],
-        &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &DISC, 50_000)])
+        &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &jupiter, &ROUTE_DISC, 50_000)])
         .expect("verify happy path failed");
     let d = account_data(&c, &mandate);
     let spend = u64::from_le_bytes(d[p0 + P_SPEND_TOTAL..p0 + P_SPEND_TOTAL + 8].try_into().unwrap());
@@ -114,26 +116,26 @@ fn devnet_full_lifecycle() {
     // per-tx limit exceeded (8)
     assert_custom(
         send(&c, &owner, &[&owner, &agent],
-            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &DISC, 200_000)]),
+            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &jupiter, &ROUTE_DISC, 200_000)]),
         8,
     );
     // program not in the allow-list (6)
     let stranger = Pubkey::new_unique();
     assert_custom(
         send(&c, &owner, &[&owner, &agent],
-            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &stranger, &DISC, 1)]),
+            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &stranger, &ROUTE_DISC, 1)]),
         6,
     );
     // discriminator not allowed (7)
     assert_custom(
         send(&c, &owner, &[&owner, &agent],
-            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &[9; 8], 1)]),
+            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &jupiter, &[9; 8], 1)]),
         7,
     );
 
     // second verify, writeback should accumulate
     send(&c, &owner, &[&owner, &agent],
-        &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &DISC, 50_000)])
+        &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &jupiter, &ROUTE_DISC, 50_000)])
         .expect("second verify failed");
     let d = account_data(&c, &mandate);
     let spend = u64::from_le_bytes(d[p0 + P_SPEND_TOTAL..p0 + P_SPEND_TOTAL + 8].try_into().unwrap());
@@ -143,13 +145,13 @@ fn devnet_full_lifecycle() {
 
     // remove the permission
     send(&c, &owner, &[&owner],
-        &[remove_permission_ix(&owner.pubkey(), &agent.pubkey(), &token)])
+        &[remove_permission_ix(&owner.pubkey(), &agent.pubkey(), &jupiter)])
         .expect("remove_permission failed");
     assert_eq!(perm_len(&account_data(&c, &mandate)), 0);
     // verify now fails: program no longer allowed (6)
     assert_custom(
         send(&c, &owner, &[&owner, &agent],
-            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &DISC, 1)]),
+            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &jupiter, &ROUTE_DISC, 1)]),
         6,
     );
 
@@ -195,17 +197,17 @@ fn devnet_add_rejects_duplicate() {
     let c = client();
     let owner = payer();
     let agent = Keypair::new();
-    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+    let jupiter: Pubkey = JUPITER.parse().unwrap();
 
     send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 4_000_000_000)])
         .expect("create failed");
     send(&c, &owner, &[&owner],
-        &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &token, 1_000_000, 100_000, &[DISC])])
+        &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &jupiter, 1_000_000, 100_000, &[ROUTE_DISC])])
         .expect("add failed");
     // same target program a second time -> rejected (0xf)
     assert_custom(
         send(&c, &owner, &[&owner],
-            &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &token, 1, 1, &[DISC])]),
+            &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &jupiter, 1, 1, &[ROUTE_DISC])]),
         0xf,
     );
     send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
@@ -217,13 +219,13 @@ fn devnet_remove_rejects_missing() {
     let c = client();
     let owner = payer();
     let agent = Keypair::new();
-    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+    let jupiter: Pubkey = JUPITER.parse().unwrap();
 
     send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 4_000_000_000)])
         .expect("create failed");
     // nothing was ever added -> PermissionNotFound (0xc)
     assert_custom(
-        send(&c, &owner, &[&owner], &[remove_permission_ix(&owner.pubkey(), &agent.pubkey(), &token)]),
+        send(&c, &owner, &[&owner], &[remove_permission_ix(&owner.pubkey(), &agent.pubkey(), &jupiter)]),
         0xc,
     );
     send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
@@ -235,7 +237,7 @@ fn devnet_verify_rejects_expired() {
     let c = client();
     let owner = payer();
     let agent = Keypair::new();
-    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+    let jupiter: Pubkey = JUPITER.parse().unwrap();
     let (mandate, _) = mandate_pda(&owner.pubkey(), &agent.pubkey());
 
     // expiry in the past; verify checks expiry before touching permissions
@@ -243,7 +245,7 @@ fn devnet_verify_rejects_expired() {
         .expect("create failed");
     assert_custom(
         send(&c, &owner, &[&owner, &agent],
-            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &DISC, 1)]),
+            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &jupiter, &ROUTE_DISC, 1)]),
         5,
     );
     send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
