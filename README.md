@@ -132,13 +132,17 @@ fixtures/
 
 ## Build & Test
 
-```sh
-# Host unit + layout tests
-cargo test
+Build the on-chain program first, then run the tests:
 
-# On-chain build
-cargo build-sbf
+```sh
+cargo build-sbf      # compile the program -> target/deploy/agent_auth.so
+cargo test           # host unit + layout + litesvm integration tests
 ```
+
+Order matters: the litesvm integration tests load the compiled
+`target/deploy/agent_auth.so`, and `cargo test` does not rebuild it. If you skip
+`cargo build-sbf` after changing a handler, you'll run stale bytecode (an old
+build can panic in a handler that's actually fine in source).
 
 If you change the account layout, regenerate the golden fixture:
 
