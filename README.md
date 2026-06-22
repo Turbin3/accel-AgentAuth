@@ -1,4 +1,5 @@
 <!-- System Architecture Diagram -->
+
 ![AgentAuth Overview](assets/overview.png)
 
 # AgentAuth
@@ -11,11 +12,11 @@ Solana has authentication — keypair signing. What it lacks is **authorization*
 
 ## Deployment
 
-| | |
-|---|---|
-| Program ID | `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if` |
-| Cluster | devnet |
-| Explorer | [view on Solana Explorer](https://explorer.solana.com/address/AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if?cluster=devnet) |
+|            |                                                                                                                            |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Program ID | `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if`                                                                             |
+| Cluster    | devnet                                                                                                                     |
+| Explorer   | [view on Solana Explorer](https://explorer.solana.com/address/AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if?cluster=devnet) |
 
 ---
 
@@ -30,13 +31,13 @@ Solana has authentication — keypair signing. What it lacks is **authorization*
 
 ## Instructions
 
-| # | Instruction | Signer | Description |
-|---|-------------|--------|-------------|
-| 0 | `create_mandate` | Owner | Initialise AgentMandate PDA for a given agent |
-| 1 | `add_permission` | Owner | Append a program + discriminators + spend limits entry |
-| 2 | `remove_permission` | Owner | Swap-remove a permission entry by program ID |
-| 3 | `verify` | Any (CPI) | Validate mandate and record spend; returns `Ok` or `Err` |
-| 4 | `revoke_mandate` | Owner | Close the PDA, reclaim rent, terminate all authority |
+| #   | Instruction         | Signer    | Description                                              |
+| --- | ------------------- | --------- | -------------------------------------------------------- |
+| 0   | `create_mandate`    | Owner     | Initialise AgentMandate PDA for a given agent            |
+| 1   | `add_permission`    | Owner     | Append a program + discriminators + spend limits entry   |
+| 2   | `remove_permission` | Owner     | Swap-remove a permission entry by program ID             |
+| 3   | `verify`            | Any (CPI) | Validate mandate and record spend; returns `Ok` or `Err` |
+| 4   | `revoke_mandate`    | Owner     | Close the PDA, reclaim rent, terminate all authority     |
 
 ---
 
@@ -120,12 +121,12 @@ fixtures/
 
 ## Why Pinocchio, Not Anchor
 
-| | Pinocchio (AgentAuth) | Anchor |
-|---|---|---|
-| Account reads | Direct byte offsets | Full deserialization |
-| CU cost (verify) | ~1,500–2,500 | ~5,000–10,000+ |
-| Discriminator overhead | 1-byte `u8` tag | 8-byte prefix |
-| Code transparency | Line-by-line, no macros | Macro-generated |
+|                        | Pinocchio (AgentAuth)   | Anchor               |
+| ---------------------- | ----------------------- | -------------------- |
+| Account reads          | Direct byte offsets     | Full deserialization |
+| CU cost (verify)       | ~1,500–2,500            | ~5,000–10,000+       |
+| Discriminator overhead | 1-byte `u8` tag         | 8-byte prefix        |
+| Code transparency      | Line-by-line, no macros | Macro-generated      |
 
 ---
 
@@ -157,32 +158,24 @@ AA_PAYER=payer.json cargo test --test devnet -- --ignored
 
 ---
 
-## Honest Limitations
-
-- **Unaudited prototype.** Squads v4 is formally verified (Certora), audited (OtterSec), and secures $10B+. On security maturity, that wins unconditionally.
-- **Bypass is possible without framework adoption.** AgentAuth cannot intercept arbitrary transactions from a keypair. Enforcement requires agent frameworks routing through `verify`, or target protocols integrating the CPI hook — the same model as SPL token approve.
-- **No rolling time-window resets yet.** Spend limits are lifetime-only in v1. Period resets require a keeper bot and are a v2 consideration.
-
----
-
 ## Roadmap
 
-| Phase | Scope |
-|-------|-------|
-| **Phase 1 — Core Protocol** *(current)* | Onchain program, fixed-size layout, all 5 instructions, devnet deployment, integration tests |
-| **Phase 2 — Integration Surface** | TypeScript SDK, CLI, reference Jupiter integration, documentation |
-| **Phase 3 — Agent Accessibility** | MCP server exposing `get_mandate`, `check_permission`, `create_mandate`, `revoke_mandate` as LLM tools |
-| **Phase 4 — Future** | Rolling spend-window resets, agent-to-agent sub-delegation, target protocol CPI integrations, formal audit |
+| Phase                                   | Scope                                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Phase 1 — Core Protocol** _(current)_ | Onchain program, fixed-size layout, all 5 instructions, devnet deployment, integration tests               |
+| **Phase 2 — Integration Surface**       | TypeScript SDK, CLI, reference Jupiter integration, documentation                                          |
+| **Phase 3 — Agent Accessibility**       | MCP server exposing `get_mandate`, `check_permission`, `create_mandate`, `revoke_mandate` as LLM tools     |
+| **Phase 4 — Future**                    | Rolling spend-window resets, agent-to-agent sub-delegation, target protocol CPI integrations, formal audit |
 
 ---
 
 ## Tech Stack
 
-| Layer | Stack |
-|-------|-------|
-| Program | Pinocchio 0.9, pinocchio-system 0.4, `no_std` |
-| Testing | LiteSVM 0.12 (integration), Rust unit tests |
-| Build | `cargo build-sbf`, `overflow-checks = true`, LTO fat |
+| Layer   | Stack                                                |
+| ------- | ---------------------------------------------------- |
+| Program | Pinocchio 0.9, pinocchio-system 0.4, `no_std`        |
+| Testing | LiteSVM 0.12 (integration), Rust unit tests          |
+| Build   | `cargo build-sbf`, `overflow-checks = true`, LTO fat |
 
 ---
 
