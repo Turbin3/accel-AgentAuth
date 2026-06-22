@@ -24,6 +24,22 @@ If you change the account layout, regenerate the golden fixture:
 cargo test write_golden -- --ignored
 ```
 
-## Status
+## Deployment (devnet)
 
-Program ID: `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if`
+| | |
+|---|---|
+| Program ID | `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if` |
+| Cluster | devnet |
+| Explorer | [view](https://explorer.solana.com/address/AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if?cluster=devnet) |
+
+## Devnet tests
+
+`tests/devnet.rs` drives the live program over RPC: the full lifecycle
+(create → add → verify → remove → revoke) plus the reject path for every
+handler. They're `#[ignore]` by default; run them with a funded payer keypair:
+
+```sh
+AA_PAYER=payer.json cargo test --test devnet -- --ignored
+```
+
+![devnet tests passing](assets/devnet-tests.png)

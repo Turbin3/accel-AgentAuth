@@ -171,3 +171,80 @@ fn devnet_dispatch_rejects_unknown_tag() {
     let ix = Instruction::new_with_bytes(common::integration::program_id(), &[9u8], vec![]);
     assert_custom(send(&c, &owner, &[&owner], &[ix]), 1);
 }
+
+#[test]
+#[ignore = "hits live devnet; needs AA_PAYER"]
+fn devnet_create_rejects_already_initialized() {
+    let c = client();
+    let owner = payer();
+    let agent = Keypair::new();
+
+    send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 4_000_000_000)])
+        .expect("first create failed");
+    // creating the same (owner, agent) mandate again -> AlreadyInitialized (3)
+    assert_custom(
+        send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 4_000_000_000)]),
+        3,
+    );
+    send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
+}
+
+#[test]
+#[ignore = "hits live devnet; needs AA_PAYER"]
+fn devnet_add_rejects_duplicate() {
+    let c = client();
+    let owner = payer();
+    let agent = Keypair::new();
+    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+
+    send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 4_000_000_000)])
+        .expect("create failed");
+    send(&c, &owner, &[&owner],
+        &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &token, 1_000_000, 100_000, &[DISC])])
+        .expect("add failed");
+    // same target program a second time -> rejected (0xf)
+    assert_custom(
+        send(&c, &owner, &[&owner],
+            &[add_permission_ix(&owner.pubkey(), &agent.pubkey(), &token, 1, 1, &[DISC])]),
+        0xf,
+    );
+    send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
+}
+
+#[test]
+#[ignore = "hits live devnet; needs AA_PAYER"]
+fn devnet_remove_rejects_missing() {
+    let c = client();
+    let owner = payer();
+    let agent = Keypair::new();
+    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+
+    send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 4_000_000_000)])
+        .expect("create failed");
+    // nothing was ever added -> PermissionNotFound (0xc)
+    assert_custom(
+        send(&c, &owner, &[&owner], &[remove_permission_ix(&owner.pubkey(), &agent.pubkey(), &token)]),
+        0xc,
+    );
+    send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
+}
+
+#[test]
+#[ignore = "hits live devnet; needs AA_PAYER"]
+fn devnet_verify_rejects_expired() {
+    let c = client();
+    let owner = payer();
+    let agent = Keypair::new();
+    let token: Pubkey = TOKEN_PROGRAM.parse().unwrap();
+    let (mandate, _) = mandate_pda(&owner.pubkey(), &agent.pubkey());
+
+    // expiry in the past; verify checks expiry before touching permissions
+    send(&c, &owner, &[&owner], &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), 1_600_000_000)])
+        .expect("create failed");
+    assert_custom(
+        send(&c, &owner, &[&owner, &agent],
+            &[verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &token, &DISC, 1)]),
+        5,
+    );
+    send(&c, &owner, &[&owner], &[revoke_mandate_ix(&owner.pubkey(), &agent.pubkey())]).expect("cleanup");
+}
