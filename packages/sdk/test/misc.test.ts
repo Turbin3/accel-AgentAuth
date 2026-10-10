@@ -16,6 +16,7 @@ import {
   MAX_TRANSACTION_SIZE,
   MOCK_AMM_PROGRAM_ID,
   NATIVE_MINT,
+  NATIVE_MINT_2022,
   PERMISSION_SIZE,
   POLICY_CONFIG_OFFSET,
   POLICY_CONFIG_SIZE,
@@ -102,6 +103,7 @@ describe('constants match the IDLs', () => {
     expect(TOKEN_2022_PROGRAM_ID).toBe(c.programIds.token2022)
     expect(SYSTEM_PROGRAM_ID).toBe(c.programIds.system)
     expect(NATIVE_MINT).toBe(c.programIds.nativeMint)
+    expect(NATIVE_MINT_2022).toBe(c.programIds.nativeMint2022)
     expect(AGENT_AUTH_PROGRAM_ID).toBe(c.programIds.agentAuth)
     expect(RAYDIUM_CPMM_MAINNET_PROGRAM_ID).toBe(c.programIds.raydiumCpmmMainnet)
     expect(RAYDIUM_CPMM_DEVNET_PROGRAM_ID).toBe(c.programIds.raydiumCpmmDevnet)
@@ -221,6 +223,10 @@ describe('policy config validation (RELAY-SPEC 5.2)', () => {
   it('a sound config (including in_account == source with matching mint) is valid', () => {
     expect(validateRelayPolicyConfig(base)).toEqual([])
   })
+  it('refuses both native (wrapped SOL) mints as budget mint, as the relay does (error 113)', () => {
+    expect(problems({ ...base, budgetMint: NATIVE_MINT })).toMatch(/native/)
+    expect(problems({ ...base, budgetMint: NATIVE_MINT_2022 })).toMatch(/native/)
+  })
   it('swap rules', () => {
     const s = (over: object): RelayPolicyConfig => ({ ...base, swap: { ...swapBase, ...over } })
     expect(problems(s({ ammProgram: fakeAddress(1) }))).toMatch(/allowlist/)
@@ -228,6 +234,7 @@ describe('policy config validation (RELAY-SPEC 5.2)', () => {
       /inputVault must differ from outputVault/,
     )
     expect(problems(s({ inMint: NATIVE_MINT }))).toMatch(/native/)
+    expect(problems(s({ inMint: NATIVE_MINT_2022 }))).toMatch(/native/)
     expect(problems(s({ outMint: swapBase.inMint }))).toMatch(/inMint must differ from outMint/)
     expect(problems(s({ floorOut: 0n }))).toMatch(/floorOut/)
     expect(problems(s({ floorIn: 0n }))).toMatch(/floorIn/)

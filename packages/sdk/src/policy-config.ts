@@ -6,6 +6,7 @@ import {
   MAX_RECIPIENTS,
   MOCK_AMM_PROGRAM_ID,
   NATIVE_MINT,
+  NATIVE_MINT_2022,
   POLICY_CONFIG_SIZE,
   POLICY_FLAG_PAUSED,
   POLICY_FLAG_STRICT_TOP_LEVEL,
@@ -105,8 +106,8 @@ export function validateRelayPolicyConfig(
     problems.push('tokenProgram must be the Token or Token-2022 program id')
   }
   if (zero(config.budgetMint)) problems.push('budgetMint must be non-zero')
-  if (config.budgetMint === NATIVE_MINT)
-    problems.push('budgetMint must not be the native (wrapped SOL) mint')
+  if (config.budgetMint === NATIVE_MINT || config.budgetMint === NATIVE_MINT_2022)
+    problems.push('budgetMint must not be a native (wrapped SOL) mint (classic or Token-2022)')
   if (zero(config.sourceAccount)) problems.push('sourceAccount must be non-zero')
 
   if (config.recipients.length > MAX_RECIPIENTS) {
@@ -186,7 +187,8 @@ function validateSwap(
   ]
   for (const [label, key] of mustBeNonZero) if (zero(key)) p.push(`${label} must be non-zero`)
   if (swap.inputVault === swap.outputVault) p.push('inputVault must differ from outputVault')
-  if (swap.inMint === NATIVE_MINT) p.push('inMint must not be the native (wrapped SOL) mint')
+  if (swap.inMint === NATIVE_MINT || swap.inMint === NATIVE_MINT_2022)
+    p.push('inMint must not be a native (wrapped SOL) mint (classic or Token-2022)')
   if (swap.inMint === swap.outMint) p.push('inMint must differ from outMint')
   if (!TOKEN_PROGRAMS.includes(swap.inTokenProgram))
     p.push('inTokenProgram must be Token or Token-2022')

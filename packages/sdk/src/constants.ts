@@ -24,6 +24,8 @@ export const ASSOCIATED_TOKEN_PROGRAM_ID: Address = address(
 )
 /** Wrapped SOL mint. The relay rejects it as budget mint / input mint. */
 export const NATIVE_MINT: Address = address('So11111111111111111111111111111111111111112')
+/** Token-2022's native (wrapped SOL) mint. The relay rejects it as budget mint / input mint too. */
+export const NATIVE_MINT_2022: Address = address('9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP')
 /** Raydium CP-Swap, mainnet-beta. */
 export const RAYDIUM_CPMM_MAINNET_PROGRAM_ID: Address = address(
   'CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C',

@@ -168,7 +168,7 @@ export const RELAY_ERRORS: readonly ErrorSpec[] = [
   e(
     102,
     'AccountMismatch',
-    'A passed account differs from the key pinned in the policy (or a PDA / mandate binding).',
+    'A passed account differs from the key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy received the policy (or, for close_policy, the owner) read-only.',
     'Build relay instructions from the policy (relayTransferIx({ policy })) so every pinned account is filled in.',
   ),
   e(

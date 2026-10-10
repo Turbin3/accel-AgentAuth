@@ -202,6 +202,14 @@ export const NATIVE_MINT: Address
 
 Wrapped SOL mint. The relay rejects it as budget mint / input mint.
 
+#### `NATIVE_MINT_2022`
+
+```ts
+export const NATIVE_MINT_2022: Address
+```
+
+Token-2022's native (wrapped SOL) mint. The relay rejects it as budget mint / input mint too (error 113); `validateRelayPolicyConfig` refuses both native mints.
+
 #### `PERMISSION_SIZE`
 
 ```ts
