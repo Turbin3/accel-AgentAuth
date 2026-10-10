@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 1,
+  "slug": "spl-token",
+  "name": "SPL Token",
+  "kind": "native",
+  "programIds": {
+    "mainnet-beta": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "devnet": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+  },
+  "discriminatorScheme": "u8-tag",
+  "instructions": [
+    {
+      "name": "initialize_mint",
+      "title": "Initialize mint",
+      "disc8": "0000000000000000",
+      "rawPrefixHex": "00",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated mint account; cannot touch existing balances or authorities.",
+      "amount": null,
+      "notes": "Setup only: sets decimals (offset 1), mint authority (offset 2) and optional freeze authority (COption at offset 34) on an uninitialized account. Source docs say it MUST share a transaction with the System create_account that allocates the mint, or another party can take the uninitialized account. Needs the Rent sysvar account (see initialize_mint2). Classed read_only per SCHEMA: no effect on existing owner funds."
+    },
+    {
+      "name": "initialize_account",
+      "title": "Initialize token account",
+      "disc8": "0100000000000000",
+      "rawPrefixHex": "01",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated token account and assigns its owner; cannot touch existing balances.",
+      "amount": null,
+      "notes": "Setup only. Accounts: account, mint, owner (account index 2), Rent sysvar; no instruction data. Source docs say it MUST share a transaction with the System create_account that allocates the account. For the native mint the token balance becomes the SOL already in the account, so the chosen owner controls that SOL; cap the System create_account or transfer that funds it. Classed read_only per SCHEMA: no effect on existing owner funds."
+    },
+    {
+      "name": "initialize_multisig",
+      "title": "Initialize multisig",
+      "disc8": "0200000000000000",
+      "rawPrefixHex": "02",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated multisig account with N signers and threshold m; changes no existing authority.",
+      "amount": null,
+      "notes": "Setup only. m (u8) at offset 1; accounts: multisig, Rent sysvar, then N signer accounts (1 to 11). Source docs say it MUST share a transaction with the System create_account that allocates the account. A multisig has power only once it is used as an owner or authority, either at initialization or later via set_authority (denied by default)."
+    },
+    {
+      "name": "transfer",
+      "title": "Transfer",
+      "disc8": "0300000000000000",
+      "rawPrefixHex": "03",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Moves tokens from an owner- or delegate-controlled account to a destination account chosen by the caller.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Amount is the u64le directly after the tag. A delegate may sign up to its delegated amount. For the native mint (wrapped SOL) the matching lamports move too. Accounts: source, destination, authority. See transfer_checked, which also pins mint and decimals."
+    },
+    {
+      "name": "approve",
+      "title": "Approve delegate",
+      "disc8": "0400000000000000",
+      "rawPrefixHex": "04",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Grants a delegate spending rights over the source account up to an amount, replacing any existing delegate.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "The amount is the delegated allowance cap, not a transfer: the delegate can later transfer or burn up to it without further owner signatures. The descriptor lets tools cap the allowance. Accounts: source, delegate, owner."
+    },
+    {
+      "name": "revoke",
+      "title": "Revoke delegate",
+      "disc8": "0500000000000000",
+      "rawPrefixHex": "05",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Clears the account delegate and delegated amount; removes rather than grants authority.",
+      "amount": null,
+      "notes": "No instruction data. Safe direction (the owner or the delegate itself may sign), but it edits delegation state so it is classed authority_change and denied by default."
+    },
+    {
+      "name": "set_authority",
+      "title": "Set authority",
+      "disc8": "0600000000000000",
+      "rawPrefixHex": "06",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns or removes a mint authority, freeze authority, token-account owner or close authority.",
+      "amount": null,
+      "notes": "authority_type u8 at offset 1 (0 MintTokens, 1 FreezeAccount, 2 AccountOwner, 3 CloseAccount), then new_authority as COption<Pubkey> at offset 2 (flag byte, then 32 bytes). AccountOwner hands the whole token account to the new authority; removing a mint or freeze authority is irreversible. Accounts: mint or token account, current authority."
+    },
+    {
+      "name": "mint_to",
+      "title": "Mint to",
+      "disc8": "0700000000000000",
+      "rawPrefixHex": "07",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Creates supply rather than debiting an account, so it matters only when the mandate owner is the mint authority. The native mint cannot be minted. Accounts: mint, destination, mint authority."
+    },
+    {
+      "name": "burn",
+      "title": "Burn",
+      "disc8": "0800000000000000",
+      "rawPrefixHex": "08",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Destroys tokens from an owner- or delegate-controlled account; irreversible loss bounded by the amount.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "A delegate may burn up to its delegated amount. Native-mint (wrapped SOL) accounts are not supported; use close_account. Accounts: source, mint, authority."
+    },
+    {
+      "name": "close_account",
+      "title": "Close token account",
+      "disc8": "0900000000000000",
+      "rawPrefixHex": "09",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Closes a token account and sends all its lamports to a destination account chosen by the signer.",
+      "amount": null,
+      "notes": "No instruction data. Non-native accounts must hold zero tokens. For native (wrapped SOL) accounts the entire balance, wrapped SOL included, goes to the destination. If a close authority is set it must sign instead of the owner. Accounts: account, destination, authority."
+    },
+    {
+      "name": "freeze_account",
+      "title": "Freeze account",
+      "disc8": "0a00000000000000",
+      "rawPrefixHex": "0a",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Freezes a token account so its owner cannot move tokens; requires the mint's freeze authority.",
+      "amount": null,
+      "notes": "No instruction data. Mint-level administrative power over other holders' accounts; not supported on native (wrapped SOL) accounts. Accounts: account, mint, freeze authority."
+    },
+    {
+      "name": "thaw_account",
+      "title": "Thaw account",
+      "disc8": "0b00000000000000",
+      "rawPrefixHex": "0b",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Unfreezes a frozen token account; requires the mint's freeze authority.",
+      "amount": null,
+      "notes": "No instruction data. Mirror of freeze_account: restores the owner's ability to move tokens. Accounts: account, mint, freeze authority."
+    },
+    {
+      "name": "transfer_checked",
+      "title": "Transfer (checked)",
+      "disc8": "0c00000000000000",
+      "rawPrefixHex": "0c",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Moves tokens like transfer but also verifies mint and decimals; destination chosen by the caller.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Layout: tag, amount u64le at offset 1, decimals u8 at offset 9; the program rejects a decimals value that differs from the mint. Same authority rules as transfer (a delegate may sign up to its delegated amount). Accounts: source, mint, destination, authority."
+    },
+    {
+      "name": "approve_checked",
+      "title": "Approve delegate (checked)",
+      "disc8": "0d00000000000000",
+      "rawPrefixHex": "0d",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Grants a delegate spending rights up to an amount, with mint and decimals verified.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Layout: tag, amount u64le at offset 1, decimals u8 at offset 9. The amount is the delegated allowance cap, not a transfer. Accounts: source, mint, delegate, owner."
+    },
+    {
+      "name": "mint_to_checked",
+      "title": "Mint to (checked)",
+      "disc8": "0e00000000000000",
+      "rawPrefixHex": "0e",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Layout: tag, amount u64le at offset 1, decimals u8 at offset 9. Accounts: mint, destination, mint authority."
+    },
+    {
+      "name": "burn_checked",
+      "title": "Burn (checked)",
+      "disc8": "0f00000000000000",
+      "rawPrefixHex": "0f",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Destroys tokens like burn with decimals verified; irreversible loss bounded by the amount.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Layout: tag, amount u64le at offset 1, decimals u8 at offset 9. Native-mint accounts are not supported. Accounts: source, mint, authority."
+    },
+    {
+      "name": "initialize_account2",
+      "title": "Initialize token account (v2)",
+      "disc8": "1000000000000000",
+      "rawPrefixHex": "10",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated token account with the owner passed in data; cannot touch existing balances.",
+      "amount": null,
+      "notes": "Setup only. Owner pubkey is the 32 bytes at offset 1. Accounts: account, mint, Rent sysvar. For the native mint the token balance becomes the SOL already in the account, so the chosen owner controls that SOL; cap the System create_account or transfer that funds it. Classed read_only per SCHEMA: no effect on existing owner funds."
+    },
+    {
+      "name": "sync_native",
+      "title": "Sync native (wrapped SOL)",
+      "disc8": "1100000000000000",
+      "rawPrefixHex": "11",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Re-syncs a wrapped-SOL token account's amount to its lamports; needs no signer and moves no funds.",
+      "amount": null,
+      "notes": "No instruction data. Credits lamports sent to a native token account (for example by a System transfer) to its token amount. The deployed p-token recomputes amount as lamports minus the rent reserve, so it can also lower it. An optional Rent sysvar account may follow."
+    },
+    {
+      "name": "initialize_account3",
+      "title": "Initialize token account (v3)",
+      "disc8": "1200000000000000",
+      "rawPrefixHex": "12",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated token account with owner in data and no Rent sysvar; cannot touch existing balances.",
+      "amount": null,
+      "notes": "Setup only. Owner pubkey is the 32 bytes at offset 1. Accounts: account, mint. For the native mint the token balance becomes the SOL already in the account, so the chosen owner controls that SOL; cap the System create_account or transfer that funds it. Classed read_only per SCHEMA: no effect on existing owner funds."
+    },
+    {
+      "name": "initialize_multisig2",
+      "title": "Initialize multisig (v2)",
+      "disc8": "1300000000000000",
+      "rawPrefixHex": "13",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated multisig account without the Rent sysvar; changes no existing authority.",
+      "amount": null,
+      "notes": "Setup only. m (u8) at offset 1; accounts: multisig, then N signer accounts (1 to 11)."
+    },
+    {
+      "name": "initialize_mint2",
+      "title": "Initialize mint (v2)",
+      "disc8": "1400000000000000",
+      "rawPrefixHex": "14",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated mint account without the Rent sysvar; cannot touch existing balances.",
+      "amount": null,
+      "notes": "Setup only: decimals u8 at offset 1, mint authority pubkey at offset 2, freeze authority COption<Pubkey> at offset 34. Accounts: mint. Classed read_only per SCHEMA: no effect on existing owner funds."
+    },
+    {
+      "name": "get_account_data_size",
+      "title": "Get account data size",
+      "disc8": "1500000000000000",
+      "rawPrefixHex": "15",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Returns the token-account size for a mint through return data; writes no account state.",
+      "amount": null,
+      "notes": "Query only: result is a little-endian u64 in return data. The interface source says the program ignores any instruction data. Accounts: mint."
+    },
+    {
+      "name": "initialize_immutable_owner",
+      "title": "Initialize immutable owner",
+      "disc8": "1600000000000000",
+      "rawPrefixHex": "16",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "No-op apart from checking the account is uninitialized; kept for Associated Token Account compatibility.",
+      "amount": null,
+      "notes": "The source documents this as a no-op in this program, included for compatibility with the Associated Token Account program; it only fails if the account is already initialized. Accounts: token account."
+    },
+    {
+      "name": "amount_to_ui_amount",
+      "title": "Amount to UI amount",
+      "disc8": "1700000000000000",
+      "rawPrefixHex": "17",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Converts a raw amount to a UI string through return data; moves no value.",
+      "amount": null,
+      "notes": "Query only. The u64le at offset 1 is a conversion input, not a spend, so no amount descriptor is given on purpose. Accounts: mint."
+    },
+    {
+      "name": "ui_amount_to_amount",
+      "title": "UI amount to amount",
+      "disc8": "1800000000000000",
+      "rawPrefixHex": "18",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Converts a UI amount string to a raw amount through return data; moves no value.",
+      "amount": null,
+      "notes": "Query only. The UTF-8 string after the tag is a conversion input, not a spend. Accounts: mint."
+    },
+    {
+      "name": "withdraw_excess_lamports",
+      "title": "Withdraw excess lamports",
+      "disc8": "2600000000000000",
+      "rawPrefixHex": "26",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Sends lamports above the rent-exempt reserve out of a mint, token account or multisig to a destination chosen by the caller.",
+      "amount": null,
+      "notes": "Not implemented by the reference spl-token program crate (v9.0.0); added by p-token under SIMD-0266 with tag 38, as in Token-2022. Live on mainnet-beta since epoch 971 (2026-05-13) and devnet since epoch 1044 (2026-03-25); the classic build rejects it. No instruction data, so no amount can be capped: the whole surplus above the rent-exempt minimum moves. Authority: token-account owner, mint authority, or the multisig itself; native (wrapped SOL) accounts are rejected. Denied by default because it cannot be amount-limited. Accounts: source, destination, authority."
+    },
+    {
+      "name": "unwrap_lamports",
+      "title": "Unwrap lamports",
+      "disc8": "2d00000000000000",
+      "rawPrefixHex": "2d",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Moves lamports out of a native (wrapped SOL) token account to any destination account chosen by the caller.",
+      "amount": {
+        "offset": 2,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Not implemented by the reference spl-token program crate (v9.0.0); added by p-token under SIMD-0266 with tag 45, as in Token-2022. Live on mainnet-beta since epoch 971 (2026-05-13) and devnet since epoch 1044 (2026-03-25); the classic build rejects it. Data is COption<u64>: option flag u8 at offset 1, then the u64le amount at offset 2 ONLY when the flag is 1. Flag 0 unwraps the ENTIRE balance and the program ignores any trailing bytes, so a reader that trusts offset 2 without checking byte 1 == 1 can be bypassed; treat flag 0 as unbounded. The source must be a native token account; a delegate is limited to its delegated amount. Denied by default for this reason. Accounts: source, destination, authority."
+    },
+    {
+      "name": "batch",
+      "title": "Batch",
+      "disc8": "ff00000000000000",
+      "rawPrefixHex": "ff",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Runs a sequence of inner Token instructions, including transfers, approvals and authority changes, hiding them from a per-instruction allowlist.",
+      "amount": null,
+      "notes": "Not implemented by the reference spl-token program crate (v9.0.0); added by p-token under SIMD-0266 with tag 255. Live on mainnet-beta since epoch 971 (2026-05-13) and devnet since epoch 1044 (2026-03-25); the classic build rejects it. After the tag the data repeats [num_accounts u8][data_len u8][inner tag + args]; each inner instruction takes consecutive accounts from the outer list and is authorized by the outer signers, and batch cannot nest. A per-instruction allowlist or amount limit cannot see inside, so allowing batch effectively allows every inner Token instruction including set_authority and close_account. Classed other with defaultDeny: it has no single risk class and its risk is the union of the inner instructions."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/solana-program/token/blob/46eaacd2c13629eb3436354ed650a8df8b202bc4/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "interface@v3.0.0 (46eaacd2c13629eb3436354ed650a8df8b202bc4); byte-identical to main 8185db13640f0df038266c7cf4306c212d81380a",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token/blob/46eaacd2c13629eb3436354ed650a8df8b202bc4/interface/src/lib.rs",
+      "kind": "source",
+      "ref": "interface@v3.0.0 (46eaacd2c13629eb3436354ed650a8df8b202bc4); solana_pubkey::declare_id!(\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\")",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token/blob/8185db13640f0df038266c7cf4306c212d81380a/idl.json",
+      "kind": "idl",
+      "ref": "8185db13640f0df038266c7cf4306c212d81380a (main, js@v0.17.0); Codama IDL (program.version 3.3.0) with explicit u8 discriminators for all 28 instructions; idl.json is absent at the interface@v3.0.0 and p-token@v1.0.0 tags, so it is pinned to main",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token/blob/a94dd19750dc3b2409f73e15bb74754935b2a489/pinocchio/program/src/entrypoint.rs",
+      "kind": "source",
+      "ref": "p-token@v1.0.0 (a94dd19750dc3b2409f73e15bb74754935b2a489); tag dispatch of the deployed program",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token/tree/a94dd19750dc3b2409f73e15bb74754935b2a489/pinocchio/program/src/processor",
+      "kind": "source",
+      "ref": "p-token@v1.0.0 (a94dd19750dc3b2409f73e15bb74754935b2a489); processors for batch, unwrap_lamports, withdraw_excess_lamports, set_authority, close_account and the amount decoders",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token/releases/tag/p-token%40v1.0.0",
+      "kind": "docs",
+      "ref": "p-token@v1.0.0 release asset spl_p_token.so sha256 8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697 (GitHub asset digest); byte-identical to the on-chain program ELF on mainnet-beta and devnet; same commit and identical asset as p-token@v1.0.0-rc.1; SIMD-0266 feature ptokFjwyJtrwCa9Kgo9xoDS59V4QccBGEaRFnRPnSdP is active since epoch 971 on mainnet-beta (2026-05-13) and epoch 1044 on devnet (2026-03-25)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-foundation/solana-improvement-documents/blob/d82210eb0ad20563edcc854c003c71084946b883/proposals/0266-efficient-token-program.md",
+      "kind": "docs",
+      "ref": "d82210eb0ad20563edcc854c003c71084946b883; SIMD-0266 replaces SPL Token with p-token and adds withdraw_excess_lamports (38), unwrap_lamports (45), batch (255)",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

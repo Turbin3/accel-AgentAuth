@@ -1,0 +1,830 @@
+{
+  "schemaVersion": 1,
+  "slug": "orca-whirlpool",
+  "name": "Orca Whirlpools",
+  "kind": "anchor",
+  "programIds": {
+    "mainnet-beta": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+    "devnet": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+  },
+  "discriminatorScheme": "anchor-sha256",
+  "instructions": [
+    {
+      "name": "initialize_config",
+      "title": "Initialize Whirlpools config",
+      "disc8": "d07f1501c2bec446",
+      "rawPrefixHex": "d07f1501c2bec446",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates a WhirlpoolsConfig and assigns its fee, protocol-fee and reward authorities. The funder must be one of the program's hard-coded ADMINS keys.",
+      "amount": null,
+      "notes": "Both the new config keypair and the funder sign. The ADMINS list is compiled into the program (auth/admin.rs), so only those keys can create configs."
+    },
+    {
+      "name": "initialize_pool",
+      "title": "Create pool (SPL Token)",
+      "disc8": "5fb40aac54aee828",
+      "rawPrefixHex": "5fb40aac54aee828",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Creates a pool and two token vaults at a caller-chosen initial price; funder pays rent. Permissionless and unneeded for swapping or LP on existing pools.",
+      "amount": null,
+      "notes": "Classified other, not admin: it is permissionless, but it creates a market at a caller-chosen price using the funder's SOL, so it is denied by default. The two vault keypairs sign. SPL Token mints only; initialize_pool_v2 adds Token-2022."
+    },
+    {
+      "name": "initialize_tick_array",
+      "title": "Initialize tick array",
+      "disc8": "0bbcc1d68d5b95b8",
+      "rawPrefixHex": "0bbcc1d68d5b95b8",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates a fixed-size tick-array account covering a price range; the funder pays rent. Permissionless setup step before opening positions or swapping through that range.",
+      "amount": null,
+      "notes": "Permissionless; only SOL rent is spent and no tokens move. Classified position_mgmt because it prepares pool state for LP flows. start_tick_index must be a multiple of the tick-array size times the pool tick spacing. Layout after the 8-byte discriminator (raw offsets, little-endian): start_tick_index i32 @8."
+    },
+    {
+      "name": "initialize_dynamic_tick_array",
+      "title": "Initialize dynamic tick array",
+      "disc8": "2921a5c878e78e32",
+      "rawPrefixHex": "2921a5c878e78e32",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates a variable-length tick-array account covering a price range; the funder pays rent. Permissionless setup step before opening positions or swapping through that range.",
+      "amount": null,
+      "notes": "Permissionless; only SOL rent is spent and no tokens move. Classified position_mgmt because it prepares pool state for LP flows. With idempotent=1 the call succeeds without changes if a fixed or dynamic tick array already exists. Layout after the 8-byte discriminator (raw offsets, little-endian): start_tick_index i32 @8, idempotent bool @12."
+    },
+    {
+      "name": "initialize_fee_tier",
+      "title": "Initialize fee tier",
+      "disc8": "b74a9ca070022a1e",
+      "rawPrefixHex": "b74a9ca070022a1e",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates a fee-tier account that sets the default fee rate for a tick spacing. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Signers: fee_authority (stored in the WhirlpoolsConfig) and funder. Layout after the 8-byte discriminator (raw offsets, little-endian): tick_spacing u16 @8, default_fee_rate u16 @10."
+    },
+    {
+      "name": "initialize_reward",
+      "title": "Initialize pool reward (SPL Token)",
+      "disc8": "5f87c0c4f281e644",
+      "rawPrefixHex": "5f87c0c4f281e644",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets up a liquidity-mining reward slot and vault on a pool. Signed by the pool's reward authority; the funder pays rent.",
+      "amount": null,
+      "notes": "Signers: reward_authority, funder and the new reward_vault keypair. SPL Token rewards only; initialize_reward_v2 covers Token-2022. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8."
+    },
+    {
+      "name": "set_reward_emissions",
+      "title": "Set reward emissions",
+      "disc8": "0dc556a86db01bf4",
+      "rawPrefixHex": "0dc556a86db01bf4",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the emission rate of one pool reward. Only that reward's authority may sign.",
+      "amount": null,
+      "notes": "See set_reward_emissions_v2 for Token-2022 reward vaults. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8, emissions_per_second_x64 u128 @9."
+    },
+    {
+      "name": "open_position",
+      "title": "Open position (SPL Token NFT)",
+      "disc8": "87802f4d0f98f031",
+      "rawPrefixHex": "87802f4d0f98f031",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates an empty position and mints its NFT to a caller-chosen owner; the funder pays rent. No tokens move.",
+      "amount": null,
+      "notes": "The owner account is an arbitrary non-signer, so the NFT (and control of the position) can be sent to any wallet. Fails with PositionWithTokenExtensionsRequired on pools that require Token-2022 positions. Layout after the 8-byte discriminator (raw offsets, little-endian): bumps.position_bump u8 @8, tick_lower_index i32 @9, tick_upper_index i32 @13."
+    },
+    {
+      "name": "open_position_with_metadata",
+      "title": "Open position with metadata (SPL Token NFT)",
+      "disc8": "f21d86303a6e0e3c",
+      "rawPrefixHex": "f21d86303a6e0e3c",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates an empty position and mints its NFT, with Metaplex metadata, to a caller-chosen owner; the funder pays rent. No tokens move.",
+      "amount": null,
+      "notes": "The owner account is an arbitrary non-signer, so the NFT (and control of the position) can be sent to any wallet. Layout after the 8-byte discriminator (raw offsets, little-endian): bumps.position_bump u8 @8, bumps.metadata_bump u8 @9, tick_lower_index i32 @10, tick_upper_index i32 @14."
+    },
+    {
+      "name": "increase_liquidity",
+      "title": "Add liquidity",
+      "disc8": "2e9cf3760dcdfbb2",
+      "rawPrefixHex": "2e9cf3760dcdfbb2",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Deposits tokens from the signer's accounts into a position; token_max_a/b cap the amounts taken. Position authority signs.",
+      "amount": null,
+      "notes": "No single canonical amount: liquidity_amount is in liquidity units and the spend is capped per token by token_max_a and token_max_b (two different mints), so amount is null. Served by the Pinocchio fast path in entrypoint.rs; discriminator and Borsh layout are the same as the Anchor ones. Layout after the 8-byte discriminator (raw offsets, little-endian): liquidity_amount u128 @8, token_max_a u64 @24, token_max_b u64 @32."
+    },
+    {
+      "name": "decrease_liquidity",
+      "title": "Remove liquidity",
+      "disc8": "a026d06f685b2c01",
+      "rawPrefixHex": "a026d06f685b2c01",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Withdraws liquidity to caller-chosen token accounts of the pool's mints, not tied to the position owner; token_min_a/b are slippage floors. Position authority signs.",
+      "amount": null,
+      "notes": "Payout token accounts are only checked against the pool mint, not against the position owner, so a mandate must pin them. Fails with OperationNotAllowedOnLockedPosition once the position is locked. Served by the Pinocchio fast path in entrypoint.rs; discriminator and Borsh layout are the same as the Anchor ones. Layout after the 8-byte discriminator (raw offsets, little-endian): liquidity_amount u128 @8, token_min_a u64 @24, token_min_b u64 @32."
+    },
+    {
+      "name": "update_fees_and_rewards",
+      "title": "Update fees and rewards",
+      "disc8": "9ae6fa0decd14bdf",
+      "rawPrefixHex": "9ae6fa0decd14bdf",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Permissionless crank that refreshes a position's accrued fee and reward counters on-chain. No tokens move.",
+      "amount": null,
+      "notes": "No signer is required. Classified position_mgmt rather than read_only because it writes fee and reward state to the pool and position accounts. Fails with LiquidityZero when the position has no liquidity."
+    },
+    {
+      "name": "collect_fees",
+      "title": "Collect fees",
+      "disc8": "a498cf631eba13b6",
+      "rawPrefixHex": "a498cf631eba13b6",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Pays a position's accrued trading fees from the pool vaults to caller-chosen token accounts of the pool's mints. Position authority signs.",
+      "amount": null,
+      "notes": "Payout token accounts are only checked against the pool mint, not against the position owner, so a mandate must pin them. The amount is whatever the position has accrued; there is no amount argument. SPL Token only; see collect_fees_v2."
+    },
+    {
+      "name": "collect_reward",
+      "title": "Collect reward",
+      "disc8": "4605845756ebb122",
+      "rawPrefixHex": "4605845756ebb122",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Pays a position's accrued liquidity-mining reward from the reward vault to a caller-chosen token account of the reward mint. Position authority signs.",
+      "amount": null,
+      "notes": "The reward token account is only checked against the reward mint, not against the position owner, so a mandate must pin it. No amount argument. SPL Token only; see collect_reward_v2. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8."
+    },
+    {
+      "name": "collect_protocol_fees",
+      "title": "Collect protocol fees",
+      "disc8": "1643176296b246dc",
+      "rawPrefixHex": "1643176296b246dc",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sweeps accrued protocol fees from pool vaults to caller-chosen accounts. Only the config's collect-protocol-fees authority may sign.",
+      "amount": null,
+      "notes": "Not a user action: protocol fees belong to the config's collect_protocol_fees_authority. No amount argument. SPL Token only; see collect_protocol_fees_v2."
+    },
+    {
+      "name": "swap",
+      "title": "Swap (SPL Token)",
+      "disc8": "f8c69e91e17587c8",
+      "rawPrefixHex": "f8c69e91e17587c8",
+      "risk": "value_swap",
+      "defaultDeny": false,
+      "rationale": "Swaps one pool token for the other; output may go to any token account of the output mint. Needs spend limit and output floor.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "amount is the INPUT amount only when amount_specified_is_input (bool @40) is 1; other_amount_threshold (u64 @16) is then the minimum output. When the flag is 0, amount is the desired OUTPUT and the spend is bounded only by other_amount_threshold (the maximum input), so a cap on amount alone does not bound the spend: require the flag to be 1 or cap other_amount_threshold too. The output token account is only mint-checked, so it can belong to anyone. SPL Token only; see swap_v2. Layout after the 8-byte discriminator (raw offsets, little-endian): amount u64 @8, other_amount_threshold u64 @16, sqrt_price_limit u128 @24, amount_specified_is_input bool @40, a_to_b bool @41."
+    },
+    {
+      "name": "close_position",
+      "title": "Close position (SPL Token NFT)",
+      "disc8": "7b86510031446262",
+      "rawPrefixHex": "7b86510031446262",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Burns the position NFT and closes the position and token accounts; rent goes to a caller-chosen receiver. Allowed only when the position is empty.",
+      "amount": null,
+      "notes": "Empty means no liquidity and no fees or rewards owed (ClosePositionNotEmpty otherwise). The mint account is not closed. receiver is an arbitrary account that only receives rent."
+    },
+    {
+      "name": "set_default_fee_rate",
+      "title": "Set fee tier default fee rate",
+      "disc8": "76d7d69db6e5d0e4",
+      "rawPrefixHex": "76d7d69db6e5d0e4",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the default fee rate a fee tier gives to new pools. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Layout after the 8-byte discriminator (raw offsets, little-endian): default_fee_rate u16 @8."
+    },
+    {
+      "name": "set_default_protocol_fee_rate",
+      "title": "Set default protocol fee rate",
+      "disc8": "6bcdf9e297235600",
+      "rawPrefixHex": "6bcdf9e297235600",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the default protocol fee rate for new pools in a config. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Rate is in basis points per the program docs. Layout after the 8-byte discriminator (raw offsets, little-endian): default_protocol_fee_rate u16 @8."
+    },
+    {
+      "name": "set_fee_rate",
+      "title": "Set pool fee rate",
+      "disc8": "35f38941088c9e06",
+      "rawPrefixHex": "35f38941088c9e06",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the swap fee rate of one pool. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Rate is in hundredths of a basis point per the program docs. Layout after the 8-byte discriminator (raw offsets, little-endian): fee_rate u16 @8."
+    },
+    {
+      "name": "set_protocol_fee_rate",
+      "title": "Set pool protocol fee rate",
+      "disc8": "5f0704329a4f9c83",
+      "rawPrefixHex": "5f0704329a4f9c83",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the protocol fee rate of one pool. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Rate is in basis points per the program docs. Layout after the 8-byte discriminator (raw offsets, little-endian): protocol_fee_rate u16 @8."
+    },
+    {
+      "name": "set_fee_authority",
+      "title": "Set fee authority",
+      "disc8": "1f013257ed656184",
+      "rawPrefixHex": "1f013257ed656184",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the config's fee authority to a new key, which then controls fee rates and fee tiers. The current fee authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account (new_fee_authority), not in instruction data."
+    },
+    {
+      "name": "set_collect_protocol_fees_authority",
+      "title": "Set protocol-fee collection authority",
+      "disc8": "22965df48be1e943",
+      "rawPrefixHex": "22965df48be1e943",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the config's protocol-fee collection authority, which can sweep protocol fees. The current collect-protocol-fees authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data."
+    },
+    {
+      "name": "set_reward_authority",
+      "title": "Set pool reward authority",
+      "disc8": "2227b7fc531c557f",
+      "rawPrefixHex": "2227b7fc531c557f",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the authority of one pool reward index, which controls its emissions. The current reward authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8."
+    },
+    {
+      "name": "set_reward_authority_by_super_authority",
+      "title": "Set pool reward authority (super authority)",
+      "disc8": "f09ac9c6945d3819",
+      "rawPrefixHex": "f09ac9c6945d3819",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns a pool reward's authority using the config's reward super authority, overriding the current reward authority.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8."
+    },
+    {
+      "name": "set_reward_emissions_super_authority",
+      "title": "Set reward super authority",
+      "disc8": "cf05c8d17a3852b7",
+      "rawPrefixHex": "cf05c8d17a3852b7",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the config's reward super authority, which can reassign every pool reward authority. The current super authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data."
+    },
+    {
+      "name": "two_hop_swap",
+      "title": "Two-hop swap (SPL Token)",
+      "disc8": "c360ed6c44a2dbe6",
+      "rawPrefixHex": "c360ed6c44a2dbe6",
+      "risk": "value_swap",
+      "defaultDeny": false,
+      "rationale": "Swaps through two pools atomically; the final output may go to any token account of the output mint. Needs spend limit and output floor.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "amount is the INPUT amount only when amount_specified_is_input (bool @24) is 1; other_amount_threshold (u64 @16) is then the minimum output. When the flag is 0, amount is the desired OUTPUT and the spend is bounded only by other_amount_threshold (the maximum input), so a cap on amount alone does not bound the spend: require the flag to be 1 or cap other_amount_threshold too. The output token account is only mint-checked, so it can belong to anyone. For two hops, amount refers to the first pool's input (exact-in) or the second pool's output (exact-out). SPL Token only; see two_hop_swap_v2. Layout after the 8-byte discriminator (raw offsets, little-endian): amount u64 @8, other_amount_threshold u64 @16, amount_specified_is_input bool @24, a_to_b_one bool @25, a_to_b_two bool @26, sqrt_price_limit_one u128 @27, sqrt_price_limit_two u128 @43."
+    },
+    {
+      "name": "initialize_position_bundle",
+      "title": "Initialize position bundle",
+      "disc8": "752df1951812c241",
+      "rawPrefixHex": "752df1951812c241",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates a position-bundle account (many positions under one NFT) and mints its NFT to a caller-chosen owner; the funder pays rent.",
+      "amount": null,
+      "notes": "Signers: position_bundle_mint keypair and funder. The bundle owner is an arbitrary account, so the NFT can be sent to any wallet."
+    },
+    {
+      "name": "initialize_position_bundle_with_metadata",
+      "title": "Initialize position bundle with metadata",
+      "disc8": "5d7c10b3f98373f5",
+      "rawPrefixHex": "5d7c10b3f98373f5",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates a position-bundle account and mints its NFT, with Metaplex metadata, to a caller-chosen owner; the funder pays rent.",
+      "amount": null,
+      "notes": "Signers: position_bundle_mint keypair and funder. The bundle owner is an arbitrary account, so the NFT can be sent to any wallet."
+    },
+    {
+      "name": "delete_position_bundle",
+      "title": "Delete position bundle",
+      "disc8": "64196302d9ef7cad",
+      "rawPrefixHex": "64196302d9ef7cad",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Burns the position-bundle NFT and closes the bundle and token accounts; rent goes to a caller-chosen receiver. Allowed only with no open positions.",
+      "amount": null,
+      "notes": "The bundle owner signs. PositionBundleNotDeletable if any bundled position is still open."
+    },
+    {
+      "name": "open_bundled_position",
+      "title": "Open bundled position",
+      "disc8": "a9717eabd5acd431",
+      "rawPrefixHex": "a9717eabd5acd431",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Opens an empty position at a chosen index inside a position bundle; no new NFT is issued. Bundle authority signs and the funder pays rent.",
+      "amount": null,
+      "notes": "The bundle owner becomes the owner of the new position. Layout after the 8-byte discriminator (raw offsets, little-endian): bundle_index u16 @8, tick_lower_index i32 @10, tick_upper_index i32 @14."
+    },
+    {
+      "name": "close_bundled_position",
+      "title": "Close bundled position",
+      "disc8": "2924d8f51b556743",
+      "rawPrefixHex": "2924d8f51b556743",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Closes an empty bundled position and frees its bundle index; rent goes to a caller-chosen receiver. Bundle authority signs.",
+      "amount": null,
+      "notes": "ClosePositionNotEmpty if liquidity, fees or rewards remain. Layout after the 8-byte discriminator (raw offsets, little-endian): bundle_index u16 @8."
+    },
+    {
+      "name": "open_position_with_token_extensions",
+      "title": "Open position (Token-2022 NFT)",
+      "disc8": "d42f5f5c726683fa",
+      "rawPrefixHex": "d42f5f5c726683fa",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates an empty position and mints a Token-2022 NFT to a caller-chosen owner; the funder pays rent. No tokens move.",
+      "amount": null,
+      "notes": "The owner account is an arbitrary non-signer, so the NFT (and control of the position) can be sent to any wallet. with_token_metadata_extension toggles the TokenMetadata extension. Layout after the 8-byte discriminator (raw offsets, little-endian): tick_lower_index i32 @8, tick_upper_index i32 @12, with_token_metadata_extension bool @16."
+    },
+    {
+      "name": "close_position_with_token_extensions",
+      "title": "Close position (Token-2022 NFT)",
+      "disc8": "01b6873b9b1963df",
+      "rawPrefixHex": "01b6873b9b1963df",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Burns the Token-2022 position NFT and closes the position, token and mint accounts; rent goes to a caller-chosen receiver. Allowed only when empty.",
+      "amount": null,
+      "notes": "Rejects locked positions (OperationNotAllowedOnLockedPosition) and non-empty positions (ClosePositionNotEmpty). receiver is an arbitrary account that only receives rent."
+    },
+    {
+      "name": "lock_position",
+      "title": "Lock position (permanent)",
+      "disc8": "e33e02fcf70aabb9",
+      "rawPrefixHex": "e33e02fcf70aabb9",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Permanently freezes the position NFT and blocks liquidity withdrawal, so principal can never be removed. Irreversible; position authority and funder sign.",
+      "amount": null,
+      "notes": "LockType has a single variant, Permanent, and no unlock instruction exists. After locking, decrease_liquidity(_v2), reposition_liquidity_v2 and close_position_with_token_extensions fail with OperationNotAllowedOnLockedPosition; the NFT can still move via transfer_locked_position. Token-2022 positions with liquidity only. Classified other (not authority_change) because it removes the owner's own access rather than granting it to someone else. Layout after the 8-byte discriminator (raw offsets, little-endian): lock_type.tag(Permanent=0) u8 @8."
+    },
+    {
+      "name": "reset_position_range",
+      "title": "Reset position range",
+      "disc8": "a47bb48dc264a0af",
+      "rawPrefixHex": "a47bb48dc264a0af",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Changes the tick range of an empty position (no liquidity, fees or rewards owed). Position authority signs; the funder tops up rent. No tokens move.",
+      "amount": null,
+      "notes": "Rejects the current range (SameTickRangeNotAllowed) and any non-empty position (ClosePositionNotEmpty). Layout after the 8-byte discriminator (raw offsets, little-endian): new_tick_lower_index i32 @8, new_tick_upper_index i32 @12."
+    },
+    {
+      "name": "transfer_locked_position",
+      "title": "Transfer locked position",
+      "disc8": "b379e52e438ac28a",
+      "rawPrefixHex": "b379e52e438ac28a",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Moves a locked position NFT to a caller-chosen token account, transferring control of the position. Only the NFT owner, not a delegate, may sign.",
+      "amount": null,
+      "notes": "The destination token account may belong to anyone. The receiver account only gets the rent of the closed source token account."
+    },
+    {
+      "name": "initialize_adaptive_fee_tier",
+      "title": "Initialize adaptive fee tier",
+      "disc8": "4d63d0c88d7b7530",
+      "rawPrefixHex": "4d63d0c88d7b7530",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates an adaptive fee tier with its fee constants and its pool-initialization and fee-delegation authorities. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Signers: fee_authority (stored in the WhirlpoolsConfig) and funder. Arguments: fee_tier_index, tick_spacing, initialize_pool_authority, delegated_fee_authority, default_base_fee_rate and the seven adaptive-fee constants."
+    },
+    {
+      "name": "set_default_base_fee_rate",
+      "title": "Set adaptive tier base fee rate",
+      "disc8": "e54254fba486b707",
+      "rawPrefixHex": "e54254fba486b707",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the default base fee rate of an adaptive fee tier. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Layout after the 8-byte discriminator (raw offsets, little-endian): default_base_fee_rate u16 @8."
+    },
+    {
+      "name": "set_delegated_fee_authority",
+      "title": "Set delegated fee authority",
+      "disc8": "c1eae7938a39037a",
+      "rawPrefixHex": "c1eae7938a39037a",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the delegated fee authority of an adaptive fee tier, which can set pool fee rates. The config's fee authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data."
+    },
+    {
+      "name": "set_initialize_pool_authority",
+      "title": "Set pool-initialization authority",
+      "disc8": "7d2b7feb951a6aec",
+      "rawPrefixHex": "7d2b7feb951a6aec",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the authority allowed to create pools in an adaptive fee tier. The config's fee authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data."
+    },
+    {
+      "name": "set_preset_adaptive_fee_constants",
+      "title": "Set adaptive tier fee constants",
+      "disc8": "84b94294535886c6",
+      "rawPrefixHex": "84b94294535886c6",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the adaptive-fee constants preset of an adaptive fee tier. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Sets seven constants at once: filter_period, decay_period, reduction_factor, adaptive_fee_control_factor, max_volatility_accumulator, tick_group_size and major_swap_threshold_ticks."
+    },
+    {
+      "name": "initialize_pool_with_adaptive_fee",
+      "title": "Create pool (adaptive fee)",
+      "disc8": "8f5e604cac7c77c7",
+      "rawPrefixHex": "8f5e604cac7c77c7",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Creates an adaptive-fee pool and its oracle at a caller-chosen price; funder pays rent. Permissioned tiers also need the tier's pool-initialization authority.",
+      "amount": null,
+      "notes": "Classified other, like initialize_pool: it creates a market using the funder's SOL and is irrelevant to trading or LP on existing pools, so it is denied by default. trade_enable_timestamp is rejected on permissionless tiers. Layout after the 8-byte discriminator (raw offsets, little-endian): initial_sqrt_price u128 @8, trade_enable_timestamp Option<u64> @24 (variable length from here)."
+    },
+    {
+      "name": "set_fee_rate_by_delegated_fee_authority",
+      "title": "Set pool fee rate (delegated)",
+      "disc8": "7979367283e6a268",
+      "rawPrefixHex": "7979367283e6a268",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the fee rate of one pool; signed by the adaptive fee tier's delegated fee authority.",
+      "amount": null,
+      "notes": "Layout after the 8-byte discriminator (raw offsets, little-endian): fee_rate u16 @8."
+    },
+    {
+      "name": "set_adaptive_fee_constants",
+      "title": "Set pool adaptive fee constants",
+      "disc8": "859ed4bded0c4927",
+      "rawPrefixHex": "859ed4bded0c4927",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes selected adaptive-fee constants on one pool's oracle. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Program docs warn against calling it while the pool's adaptive fee is high, to avoid LP revenue loss. Every argument is an Option and only provided values change."
+    },
+    {
+      "name": "set_config_feature_flag",
+      "title": "Set config feature flag",
+      "disc8": "47ade41243f7d239",
+      "rawPrefixHex": "47ade41243f7d239",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets a feature flag (token-badge support) on a WhirlpoolsConfig. The signer must be one of the program's hard-coded ADMINS keys.",
+      "amount": null,
+      "notes": "ConfigFeatureFlag has a single variant, TokenBadge(bool). Layout after the 8-byte discriminator (raw offsets, little-endian): feature_flag.tag(TokenBadge=0) u8 @8, feature_flag.value bool @9."
+    },
+    {
+      "name": "migrate_repurpose_reward_authority_space",
+      "title": "Migrate reward-authority space",
+      "disc8": "d6a1f84f9862ace7",
+      "rawPrefixHex": "d6a1f84f9862ace7",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Permissionless one-off migration that zeroes reward-info extension fields of a pool account; needs no signer. Removed from the source after 0.9.0.",
+      "amount": null,
+      "notes": "Present in the 0.9.0 release source and found in the deployed mainnet and devnet binaries, but removed from main by commit f6db412595 (2026-10-06), so a future upgrade built from main will no longer accept it. Panics if the pool was already migrated. Only the whirlpool account is passed."
+    },
+    {
+      "name": "collect_fees_v2",
+      "title": "Collect fees v2 (Token/Token-2022)",
+      "disc8": "cf755fbfe5b4e20f",
+      "rawPrefixHex": "cf755fbfe5b4e20f",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Pays a position's accrued trading fees from the pool vaults to caller-chosen token accounts of the pool's mints. Position authority signs.",
+      "amount": null,
+      "notes": "Payout token accounts are only checked against the pool mint, not against the position owner, so a mandate must pin them. The amount is whatever the position has accrued; there is no amount argument. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info)."
+    },
+    {
+      "name": "collect_protocol_fees_v2",
+      "title": "Collect protocol fees v2 (Token/Token-2022)",
+      "disc8": "6780de8672c816c8",
+      "rawPrefixHex": "6780de8672c816c8",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sweeps accrued protocol fees from pool vaults to caller-chosen accounts. Only the config's collect-protocol-fees authority may sign.",
+      "amount": null,
+      "notes": "Not a user action: protocol fees belong to the config's collect_protocol_fees_authority. No amount argument. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info)."
+    },
+    {
+      "name": "collect_reward_v2",
+      "title": "Collect reward v2 (Token/Token-2022)",
+      "disc8": "b16b25b4a01331d1",
+      "rawPrefixHex": "b16b25b4a01331d1",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Pays a position's accrued liquidity-mining reward from the reward vault to a caller-chosen token account of the reward mint. Position authority signs.",
+      "amount": null,
+      "notes": "The reward token account is only checked against the reward mint, not against the position owner, so a mandate must pin it. No amount argument. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8, remaining_accounts_info Option<RemainingAccountsInfo> @9 (variable length from here)."
+    },
+    {
+      "name": "decrease_liquidity_v2",
+      "title": "Remove liquidity v2 (Token/Token-2022)",
+      "disc8": "3a7fbc3e4f52c460",
+      "rawPrefixHex": "3a7fbc3e4f52c460",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Withdraws liquidity to caller-chosen token accounts of the pool's mints, not tied to the position owner; token_min_a/b are slippage floors. Position authority signs.",
+      "amount": null,
+      "notes": "Payout token accounts are only checked against the pool mint, not against the position owner, so a mandate must pin them. Fails with OperationNotAllowedOnLockedPosition once the position is locked. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Served by the Pinocchio fast path in entrypoint.rs; discriminator and Borsh layout are the same as the Anchor ones. Layout after the 8-byte discriminator (raw offsets, little-endian): liquidity_amount u128 @8, token_min_a u64 @24, token_min_b u64 @32, remaining_accounts_info Option<RemainingAccountsInfo> @40 (variable length from here)."
+    },
+    {
+      "name": "increase_liquidity_v2",
+      "title": "Add liquidity v2 (Token/Token-2022)",
+      "disc8": "851d59df45eeb00a",
+      "rawPrefixHex": "851d59df45eeb00a",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Deposits tokens from the signer's accounts into a position; token_max_a/b cap the amounts taken. Position authority signs.",
+      "amount": null,
+      "notes": "No single canonical amount: liquidity_amount is in liquidity units and the spend is capped per token by token_max_a and token_max_b (two different mints), so amount is null. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Served by the Pinocchio fast path in entrypoint.rs; discriminator and Borsh layout are the same as the Anchor ones. Layout after the 8-byte discriminator (raw offsets, little-endian): liquidity_amount u128 @8, token_max_a u64 @24, token_max_b u64 @32, remaining_accounts_info Option<RemainingAccountsInfo> @40 (variable length from here)."
+    },
+    {
+      "name": "increase_liquidity_by_token_amounts_v2",
+      "title": "Add liquidity by token amounts v2",
+      "disc8": "effb097cd2c6352b",
+      "rawPrefixHex": "effb097cd2c6352b",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Deposits up to the given token maxima into a position, deriving liquidity on-chain within a sqrt-price window. Position authority signs.",
+      "amount": null,
+      "notes": "No single canonical amount: two token maxima apply (token_max_a, token_max_b), so amount is null. Implemented only in the Pinocchio fast path; the Anchor handler is an unreachable stub. Present in the 0.9.0 source and found in the deployed mainnet and devnet binaries. method is a single-variant enum (ByTokenAmounts, tag 0). v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Layout after the 8-byte discriminator (raw offsets, little-endian): method.tag(ByTokenAmounts=0) u8 @8, method.token_max_a u64 @9, method.token_max_b u64 @17, method.min_sqrt_price u128 @25, method.max_sqrt_price u128 @41, remaining_accounts_info Option<RemainingAccountsInfo> @57 (variable length from here)."
+    },
+    {
+      "name": "initialize_pool_v2",
+      "title": "Create pool v2 (Token/Token-2022)",
+      "disc8": "cf2d57f21b3fcc43",
+      "rawPrefixHex": "cf2d57f21b3fcc43",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Creates a pool and two token vaults at a caller-chosen initial price; funder pays rent. Permissionless and unneeded for swapping or LP on existing pools.",
+      "amount": null,
+      "notes": "Classified other, not admin: it is permissionless, but it creates a market at a caller-chosen price using the funder's SOL, so it is denied by default. The two vault keypairs sign. Works with SPL Token and Token-2022 mints; some Token-2022 mints are accepted only with a TokenBadge. Layout after the 8-byte discriminator (raw offsets, little-endian): tick_spacing u16 @8, initial_sqrt_price u128 @10."
+    },
+    {
+      "name": "initialize_reward_v2",
+      "title": "Initialize pool reward v2 (Token/Token-2022)",
+      "disc8": "5b014d32ebe58531",
+      "rawPrefixHex": "5b014d32ebe58531",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets up a liquidity-mining reward slot and vault on a pool. Signed by the pool's reward authority; the funder pays rent.",
+      "amount": null,
+      "notes": "Signers: reward_authority, funder and the new reward_vault keypair. Works with SPL Token and Token-2022 reward mints; some Token-2022 mints are accepted only with a TokenBadge. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8."
+    },
+    {
+      "name": "set_reward_emissions_v2",
+      "title": "Set reward emissions v2",
+      "disc8": "72e44820c130a066",
+      "rawPrefixHex": "72e44820c130a066",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the emission rate of one pool reward. Only that reward's authority may sign.",
+      "amount": null,
+      "notes": "Works with Token and Token-2022 reward vaults. Layout after the 8-byte discriminator (raw offsets, little-endian): reward_index u8 @8, emissions_per_second_x64 u128 @9."
+    },
+    {
+      "name": "swap_v2",
+      "title": "Swap v2 (Token/Token-2022)",
+      "disc8": "2b04ed0b1ac91e62",
+      "rawPrefixHex": "2b04ed0b1ac91e62",
+      "risk": "value_swap",
+      "defaultDeny": false,
+      "rationale": "Swaps one pool token for the other; output may go to any token account of the output mint. Needs spend limit and output floor.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "amount is the INPUT amount only when amount_specified_is_input (bool @40) is 1; other_amount_threshold (u64 @16) is then the minimum output. When the flag is 0, amount is the desired OUTPUT and the spend is bounded only by other_amount_threshold (the maximum input), so a cap on amount alone does not bound the spend: require the flag to be 1 or cap other_amount_threshold too. The output token account is only mint-checked, so it can belong to anyone. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Layout after the 8-byte discriminator (raw offsets, little-endian): amount u64 @8, other_amount_threshold u64 @16, sqrt_price_limit u128 @24, amount_specified_is_input bool @40, a_to_b bool @41, remaining_accounts_info Option<RemainingAccountsInfo> @42 (variable length from here)."
+    },
+    {
+      "name": "two_hop_swap_v2",
+      "title": "Two-hop swap v2 (Token/Token-2022)",
+      "disc8": "ba8fd11dfe02c275",
+      "rawPrefixHex": "ba8fd11dfe02c275",
+      "risk": "value_swap",
+      "defaultDeny": false,
+      "rationale": "Swaps through two pools atomically; the final output may go to any token account of the output mint. Needs spend limit and output floor.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "amount is the INPUT amount only when amount_specified_is_input (bool @24) is 1; other_amount_threshold (u64 @16) is then the minimum output. When the flag is 0, amount is the desired OUTPUT and the spend is bounded only by other_amount_threshold (the maximum input), so a cap on amount alone does not bound the spend: require the flag to be 1 or cap other_amount_threshold too. The output token account is only mint-checked, so it can belong to anyone. For two hops, amount refers to the first pool's input (exact-in) or the second pool's output (exact-out). v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Layout after the 8-byte discriminator (raw offsets, little-endian): amount u64 @8, other_amount_threshold u64 @16, amount_specified_is_input bool @24, a_to_b_one bool @25, a_to_b_two bool @26, sqrt_price_limit_one u128 @27, sqrt_price_limit_two u128 @43, remaining_accounts_info Option<RemainingAccountsInfo> @59 (variable length from here)."
+    },
+    {
+      "name": "reposition_liquidity_v2",
+      "title": "Reposition liquidity v2",
+      "disc8": "bfa9e00b83139efd",
+      "rawPrefixHex": "bfa9e00b83139efd",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Atomically withdraws a position's liquidity, moves it to a new tick range and redeposits within the given token bounds. Position authority and funder sign.",
+      "amount": null,
+      "notes": "No single canonical amount: four token bounds apply (existing_range_token_min_a/b, new_range_token_max_a/b), so amount is null. Only the net token delta moves (owner to vault if the new range needs more, otherwise vault to owner); token_owner_account_a/b are not owner-checked, so a mandate must pin them. Rejects locked positions. Implemented only in the Pinocchio fast path; the Anchor handler is an unreachable stub. v2 works with SPL Token and Token-2022 mints (transfer fee, transfer hook and memo support via remaining_accounts_info). Layout after the 8-byte discriminator (raw offsets, little-endian): new_tick_lower_index i32 @8, new_tick_upper_index i32 @12, method.tag(ByLiquidity=0) u8 @16, method.new_liquidity_amount u128 @17, method.existing_range_token_min_a u64 @33, method.existing_range_token_min_b u64 @41, method.new_range_token_max_a u64 @49, method.new_range_token_max_b u64 @57, remaining_accounts_info Option<RemainingAccountsInfo> @65 (variable length from here)."
+    },
+    {
+      "name": "initialize_config_extension",
+      "title": "Initialize config extension",
+      "disc8": "370935097239d134",
+      "rawPrefixHex": "370935097239d134",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates the WhirlpoolsConfigExtension account that holds the config extension and token-badge authorities. Only the config's fee authority may sign.",
+      "amount": null,
+      "notes": "Signers: funder and the config's fee_authority."
+    },
+    {
+      "name": "set_config_extension_authority",
+      "title": "Set config extension authority",
+      "disc8": "2c5ef17418bc3c8f",
+      "rawPrefixHex": "2c5ef17418bc3c8f",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the config extension authority, which controls the token-badge authority. The current config extension authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data."
+    },
+    {
+      "name": "set_token_badge_authority",
+      "title": "Set token badge authority",
+      "disc8": "cfca0420cd4f0db2",
+      "rawPrefixHex": "cfca0420cd4f0db2",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Reassigns the token badge authority, which creates, edits and deletes TokenBadges. The config extension authority signs.",
+      "amount": null,
+      "notes": "The new authority is passed as an account, not in instruction data."
+    },
+    {
+      "name": "initialize_token_badge",
+      "title": "Initialize token badge",
+      "disc8": "fd4dcd5f1be059df",
+      "rawPrefixHex": "fd4dcd5f1be059df",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates a TokenBadge that lets a Token-2022 mint with otherwise-rejected features be used in pools and rewards. Only the token badge authority may sign.",
+      "amount": null,
+      "notes": "FeatureIsNotEnabled unless the config's TokenBadge feature flag is on."
+    },
+    {
+      "name": "delete_token_badge",
+      "title": "Delete token badge",
+      "disc8": "35924408127511b9",
+      "rawPrefixHex": "35924408127511b9",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Closes a TokenBadge account, withdrawing that mint's exemption; rent goes to a caller-chosen receiver. Only the token badge authority may sign.",
+      "amount": null,
+      "notes": "FeatureIsNotEnabled unless the config's TokenBadge feature flag is on."
+    },
+    {
+      "name": "set_token_badge_attribute",
+      "title": "Set token badge attribute",
+      "disc8": "e05841218a93f689",
+      "rawPrefixHex": "e05841218a93f689",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets an attribute on a TokenBadge, such as requiring non-transferable positions. Only the token badge authority may sign.",
+      "amount": null,
+      "notes": "TokenBadgeAttribute has a single variant, RequireNonTransferablePosition(bool). Layout after the 8-byte discriminator (raw offsets, little-endian): attribute.tag(RequireNonTransferablePosition=0) u8 @8, attribute.value bool @9."
+    },
+    {
+      "name": "idl_include",
+      "title": "IDL placeholder (always fails)",
+      "disc8": "dffd79793cc1811f",
+      "rawPrefixHex": "dffd79793cc1811f",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "IDL-only stub that always fails with InvalidInstructionData; it exists so the IDL includes DynamicTickArray. Changes no state.",
+      "amount": null,
+      "notes": "Source comment: \"Only for inclusion in the IDL\". Takes only system_program. Unrelated to the two Anchor framework dispatch branches that the deployed binaries also contain and that are not listed in this file: IDL management (8-byte tag 40f4bc78a7e9690a) and event CPI (tag e445a52e51cb9a1d)."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/orca-so/whirlpools/blob/0e72771471167d29d39b14a72d3fbf51bc80fcb5/programs/whirlpool/src/lib.rs",
+      "kind": "source",
+      "ref": "0e72771471167d29d39b14a72d3fbf51bc80fcb5 (tag @orca-so/whirlpools-program@0.9.0)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/orca-so/whirlpools/blob/0e72771471167d29d39b14a72d3fbf51bc80fcb5/programs/whirlpool/src/entrypoint.rs",
+      "kind": "source",
+      "ref": "0e72771471167d29d39b14a72d3fbf51bc80fcb5 (tag @orca-so/whirlpools-program@0.9.0)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://cdn.jsdelivr.net/npm/@orca-so/whirlpools-sdk@0.22.0/dist/artifacts/whirlpool.json",
+      "kind": "idl",
+      "ref": "npm @orca-so/whirlpools-sdk@0.22.0 (IDL metadata.version 0.9.0, explicit discriminators)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://cdn.jsdelivr.net/npm/@orca-so/whirlpools-sdk@0.19.0/dist/artifacts/whirlpool.json",
+      "kind": "idl",
+      "ref": "npm @orca-so/whirlpools-sdk@0.19.0 (published with program 0.9.0; instruction table identical to 0.22.0)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/orca-so/whirlpools/tree/0e72771471167d29d39b14a72d3fbf51bc80fcb5/rust-sdk/client/src/generated/instructions",
+      "kind": "source",
+      "ref": "0e72771471167d29d39b14a72d3fbf51bc80fcb5 (generated Rust client, DISCRIMINATOR consts)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/orca-so/whirlpools/tree/0e72771471167d29d39b14a72d3fbf51bc80fcb5/ts-sdk/client/src/generated/instructions",
+      "kind": "source",
+      "ref": "0e72771471167d29d39b14a72d3fbf51bc80fcb5 (generated TypeScript client, DISCRIMINATOR consts and data encoders)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/orca-so/whirlpools/commit/f6db412595b8af52e4da1c4c3229daa6eb2cc8d8",
+      "kind": "source",
+      "ref": "f6db412595b8af52e4da1c4c3229daa6eb2cc8d8 (main, 2026-10-06: removes migrate_repurpose_reward_authority_space)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/coral-xyz/anchor/blob/v0.32.1/lang/src/idl.rs",
+      "kind": "source",
+      "ref": "v0.32.1 (anchor-lang version pinned in programs/whirlpool/Cargo.toml): IDL_IX_TAG",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/coral-xyz/anchor/blob/v0.32.1/lang/src/event.rs",
+      "kind": "source",
+      "ref": "v0.32.1 (anchor-lang version pinned in programs/whirlpool/Cargo.toml): EVENT_IX_TAG",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://docs.orca.so/llms.txt",
+      "kind": "docs",
+      "ref": "Protocol Constants: Whirlpools Program ID (all networks)",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

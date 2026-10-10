@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "name": "dex-trader-single-pool",
+  "title": "Single-pool DEX trader",
+  "description": "Lets an agent swap one input mint for one output mint on a single pinned Raydium CPMM pool using swap_base_input only.",
+  "audience": "Trading or rebalancing agents confined to one pool and one direction.",
+  "risk_summary": "Worst case is losing the spend limit to unfavourable pricing between the floor and the pool price, or a thin pool being manipulated within the floor. Output always lands in the owner-controlled destination when pinned.",
+  "permissions": [
+    {
+      "program": "raydium-cpmm",
+      "instructions": [
+        "swap_base_input"
+      ],
+      "notes": "Wire data 24 bytes: disc8, amount_in u64 at offset 8, minimum_amount_out u64 at offset 16. The output token account has no owner constraint in the program, so the relay pins it to the owner. Only the exact-in swap is allowed; swap_base_output bounds the input only through a maximum and is blocked.",
+      "suggested": {
+        "perTxLimit": {
+          "human": "100 USDC of input",
+          "note": "Example only; size to pool depth so one swap cannot move the price beyond the floor."
+        },
+        "lifetimeLimit": {
+          "human": "1,000 USDC of input",
+          "note": "Example only. Counter is unit-less per program."
+        }
+      }
+    }
+  ],
+  "explicitly_blocked": [
+    {
+      "program": "raydium-cpmm",
+      "instruction": "create_amm_config",
+      "why": "[admin] Creates a new fee-tier config; only the hardcoded Raydium admin key can sign."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "update_amm_config",
+      "why": "[admin] Rewrites a fee-tier config (fee rates, protocol/fund owner, create-pool fee, creation switch); only the hardcoded Raydium admin key can sign."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "update_pool_status",
+      "why": "[admin] Overwrites a pool's status bitmask, pausing or resuming deposit, withdraw and swap; only the hardcoded Raydium admin key can sign."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "collect_protocol_fee",
+      "why": "[admin] Sweeps accrued protocol fees from pool vaults to caller-chosen token accounts; signer must be the config's protocol owner or the Raydium admin."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "collect_fund_fee",
+      "why": "[admin] Sweeps accrued fund fees from pool vaults to caller-chosen token accounts; signer must be the config's fund owner or the Raydium admin."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "collect_creator_fee",
+      "why": "[not allowlisted, position_mgmt] Pool creator claims accrued creator fees (net of the protocol share) into the creator's own ATAs; destination is fixed, creator pays any ATA rent."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "collect_creator_fee_permissionless",
+      "why": "[other] Anyone can trigger; fees go to the pool creator's ATAs and the signer pays missing-ATA rent, so it benefits a third party."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "create_permission_pda",
+      "why": "[authority_change] Grants a wallet the right to call initialize_with_permission by creating its Permission PDA; signer must be the Raydium admin or the dedicated grant owner."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "close_permission_pda",
+      "why": "[account_close] Revokes a wallet's permissioned pool-creation grant by closing its Permission PDA; rent goes to the signer (admin or dedicated grant owner)."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "create_creator_fee_share",
+      "why": "[admin] Sets a custom protocol share of the creator fee for one (creator, amm_config) pair; admin or dedicated owner only."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "close_creator_fee_share",
+      "why": "[account_close] Closes a creator-fee-share override so the pair falls back to the config default rate; rent goes to the signer; admin or dedicated owner only."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "initialize",
+      "why": "[not allowlisted, position_mgmt] Creates a pool and seeds it with the creator's two tokens, pays the create-pool fee and rent, and mints LP tokens to the creator."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "initialize_with_permission",
+      "why": "[not allowlisted, position_mgmt] Permissioned pool creation: seeds a new pool from the payer's two tokens and lets the payer name the creator that earns creator fees."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "deposit",
+      "why": "[not allowlisted, position_mgmt] Adds liquidity: pulls both tokens from owner-controlled accounts (capped by max amounts) into pool vaults and mints LP tokens to the owner."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "withdraw",
+      "why": "[not allowlisted, position_mgmt] Burns the owner's LP tokens and sends the pro-rata pool tokens to two receiving accounts the caller chooses, not tied to the owner."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "swap_base_output",
+      "why": "[not allowlisted, value_swap] Swaps for an exact output amount paying up to max_amount_in; output goes to any token account supplied, and max_amount_in is the only price guard."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "create_support_mint_associated",
+      "why": "[admin] Whitelists a Token-2022 mint past the extension allow-list by creating its SupportMintAssociated PDA; admin or dedicated owner only."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "close_support_mint_associated",
+      "why": "[account_close] Removes a mint's allow-list bypass by closing its SupportMintAssociated PDA; rent goes to the signer; admin or dedicated owner only."
+    },
+    {
+      "program": "raydium-cpmm",
+      "instruction": "collect_excess_lamports",
+      "why": "[admin] Sweeps lamports above the rent-exempt minimum from pool-controlled accounts into the signer's wallet; admin or dedicated wallet only."
+    }
+  ],
+  "requires": {
+    "mints": [
+      "USDC",
+      "JitoSOL"
+    ],
+    "relay": true,
+    "warnings": [
+      "Set a floor price (floor_in/floor_out) in the relay policy; minimum_amount_out chosen by the agent alone is not a safe bound. Relay uses max(agent minimum, floor requirement).",
+      "The relay rejects wrapped SOL as budget mint and input mint, so a SOL-input pool cannot be traded; both pool mints must be classic SPL Token mints.",
+      "Pool and pair above are illustrative; choose and pin one real pool. Raydium CPMM program ids differ between mainnet-beta and devnet.",
+      "Floor protects only against the stated rate; a pool with real transfer fees or a manipulated reserve can still deliver the floor and no more."
+    ]
+  },
+  "honest_limits": [
+    "Per-tx limits are per verify call: AgentAuth checks each reported instruction against the limit independently, so N calls in one transaction or across transactions can each pass.",
+    "Spend counters are unit-less per program: lifetime and per-tx amounts are plain numbers per program id, not per mint, so base units of different tokens (and lamports) are summed together. Choose limits in the units of one mint only.",
+    "Only relay transfer_checked and the pinned swap are HARD enforced (the relay is the SPL delegate and checks recipient allowlist, budget and floor itself). Everything else in this preset is advisory unless the integrator calls AgentAuth verify before executing it.",
+    "The floor is a static price chosen at mandate creation and does not follow the market; a stale floor is either too loose or makes every swap fail."
+  ]
+}

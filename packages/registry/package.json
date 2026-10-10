@@ -1,0 +1,22 @@
+{
+  "name": "@agentauth-sol/registry",
+  "version": "0.1.0",
+  "description": "Human-readable instruction registry for AgentAuth mandates on Solana: names, canonical disc8 discriminators, risk classes and amount offsets.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": { "types": "./src/index.d.ts", "default": "./src/index.js" },
+    "./validate": { "types": "./src/validate.d.ts", "default": "./src/validate.js" },
+    "./data/programs/*.json": "./data/programs/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": ["src", "data", "scripts", "SCHEMA.md", "README.md"],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "verify": "node scripts/verify-all.js"
+  },
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "sideEffects": false
+}

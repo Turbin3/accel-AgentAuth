@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "slug": "stake",
+  "name": "Stake Program",
+  "kind": "native",
+  "programIds": {
+    "mainnet-beta": "Stake11111111111111111111111111111111111111",
+    "devnet": "Stake11111111111111111111111111111111111111"
+  },
+  "discriminatorScheme": "u32le-tag",
+  "instructions": [
+    {
+      "name": "initialize",
+      "title": "Initialize stake account",
+      "disc8": "0000000000000000",
+      "rawPrefixHex": "00000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Sets the staker, withdrawer and lockup of a funded stake account, so the caller-chosen withdrawer controls the funds. No authority signature required.",
+      "amount": null,
+      "notes": "No authority signs, so anyone can initialize a funded, uninitialized stake account; the real exposure is the System create_account or transfer that funds it, so cap that spend. initialize_checked cannot set a lockup and needs the withdrawer to sign."
+    },
+    {
+      "name": "authorize",
+      "title": "Authorize new stake or withdraw authority",
+      "disc8": "0100000000000000",
+      "rawPrefixHex": "01000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Hands the staker or withdrawer authority to a caller-chosen key, transferring control of the stake account and its funds.",
+      "amount": null,
+      "notes": "The staker or the withdrawer may change the staker key; only the withdrawer may change the withdrawer key, plus the lockup custodian while a lockup is in force."
+    },
+    {
+      "name": "delegate_stake",
+      "title": "Delegate stake to a validator",
+      "disc8": "0200000000000000",
+      "rawPrefixHex": "02000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Delegates all lamports above the rent reserve to a caller-chosen vote account; staker signs. Moves no value out of owner control.",
+      "amount": null,
+      "notes": "Needs only the staker authority, which can be held separately from the withdrawer. Active stake cannot be re-delegated to another validator (TooSoonToRedelegate)."
+    },
+    {
+      "name": "split",
+      "title": "Split stake account",
+      "disc8": "0300000000000000",
+      "rawPrefixHex": "03000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Moves lamports and delegation into a new uninitialized stake account that inherits the same authorities and lockup; staker signs.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "The destination must be a pre-allocated 200-byte uninitialized stake account; it inherits the source's authorities, so control stays with the owner. Splitting the full balance closes the source. Raw data is a u32 tag then a u64 lamports amount (12 bytes); report the zero-padded disc8, never the first 8 raw bytes."
+    },
+    {
+      "name": "withdraw",
+      "title": "Withdraw from stake account",
+      "disc8": "0400000000000000",
+      "rawPrefixHex": "04000000",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Sends lamports from a stake account to a caller-chosen recipient; withdrawer signs. Withdrawing the full balance closes the account.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Needs the withdrawer authority; a lockup in force blocks it unless the lockup custodian also signs. Full-balance withdrawal is allowed only when no stake is active and sends the rent to the recipient. Raw data is a u32 tag then a u64 lamports amount (12 bytes); report the zero-padded disc8, never the first 8 raw bytes."
+    },
+    {
+      "name": "deactivate",
+      "title": "Deactivate stake",
+      "disc8": "0500000000000000",
+      "rawPrefixHex": "05000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Starts cooldown of the delegated stake so it can later be withdrawn; staker signs. Moves no value.",
+      "amount": null,
+      "notes": ""
+    },
+    {
+      "name": "set_lockup",
+      "title": "Set stake lockup",
+      "disc8": "0600000000000000",
+      "rawPrefixHex": "06000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Changes lockup timestamp, epoch and custodian; can freeze withdrawals or install a custodian who can bypass or alter the lock.",
+      "amount": null,
+      "notes": "The withdrawer signs when no lockup is in force; the current custodian signs while one is. Each field is optional."
+    },
+    {
+      "name": "merge",
+      "title": "Merge stake accounts",
+      "disc8": "0700000000000000",
+      "rawPrefixHex": "07000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Merges a source stake account into a destination with identical authorities; the source is drained and closed. Staker signs.",
+      "amount": null,
+      "notes": "Both accounts must have equal staker and withdrawer keys and compatible lockups, so value stays under the same owner."
+    },
+    {
+      "name": "authorize_with_seed",
+      "title": "Authorize new authority (seed-derived)",
+      "disc8": "0800000000000000",
+      "rawPrefixHex": "08000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Hands the staker or withdrawer authority to a caller-chosen key; the current authority is a seed-derived address proven by its base key.",
+      "amount": null,
+      "notes": "The base key signs and the program derives the current authority with create_with_seed. A lockup custodian must also sign when changing the withdrawer under an active lockup."
+    },
+    {
+      "name": "initialize_checked",
+      "title": "Initialize stake account (checked)",
+      "disc8": "0900000000000000",
+      "rawPrefixHex": "09000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Sets staker and withdrawer of a funded stake account with no lockup; the withdrawer must sign. The signing withdrawer controls the funds.",
+      "amount": null,
+      "notes": "Safer than initialize against typos, but not against a rogue caller who signs with its own key. Allow it explicitly for new-stake-account flows."
+    },
+    {
+      "name": "authorize_checked",
+      "title": "Authorize new authority (checked)",
+      "disc8": "0a00000000000000",
+      "rawPrefixHex": "0a000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Hands the staker or withdrawer authority to a key that must co-sign; still transfers control of the stake account and its funds.",
+      "amount": null,
+      "notes": "The current authority and the new authority both sign; a lockup custodian must also sign when changing the withdrawer under an active lockup."
+    },
+    {
+      "name": "authorize_checked_with_seed",
+      "title": "Authorize new authority (checked, seed-derived)",
+      "disc8": "0b00000000000000",
+      "rawPrefixHex": "0b000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Hands the staker or withdrawer authority to a co-signing key; the current authority is a seed-derived address proven by its base key.",
+      "amount": null,
+      "notes": ""
+    },
+    {
+      "name": "set_lockup_checked",
+      "title": "Set stake lockup (checked)",
+      "disc8": "0c00000000000000",
+      "rawPrefixHex": "0c000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Changes lockup timestamp and epoch and may install a co-signing custodian; can freeze withdrawals or add a lock-bypass custodian.",
+      "amount": null,
+      "notes": "The withdrawer signs when no lockup is in force; the current custodian signs while one is. A new custodian, if given, must also sign."
+    },
+    {
+      "name": "get_minimum_delegation",
+      "title": "Get minimum delegation",
+      "disc8": "0d00000000000000",
+      "rawPrefixHex": "0d000000",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Returns the minimum stake delegation as little-endian u64 return data; takes no accounts and changes no state.",
+      "amount": null,
+      "notes": "The only stake instruction that still works while EpochRewards.active; every other instruction then fails with EpochRewardsActive."
+    },
+    {
+      "name": "deactivate_delinquent",
+      "title": "Deactivate delinquent stake",
+      "disc8": "0e00000000000000",
+      "rawPrefixHex": "0e000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Deactivates stake delegated to a long-delinquent validator; callable by anyone with no signer, and no value moves.",
+      "amount": null,
+      "notes": "Requires the delegated vote account to be delinquent for the minimum number of epochs and a reference vote account that voted recently."
+    },
+    {
+      "name": "redelegate",
+      "title": "Redelegate (disabled)",
+      "disc8": "0f00000000000000",
+      "rawPrefixHex": "0f000000",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Disabled: the program rejects this tag with InvalidInstructionData. Present only to preserve enum numbering; never needed in a mandate.",
+      "amount": null,
+      "notes": "Deprecated since interface 2.1.0 (\"Redelegate will not be enabled\"). program@v5.1.0, the release named in the on-chain binary's security.txt, returns InvalidInstructionData for it. Absent from idl.json; tag 15 appears only in interface-idl.json. Default-denied: no legitimate use."
+    },
+    {
+      "name": "move_stake",
+      "title": "Move stake between accounts",
+      "disc8": "1000000000000000",
+      "rawPrefixHex": "10000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Moves active stake between two stake accounts with identical authorities and lockups; staker signs. Value stays under the same owner.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "The source must be fully active and keep the minimum delegation unless all stake moves. Raw data is a u32 tag then a u64 lamports amount (12 bytes); report the zero-padded disc8, never the first 8 raw bytes."
+    },
+    {
+      "name": "move_lamports",
+      "title": "Move unstaked lamports between accounts",
+      "disc8": "1100000000000000",
+      "rawPrefixHex": "11000000",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Moves free, unstaked lamports between two stake accounts with identical authorities and lockups; staker signs. Value stays under the same owner.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Rent-exempt reserve and delegated lamports cannot be moved. Raw data is a u32 tag then a u64 lamports amount (12 bytes); report the zero-padded disc8, never the first 8 raw bytes."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/solana-program/stake/blob/bed72d02b1f68e7c5b317ad7117353f2243e9a48/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "interface@v5.1.1 bed72d02b1f68e7c5b317ad7117353f2243e9a48",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/stake/blob/bed72d02b1f68e7c5b317ad7117353f2243e9a48/idl.json",
+      "kind": "idl",
+      "ref": "interface@v5.1.1 bed72d02b1f68e7c5b317ad7117353f2243e9a48 (Codama 1.9.2, 17 instructions, Redelegate excluded)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/stake/blob/bed72d02b1f68e7c5b317ad7117353f2243e9a48/interface-idl.json",
+      "kind": "idl",
+      "ref": "interface@v5.1.1 bed72d02b1f68e7c5b317ad7117353f2243e9a48 (Codama 1.8.0, 18 instructions, redelegate = 15)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/stake/blob/3b511b63093618bf12493728e416fc647cb19e5b/program/src/processor.rs",
+      "kind": "source",
+      "ref": "program@v5.1.0 3b511b63093618bf12493728e416fc647cb19e5b (release named in the deployed binary's security.txt; bincode::deserialize dispatch)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/stake/blob/3b511b63093618bf12493728e416fc647cb19e5b/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "program@v5.1.0 3b511b63093618bf12493728e416fc647cb19e5b (solana-stake-interface 4.2.0, same variant order)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/stake/blob/3b511b63093618bf12493728e416fc647cb19e5b/interface/src/state.rs",
+      "kind": "source",
+      "ref": "program@v5.1.0 3b511b63093618bf12493728e416fc647cb19e5b (Authorized::authorize, Meta::set_lockup, Lockup::is_in_force, StakeStateV2::size_of = 200; impl blocks identical in interface@v5.1.1)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/stake/blob/3b511b63093618bf12493728e416fc647cb19e5b/program/src/helpers/merge.rs",
+      "kind": "source",
+      "ref": "program@v5.1.0 3b511b63093618bf12493728e416fc647cb19e5b (MergeKind::metas_can_merge: equal authorized keys and compatible lockups; byte-identical at bed72d02b1f68e7c5b317ad7117353f2243e9a48)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://docs.rs/solana-stake-interface/5.1.1/solana_stake_interface/instruction/enum.StakeInstruction.html",
+      "kind": "docs",
+      "ref": "solana-stake-interface 5.1.1",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

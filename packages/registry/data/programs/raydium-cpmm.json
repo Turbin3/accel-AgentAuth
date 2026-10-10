@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "slug": "raydium-cpmm",
+  "name": "Raydium CP-Swap (CPMM)",
+  "kind": "anchor",
+  "programIds": {
+    "mainnet-beta": "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C",
+    "devnet": "DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb"
+  },
+  "discriminatorScheme": "anchor-sha256",
+  "instructions": [
+    {
+      "name": "create_amm_config",
+      "title": "Create AMM config (fee tier)",
+      "disc8": "8934edd4d7756c68",
+      "rawPrefixHex": "8934edd4d7756c68",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates a new fee-tier config; only the hardcoded Raydium admin key can sign.",
+      "amount": null,
+      "notes": "Wire data (50 bytes): [disc8 8934edd4d7756c68][index u16le @8][trade_fee_rate u64le @10][protocol_fee_rate u64le @18][fund_fee_rate u64le @26][create_pool_fee u64le @34][creator_fee_rate u64le @42]. Signer owner must equal crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak). Rates are over FEE_RATE_DENOMINATOR_VALUE = 1_000_000 and create_pool_fee is in lamports, so none of these is a token amount. The new config's protocol_owner and fund_owner are written from the hardcoded protocol_fee_owner (mainnet ProCXqRcXJjoUd1RNoo28bSizAA6EEqt9wURZYPDc5u) and fund_fee_owner (mainnet FUNDduJTA7XcckKHKfAoEnnhuSud2JUCUZv6opWEjrBU) constants, not from the signer."
+    },
+    {
+      "name": "update_amm_config",
+      "title": "Update AMM config",
+      "disc8": "313cae889a1c74c8",
+      "rawPrefixHex": "313cae889a1c74c8",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Rewrites a fee-tier config (fee rates, protocol/fund owner, create-pool fee, creation switch); only the hardcoded Raydium admin key can sign.",
+      "amount": null,
+      "notes": "Wire data (17 bytes): [disc8 313cae889a1c74c8][param u8 @8][value u64le @9]. Signer owner must equal crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak); the doc comment says owner or admin but the constraint is admin-only. param selects the field: 0 trade_fee_rate, 1 protocol_fee_rate, 2 fund_fee_rate, 3 protocol_owner (new key is remaining_accounts[0]; value ignored), 4 fund_owner (same), 5 create_pool_fee (lamports), 6 disable_create_pool (0 = false, else true), 7 creator_fee_rate, 8 creator_fee_share_rate; any other param fails InvalidInput. Params 3 and 4 hand fee-collection rights to another key. value is a rate or flag, not a token amount."
+    },
+    {
+      "name": "update_pool_status",
+      "title": "Update pool status",
+      "disc8": "82576c062ee0757b",
+      "rawPrefixHex": "82576c062ee0757b",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Overwrites a pool's status bitmask, pausing or resuming deposit, withdraw and swap; only the hardcoded Raydium admin key can sign.",
+      "amount": null,
+      "notes": "Wire data (9 bytes): [disc8 82576c062ee0757b][status u8 @8]. Signer authority must equal crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak). status is the whole status byte, overwritten: bit0 set = deposit disabled, bit1 set = withdraw disabled, bit2 set = swap disabled (PoolStatusBitIndex, get_status_by_bit). A set bit makes the matching instruction fail with NotApproved."
+    },
+    {
+      "name": "collect_protocol_fee",
+      "title": "Collect protocol fee",
+      "disc8": "8888fcddc2427e59",
+      "rawPrefixHex": "8888fcddc2427e59",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sweeps accrued protocol fees from pool vaults to caller-chosen token accounts; signer must be the config's protocol owner or the Raydium admin.",
+      "amount": null,
+      "notes": "Wire data (24 bytes): [disc8 8888fcddc2427e59][amount_0_requested u64le @8][amount_1_requested u64le @16]. Account indices are 0-based. Signer owner must be amm_config.protocol_owner or crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak). Each requested amount is clamped to the pool's accrued protocol fee, min(requested, accrued); a sampled mainnet call (slot 455229574, 2026-10-10) passed u64::MAX for both, so the arguments are not a usable spend bound. recipient_token_0_account (index 8) and recipient_token_1_account (index 9) have no owner constraint, so the signer picks the destination. The two amounts are independent and in different mints, so amount is null."
+    },
+    {
+      "name": "collect_fund_fee",
+      "title": "Collect fund fee",
+      "disc8": "a78a4e95dfc2067e",
+      "rawPrefixHex": "a78a4e95dfc2067e",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sweeps accrued fund fees from pool vaults to caller-chosen token accounts; signer must be the config's fund owner or the Raydium admin.",
+      "amount": null,
+      "notes": "Wire data (24 bytes): [disc8 a78a4e95dfc2067e][amount_0_requested u64le @8][amount_1_requested u64le @16]. Account indices are 0-based. Same shape as collect_protocol_fee but gated on amm_config.fund_owner (or crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak)) and draining the fund_fees_token_0/1 counters. Each requested amount is clamped to the accrued fund fee. recipient_token_0_account (index 8) and recipient_token_1_account (index 9) have no owner constraint. The two amounts are independent and in different mints, so amount is null."
+    },
+    {
+      "name": "collect_creator_fee",
+      "title": "Collect creator fee",
+      "disc8": "1416567bc61cdb84",
+      "rawPrefixHex": "1416567bc61cdb84",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Pool creator claims accrued creator fees (net of the protocol share) into the creator's own ATAs; destination is fixed, creator pays any ATA rent.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Account indices are 0-based. Signer creator must equal pool_state.pool_creator. Payout amounts are computed on-chain from the accrued creator fees minus the protocol's share (CreatorFeeShare PDA if present, else amm_config.creator_fee_share_rate). creator_token_0 (index 8) and creator_token_1 (index 9) are the creator's own associated token accounts (init_if_needed, creator pays rent), so the destination cannot be redirected. The creator_fee_share account (index 14) must be passed even when it does not exist. No amount argument."
+    },
+    {
+      "name": "collect_creator_fee_permissionless",
+      "title": "Collect creator fee (permissionless)",
+      "disc8": "caca2253e27a91e5",
+      "rawPrefixHex": "caca2253e27a91e5",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Anyone can trigger; fees go to the pool creator's ATAs and the signer pays missing-ATA rent, so it benefits a third party.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Account indices are 0-based. Any payer (index 0) may sign. The creator account (index 1) is constrained to pool_state.pool_creator and creator_token_0 (index 8) / creator_token_1 (index 9) are the creator's associated token accounts (init_if_needed, payer funds the rent), so the payer cannot redirect fees but does donate ATA rent to a third party. Classified other with defaultDeny=true because it is a keeper-style call that benefits someone else, not an owner-fund outflow beyond rent; relax locally if an agent legitimately runs it. amm_config (index 14) and creator_fee_share (index 15) must be passed. No amount argument."
+    },
+    {
+      "name": "create_permission_pda",
+      "title": "Create permission PDA",
+      "disc8": "878802d889a9b5ca",
+      "rawPrefixHex": "878802d889a9b5ca",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Grants a wallet the right to call initialize_with_permission by creating its Permission PDA; signer must be the Raydium admin or the dedicated grant owner.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Signer owner must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated create_permission_pda_owner (mainnet RayqjDRsNEFuPcDE4JpEScwJvwusmHYuNZ3MgET4D7U, devnet DRayJkSKsijbcEqdooK4uUGcT6gjbEuwUh7V6Nmqct7M). Creates the Permission PDA seeded [\"permission\", permission_authority]; the signer pays its rent. Holding that PDA is what lets permission_authority call initialize_with_permission. No arguments."
+    },
+    {
+      "name": "close_permission_pda",
+      "title": "Close permission PDA",
+      "disc8": "9c5420764587467b",
+      "rawPrefixHex": "9c5420764587467b",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Revokes a wallet's permissioned pool-creation grant by closing its Permission PDA; rent goes to the signer (admin or dedicated grant owner).",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Signer owner must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated create_permission_pda_owner (mainnet RayqjDRsNEFuPcDE4JpEScwJvwusmHYuNZ3MgET4D7U, devnet DRayJkSKsijbcEqdooK4uUGcT6gjbEuwUh7V6Nmqct7M); the dedicated owner was added to this instruction in the Sept 2026 upgrade (it was admin-only before). Closes the Permission PDA seeded [\"permission\", permission_authority] and sends its rent to the signer. No arguments."
+    },
+    {
+      "name": "create_creator_fee_share",
+      "title": "Create creator fee share",
+      "disc8": "7f1fbc77abec8024",
+      "rawPrefixHex": "7f1fbc77abec8024",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets a custom protocol share of the creator fee for one (creator, amm_config) pair; admin or dedicated owner only.",
+      "amount": null,
+      "notes": "Wire data (16 bytes): [disc8 7f1fbc77abec8024][share_rate u64le @8]. Signer owner must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated create_creator_fee_share_owner (mainnet RayFfEhJHWToYRsr8sjVZZkdddBeYxyJazDitpdE7zJ, devnet DRayDe7AGe6nFg6egr7D42ECyDf15GV52WFwZAbfUo1R). share_rate is the protocol's share of the creator fee over 1_000_000 and must be <= 1_000_000 (else InvalidInput); it is a rate, not a token amount. Creates the CreatorFeeShare PDA seeded [\"creator_fee_share\", creator, amm_config]; the pool creator does not sign. There is no update path: close and re-create to change a rate."
+    },
+    {
+      "name": "close_creator_fee_share",
+      "title": "Close creator fee share",
+      "disc8": "4aa6523a0dd7ff42",
+      "rawPrefixHex": "4aa6523a0dd7ff42",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Closes a creator-fee-share override so the pair falls back to the config default rate; rent goes to the signer; admin or dedicated owner only.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Signer owner must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated create_creator_fee_share_owner (mainnet RayFfEhJHWToYRsr8sjVZZkdddBeYxyJazDitpdE7zJ, devnet DRayDe7AGe6nFg6egr7D42ECyDf15GV52WFwZAbfUo1R). Closes the CreatorFeeShare PDA for (creator, amm_config) and sends its rent to the signer; later collections use amm_config.creator_fee_share_rate. No arguments."
+    },
+    {
+      "name": "initialize",
+      "title": "Initialize pool",
+      "disc8": "afaf6d1f0d989bed",
+      "rawPrefixHex": "afaf6d1f0d989bed",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Creates a pool and seeds it with the creator's two tokens, pays the create-pool fee and rent, and mints LP tokens to the creator.",
+      "amount": null,
+      "notes": "Wire data (32 bytes): [disc8 afaf6d1f0d989bed][init_amount_0 u64le @8][init_amount_1 u64le @16][open_time u64le @24]. Account indices are 0-based. Signer creator (index 0) pays for everything and receives the LP tokens. init_amount_0 and init_amount_1 move from creator_token_0 (index 7) and creator_token_1 (index 8), which must be owned by the signer, into new pool vaults; the ratio of the two amounts sets the pool's starting price. Also charges amm_config.create_pool_fee lamports (system transfer to the create_pool_fee receiver DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8 on mainnet, 3oE58BKVt8KuYkGxx8zBojugnymWmBiyafWgMrnb6eYy on devnet) plus rent for the new accounts. open_time is a unix timestamp; a value <= now is bumped to now + 1. LP mint decimals = 9. The two amounts are independent and in different mints, so amount is null: a limit on one does not bound the other."
+    },
+    {
+      "name": "initialize_with_permission",
+      "title": "Initialize pool (with permission)",
+      "disc8": "3f37fe4131b25979",
+      "rawPrefixHex": "3f37fe4131b25979",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Permissioned pool creation: seeds a new pool from the payer's two tokens and lets the payer name the creator that earns creator fees.",
+      "amount": null,
+      "notes": "Wire data (33 bytes): [disc8 3f37fe4131b25979][init_amount_0 u64le @8][init_amount_1 u64le @16][open_time u64le @24][creator_fee_on u8 enum CreatorFeeOn @32]. Account indices are 0-based. Signer payer (index 0) funds the pool and must hold a Permission PDA seeded [\"permission\", payer] (index 15, created by create_permission_pda); without it the call fails. The creator account (index 1) is a caller-chosen, non-signing address stored as pool_creator, so the payer can direct future creator fees elsewhere. init_amount_0 and init_amount_1 move from payer_token_0 (index 8) and payer_token_1 (index 9), which must be owned by the payer; create_pool_fee lamports and rent are also charged. creator_fee_on is the unit-variant Borsh enum CreatorFeeOn as one byte: 0 BothToken, 1 OnlyToken0, 2 OnlyToken1. enable_creator_fee is forced true. The two amounts are independent and in different mints, so amount is null."
+    },
+    {
+      "name": "deposit",
+      "title": "Deposit liquidity",
+      "disc8": "f223c68952e1f2b6",
+      "rawPrefixHex": "f223c68952e1f2b6",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Adds liquidity: pulls both tokens from owner-controlled accounts (capped by max amounts) into pool vaults and mints LP tokens to the owner.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lp_token_base_units"
+      },
+      "notes": "Wire data (32 bytes): [disc8 f223c68952e1f2b6][lp_token_amount u64le @8][maximum_token_0_amount u64le @16][maximum_token_1_amount u64le @24]. Account indices are 0-based. Signer owner (index 0) must own owner_lp_token (3), token_0_account (4) and token_1_account (5); LP tokens are minted to owner_lp_token. amount is lp_token_amount, the LP tokens minted (LP mint decimals = 9), not a token spend. The owner's real outflow follows the pool ratio and is capped by maximum_token_0_amount (@16) and maximum_token_1_amount (@24), in the two pool mints' base units and including any Token-2022 transfer fee; a single amount cannot express both caps, so enforce them separately."
+    },
+    {
+      "name": "withdraw",
+      "title": "Withdraw liquidity",
+      "disc8": "b712469c946da122",
+      "rawPrefixHex": "b712469c946da122",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Burns the owner's LP tokens and sends the pro-rata pool tokens to two receiving accounts the caller chooses, not tied to the owner.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lp_token_base_units"
+      },
+      "notes": "Wire data (32 bytes): [disc8 b712469c946da122][lp_token_amount u64le @8][minimum_token_0_amount u64le @16][minimum_token_1_amount u64le @24]. Account indices are 0-based. Signer owner (index 0) must own owner_lp_token (3), whose LP tokens are burned. token_0_account (4) and token_1_account (5) receive the pool tokens and are constrained only by mint, not by owner, so the signer picks the recipients; pin them in the mandate. amount is lp_token_amount, the LP tokens burned (LP mint decimals = 9). minimum_token_0_amount (@16) and minimum_token_1_amount (@24) are slippage floors on the net amounts received."
+    },
+    {
+      "name": "swap_base_input",
+      "title": "Swap (exact input)",
+      "disc8": "8fbe5adac41e33de",
+      "rawPrefixHex": "8fbe5adac41e33de",
+      "risk": "value_swap",
+      "defaultDeny": false,
+      "rationale": "Swaps an exact input amount for the pool's output token; output goes to any token account supplied, and only minimum_amount_out guards price.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Wire data (24 bytes): [disc8 8fbe5adac41e33de][amount_in u64le @8][minimum_amount_out u64le @16]. Account indices are 0-based. Signer payer (index 0) must control input_token_account (4). output_token_account (5) is constrained only to be a token account, with no owner constraint, so the signer picks who receives the proceeds; pin it in the mandate. amount_in (@8) is the gross debit in base units of the input mint (input_token_mint, index 10), including any Token-2022 transfer fee. minimum_amount_out (@16) is the floor on the net output; 0 is accepted and removes the floor. Layout confirmed on 96 real mainnet instructions sampled 2026-10-10 (all 24 bytes)."
+    },
+    {
+      "name": "swap_base_output",
+      "title": "Swap (exact output)",
+      "disc8": "37d96256a34ab4ad",
+      "rawPrefixHex": "37d96256a34ab4ad",
+      "risk": "value_swap",
+      "defaultDeny": false,
+      "rationale": "Swaps for an exact output amount paying up to max_amount_in; output goes to any token account supplied, and max_amount_in is the only price guard.",
+      "amount": {
+        "offset": 8,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Wire data (24 bytes): [disc8 37d96256a34ab4ad][max_amount_in u64le @8][amount_out u64le @16]. Account indices are 0-based. Signer payer (index 0) must control input_token_account (4). output_token_account (5) has no owner constraint, so the signer picks the recipient; pin it in the mandate. amount is max_amount_in (@8), a cap on the gross debit in base units of the input mint (input_token_mint, index 10, including any Token-2022 transfer fee); the actual debit is computed on-chain and is at most that cap, so using it as the spend over-counts rather than under-counts. amount_out (@16) is the exact net amount the output account receives. Same 24-byte shape as swap_base_input; confirmed on 1 real mainnet instruction sampled 2026-10-10."
+    },
+    {
+      "name": "create_support_mint_associated",
+      "title": "Register support mint",
+      "disc8": "11fb415c88f20ea9",
+      "rawPrefixHex": "11fb415c88f20ea9",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Whitelists a Token-2022 mint past the extension allow-list by creating its SupportMintAssociated PDA; admin or dedicated owner only.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Signer owner must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated create_support_mint_associated_owner (mainnet Rayv2LG4tFSMizZhMP8aSUYxDPjV8qJtx2NQY9RKYZy, devnet DRaypyeDL6y1dUusMgwyeDM5JebjhsSi8aRXobKQ9DcQ). token_mint must be owned by Token-2022. Creates the SupportMintAssociated PDA seeded [\"support_mint\", token_mint], which lets that mint bypass the Token-2022 extension allow-list when a pool is created. No arguments."
+    },
+    {
+      "name": "close_support_mint_associated",
+      "title": "Unregister support mint",
+      "disc8": "6088b76348983683",
+      "rawPrefixHex": "6088b76348983683",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Removes a mint's allow-list bypass by closing its SupportMintAssociated PDA; rent goes to the signer; admin or dedicated owner only.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Signer owner must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated create_support_mint_associated_owner (mainnet Rayv2LG4tFSMizZhMP8aSUYxDPjV8qJtx2NQY9RKYZy, devnet DRaypyeDL6y1dUusMgwyeDM5JebjhsSi8aRXobKQ9DcQ). Closes the SupportMintAssociated PDA seeded [\"support_mint\", token_mint] and sends its rent to the signer. Existing pools are unaffected because the mint check runs only at pool creation. No arguments."
+    },
+    {
+      "name": "collect_excess_lamports",
+      "title": "Collect excess lamports",
+      "disc8": "1cbd1328a4b07611",
+      "rawPrefixHex": "1cbd1328a4b07611",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sweeps lamports above the rent-exempt minimum from pool-controlled accounts into the signer's wallet; admin or dedicated wallet only.",
+      "amount": null,
+      "notes": "Wire data is the 8-byte discriminator only (8 bytes). Signer collect_lamports_wallet must be crate::admin::ID (mainnet GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ, devnet DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak) or the dedicated collect_lamports wallet (mainnet RayGkhY93thaTgCv98sx1pNLgBHhJDxWUeZXp4bjmnp, devnet DRaydJNq54dSDHUqYCE3G8YySgaXfZucbh7dTXw9fBMs). No arguments: source accounts are passed as remaining accounts after the four fixed ones. For each source owned by Token or Token-2022 it CPIs the token program to move only the lamports above the account's rent-exempt minimum (wrapped SOL uses SyncNative then UnwrapLamports for the excess delta); for each CPMM-owned PDA it debits the excess directly; anything else is skipped. Every swept lamport goes to the signer."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/raydium-io/raydium-cp-swap/blob/b3187ae53a1b95a201f855a59024a12ca8f5b51a/programs/cp-swap/src/lib.rs",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "raydium-cp-swap master HEAD b3187ae53a1b95a201f855a59024a12ca8f5b51a (2026-10-02, squash of PR #80). Its git tree 1de2d7ad967775748ef6917209ec777ded753c33 is identical to release-branch head bdeee23fc06467602e65305eb5bf3ce46887f943 (2026-09-15), the commit Raydium's changelog says it verified before the Sept 2026 deploy. The #[program] module lists exactly 20 instructions with no #[discriminator] overrides (default sha256(\"global:<name>\")[0..8]); anchor-lang =1.0.2; declare_id! gives mainnet CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C and, under feature \"devnet\", DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb. No IDL is committed in this repo."
+    },
+    {
+      "url": "https://github.com/raydium-io/raydium-cp-swap/tree/b3187ae53a1b95a201f855a59024a12ca8f5b51a/programs/cp-swap/src/instructions",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "same commit b3187ae53a1b95a201f855a59024a12ca8f5b51a; per-instruction Accounts constraints and handler bodies (signer gates, destination constraints, argument use) read for every risk classification; admin/ holds the 11 admin handlers"
+    },
+    {
+      "url": "https://github.com/raydium-io/raydium-cp-swap/blob/b3187ae53a1b95a201f855a59024a12ca8f5b51a/programs/cp-swap/src/states/pool.rs",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "same commit b3187ae53a1b95a201f855a59024a12ca8f5b51a; CreatorFeeOn (unit variants BothToken, OnlyToken0, OnlyToken1 => one Borsh byte), PoolStatusBitIndex and get_status_by_bit, PoolState::initialize(..., creator_fee_on, enable_creator_fee)"
+    },
+    {
+      "url": "https://github.com/raydium-io/raydium-cp-swap/blob/b3187ae53a1b95a201f855a59024a12ca8f5b51a/programs/cp-swap/src/curve/fees.rs",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "same commit b3187ae53a1b95a201f855a59024a12ca8f5b51a; FEE_RATE_DENOMINATOR_VALUE = 1_000_000"
+    },
+    {
+      "url": "https://api.mainnet-beta.solana.com",
+      "kind": "idl",
+      "retrieved": "2026-10-10",
+      "ref": "on-chain IDL read with getAccountInfo (finalized, slot 455228897): Program Metadata program ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S, canonical PDA FHuJXL7cEttfHk4sXdTAXVaRymBdKfVs7ZH6cMgA1ihk (seed \"idl\", mutable, authority idLqqjj3SJmeTLobCXVdcb6RoigjfhsFYjMXan755Ej), 96-byte header, zlib JSON. Decoded JSON sha256 d86fe11ffc719fee9832f78a1c7374452ee9ebe2c63d51c0b5e5cb383a8fcfdb: raydium_cp_swap 0.2.0, 20 instructions with explicit discriminators and args; all 20 discriminators and all argument names/types equal the lib.rs parse and the recomputed values. Raydium's docs warn this account can lag a redeploy, hence the cross-checks below."
+    },
+    {
+      "url": "https://github.com/raydium-io/raydium-idl/blob/6123104304ebcb42be175cc297a2c221ac96bb96/raydium_cpmm/raydium_cp_swap.json",
+      "kind": "idl",
+      "retrieved": "2026-10-10",
+      "ref": "raydium-idl 6123104304ebcb42be175cc297a2c221ac96bb96 (2025-06-10, generated by Anchor 0.31.0): older 10-instruction IDL (create/update_amm_config, update_pool_status, collect_protocol_fee, collect_fund_fee, initialize, deposit, withdraw, swap_base_input, swap_base_output); its 10 explicit discriminators equal the recomputed ones. It predates creator fees, permissions, support mints and excess-lamports, so it is not used for the other 10 instructions."
+    },
+    {
+      "url": "https://github.com/raydium-io/raydium-sdk-V2/blob/e2e8bcd865189c994682a9477ec8eaf1e2da8aaf/src/raydium/cpmm/instruction.ts",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "raydium-sdk-V2 e2e8bcd865189c994682a9477ec8eaf1e2da8aaf (2026-10-08): hard-coded discriminator arrays and data layouts for initialize, deposit, withdraw, swap_base_input, swap_base_output, create_permission_pda, close_permission_pda, initialize_with_permission, collect_creator_fee and collect_creator_fee_permissionless; all 10 equal the recomputed values and the layouts match. Its lockCpLiquidity and collectCpFee arrays belong to the separate Raydium LP-lock program and are not catalogued."
+    },
+    {
+      "url": "https://docs.raydium.io/reference/program-addresses.md",
+      "kind": "docs",
+      "retrieved": "2026-10-10",
+      "ref": "as served 2026-10-10: mainnet CPMM CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C; devnet CPMM DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb; shared admin GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ (mainnet) / DRayqG9RXYi8WHgWEmRQGrUWRWbhjYWYkCRJDd6JBBak (devnet); dedicated permission, support-mint, fee-owner and excess-lamports keys; mainnet upgrade authority FytDrVzDybM1TwFQPGb8qaxZR7dBCzNeqT3vtQsceZQK (Squads vault), which matches the on-chain authority"
+    },
+    {
+      "url": "https://docs.raydium.io/products/cpmm/instructions.md",
+      "kind": "docs",
+      "retrieved": "2026-10-10",
+      "ref": "as served 2026-10-10: instruction summary (the same 20 instructions, who signs each) and per-instruction arguments for SwapBaseInput/SwapBaseOutput"
+    },
+    {
+      "url": "https://docs.raydium.io/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share.md",
+      "kind": "docs",
+      "retrieved": "2026-10-10",
+      "ref": "as served 2026-10-10: states the entry was verified against local release branch bdeee23 (15 September 2026) before deployment; adds create_creator_fee_share / close_creator_fee_share, update_amm_config param 8 and trailing accounts on both collect_creator_fee paths"
+    },
+    {
+      "url": "https://docs.raydium.io/reference/changelog/2026-09-09-cpmm-anchor-1-and-excess-lamports.md",
+      "kind": "docs",
+      "retrieved": "2026-10-10",
+      "ref": "as served 2026-10-10: Anchor =1.0.2 upgrade; adds admin collect_excess_lamports; create_amm_config writes fixed protocol/fund owners; ClosePermissionPda accepts the dedicated grant owner; no user-facing instruction changed"
+    },
+    {
+      "url": "https://docs.raydium.io/sdk-api/anchor-idl.md",
+      "kind": "docs",
+      "retrieved": "2026-10-10",
+      "ref": "as served 2026-10-10: CPMM IDL is published in the Program Metadata account FHuJXL7cEttfHk4sXdTAXVaRymBdKfVs7ZH6cMgA1ihk and the raydium-idl repo; CPMM has no legacy anchor:idl account; on-chain IDL may lag a redeploy"
+    },
+    {
+      "url": "https://api.mainnet-beta.solana.com",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "mainnet program CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C (solana program show -u m and getAccountInfo: executable true, owner BPFLoaderUpgradeab1e11111111111111111111111): ProgramData DMawCQzbgNTmbzaESc7o6pvL1KAeetY8zA7jNpzntHhU, last deployed slot 452376460 = 2026-10-01T19:05:48Z, upgrade authority FytDrVzDybM1TwFQPGb8qaxZR7dBCzNeqT3vtQsceZQK. Dumped ELF (722,617 bytes after trimming trailing zeros) has sha256 93cad2458ac72435c94b8ac89faa686987f4e29d2f0e862d546fbc5aa814a0d2, equal to verify.osec.io's on_chain_hash (that registry reports the program as not verified, with a stale record for commit cfdb70a8). The binary holds exactly 20 \"Instruction:\" log strings in lib.rs order and each of the 20 recomputed disc8 values occurs once as an sBPF lddw immediate. The source-to-binary match is inferred (tree identity, deploy timing, handler and discriminator parity); no reproducible build was run."
+    },
+    {
+      "url": "https://api.devnet.solana.com",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "devnet program DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb (solana program show -u d and getAccountInfo: executable true): ProgramData 3KvTa2fYhMxMZNfHho5oX34yLQLwRauoU2JScBkugvXF, authority DRayw6sn9fCvbhx5ZLtAVGAgAk6qAAX7UT7urzkXTeM5, last deployed slot 498629438 = 2026-09-15T06:13:27Z, 13 minutes after commit bdeee23. Same 20 handlers and discriminators as mainnet (ELF sha256 2518c463301a21093e9c78e7f274cccd49ca159ac357e4f58353afb188715b34). The repo declared devnet id CPMDWBwJDtYax9qW7AyRuVC19Cc4L4Vcy4n2BHAbHkCW until commit 0011e63ab98c3bce705560652dfd33b21a1ba228 (2025-07-25); that legacy program is still an executable devnet program (last deployed 2025-06-26) with only the 10 core handlers, so it is not catalogued (the schema holds one id per cluster)."
+    },
+    {
+      "url": "https://github.com/solana-foundation/anchor/blob/1314a6b83b16e6a31947b372d57988fd0e81559c/lang/syn/src/codegen/program/dispatch.rs",
+      "kind": "source",
+      "retrieved": "2026-10-10",
+      "ref": "anchor v1.0.2 (1314a6b83b16e6a31947b372d57988fd0e81559c): default instruction discriminator is sighash(\"global\", name); no IDL instructions are injected into programs any more (none found in the CPMM binaries); with the event-cpi feature the dispatcher also accepts tag e445a52e51cb9a1d (EVENT_IX_TAG_LE in lang/src/event.rs), whose handler (codegen/program/handlers.rs __event_dispatch) only checks that the event-authority PDA signed. CPMM never self-CPIs events (no emit_cpi!), so this framework hook is inert for outside callers and is deliberately not catalogued as an instruction."
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

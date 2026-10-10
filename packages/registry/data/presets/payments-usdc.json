@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "name": "payments-usdc",
+  "title": "USDC payments",
+  "description": "Lets an agent pay USDC to approved recipients with SPL Token transfer_checked and nothing else.",
+  "audience": "Teams letting an agent pay invoices, subscriptions or API fees in USDC.",
+  "risk_summary": "Worst case is the agent spending the lifetime limit to an attacker-chosen recipient if no recipient allowlist is set. With the relay allowlist the worst case is spending the limit to allowlisted recipients.",
+  "permissions": [
+    {
+      "program": "spl-token",
+      "instructions": [
+        "transfer_checked"
+      ],
+      "notes": "transfer_checked (not transfer) binds the mint and decimals. Amount is the u64 at raw data offset 1. The destination token account must already exist; creating it needs create_idempotent, which is deliberately not in this preset (use treasury-ops).",
+      "suggested": {
+        "perTxLimit": {
+          "human": "50 USDC",
+          "note": "Example only. 50 USDC = 50000000 base units (6 decimals); size to the largest single payment you expect."
+        },
+        "lifetimeLimit": {
+          "human": "500 USDC",
+          "note": "Example only. 500000000 base units. Counter is unit-less, so do not mix other tokens under the same program id."
+        }
+      }
+    }
+  ],
+  "explicitly_blocked": [
+    {
+      "program": "spl-token",
+      "instruction": "transfer",
+      "why": "[not allowlisted, value_out] Moves tokens from an owner- or delegate-controlled account to a destination account chosen by the caller."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "approve",
+      "why": "[authority_change] Grants a delegate spending rights over the source account up to an amount, replacing any existing delegate."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "revoke",
+      "why": "[authority_change] Clears the account delegate and delegated amount; removes rather than grants authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "set_authority",
+      "why": "[authority_change] Reassigns or removes a mint authority, freeze authority, token-account owner or close authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "mint_to",
+      "why": "[admin] Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "burn",
+      "why": "[not allowlisted, value_out] Destroys tokens from an owner- or delegate-controlled account; irreversible loss bounded by the amount."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "close_account",
+      "why": "[account_close] Closes a token account and sends all its lamports to a destination account chosen by the signer."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "freeze_account",
+      "why": "[authority_change] Freezes a token account so its owner cannot move tokens; requires the mint's freeze authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "thaw_account",
+      "why": "[authority_change] Unfreezes a frozen token account; requires the mint's freeze authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "approve_checked",
+      "why": "[authority_change] Grants a delegate spending rights up to an amount, with mint and decimals verified."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "mint_to_checked",
+      "why": "[admin] Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "burn_checked",
+      "why": "[not allowlisted, value_out] Destroys tokens like burn with decimals verified; irreversible loss bounded by the amount."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "withdraw_excess_lamports",
+      "why": "[value_out] Sends lamports above the rent-exempt reserve out of a mint, token account or multisig to a destination chosen by the caller."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "unwrap_lamports",
+      "why": "[value_out] Moves lamports out of a native (wrapped SOL) token account to any destination account chosen by the caller."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "batch",
+      "why": "[other] Runs a sequence of inner Token instructions, including transfers, approvals and authority changes, hiding them from a per-instruction allowlist."
+    }
+  ],
+  "requires": {
+    "mints": [
+      "USDC"
+    ],
+    "relay": true,
+    "warnings": [
+      "Set the relay recipient allowlist to the exact destination owners; without it the agent can pay any address (relay error RecipientNotAllowed only fires when an allowlist exists).",
+      "USDC has an issuer freeze authority; a frozen source account makes every payment fail.",
+      "Use the mint from mints.json for the right cluster: mainnet USDC and Circle devnet USDC are different addresses."
+    ]
+  },
+  "honest_limits": [
+    "Per-tx limits are per verify call: AgentAuth checks each reported instruction against the limit independently, so N calls in one transaction or across transactions can each pass.",
+    "Spend counters are unit-less per program: lifetime and per-tx amounts are plain numbers per program id, not per mint, so base units of different tokens (and lamports) are summed together. Choose limits in the units of one mint only.",
+    "Only relay transfer_checked and the pinned swap are HARD enforced (the relay is the SPL delegate and checks recipient allowlist, budget and floor itself). Everything else in this preset is advisory unless the integrator calls AgentAuth verify before executing it.",
+    "This preset does not stop the agent from sending to a wrong but allowlisted recipient, nor does it detect fraudulent invoices."
+  ]
+}

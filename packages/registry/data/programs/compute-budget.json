@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "slug": "compute-budget",
+  "name": "Compute Budget",
+  "kind": "native",
+  "programIds": {
+    "mainnet-beta": "ComputeBudget111111111111111111111111111111",
+    "devnet": "ComputeBudget111111111111111111111111111111"
+  },
+  "discriminatorScheme": "u8-tag",
+  "instructions": [
+    {
+      "name": "unused",
+      "title": "Unused (deprecated RequestUnits)",
+      "disc8": "0000000000000000",
+      "rawPrefixHex": "00",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Deprecated reserved tag 0 (formerly RequestUnits with a flat lamport fee); the runtime now rejects it, so deny by default.",
+      "amount": null,
+      "notes": "Name is the interface crate's (solana-compute-budget-interface v3.1.0: `Unused`, \"deprecated variant, reserved value\"). Through agave v1.17.34 this tag was RequestUnitsDeprecated { units: u32, additional_fee: u32 } (9 bytes: tag, units u32le at offset 1, additional_fee u32le at offset 5; additional_fee was a flat lamport priority fee); the Codama IDL still names it requestUnits. Feature remove_deprecated_request_unit_ix (EfhYd3SafzGT472tYQDUc4dPd2xdEfKs5fwkowUgVt4W) is active on mainnet-beta (activated_at slot 233280000) and devnet (slot 242352004) (feature account read via getAccountInfo, 2026-10-10), so a transaction containing tag 0 now fails with InvalidInstructionData (agave v4.3.0 process_instruction catch-all). amount is null on purpose: the legacy fee field is no longer honored."
+    },
+    {
+      "name": "request_heap_frame",
+      "title": "Request heap frame",
+      "disc8": "0100000000000000",
+      "rawPrefixHex": "01",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Requests a larger transaction-wide program heap; moves no funds and changes no account state.",
+      "amount": {
+        "offset": 1,
+        "size": 4,
+        "type": "u32le",
+        "unit": "bytes"
+      },
+      "notes": "Wire data is 5 bytes: [01][bytes u32le]. Shorter than 8 bytes, so disc8 is the tag zero-padded, never raw bytes. Runtime requires a multiple of 1024 between 32768 (32 KiB) and 262144 (256 KiB), else InvalidInstructionData; at most one per transaction (DuplicateInstruction). Top-level only: the budget is read from the transaction's instruction list before execution and the program entrypoint is a no-op, so a CPI has no effect (inferred from agave v4.3.0 source)."
+    },
+    {
+      "name": "set_compute_unit_limit",
+      "title": "Set compute unit limit",
+      "disc8": "0200000000000000",
+      "rawPrefixHex": "02",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Caps the compute units the transaction may use; affects fees and scheduling only, moves no funds.",
+      "amount": {
+        "offset": 1,
+        "size": 4,
+        "type": "u32le",
+        "unit": "compute_units"
+      },
+      "notes": "Wire data is 5 bytes: [02][units u32le]. disc8 is the tag zero-padded. Effective limit is clamped to 1,400,000 CUs; priority fee = ceil(limit * price / 1,000,000) lamports, so this value scales the cost of SetComputeUnitPrice. At most one per transaction. Top-level only (a CPI has no effect; inferred from agave v4.3.0 source). Ignored in v1-format transactions per the solana.com compute-budget docs."
+    },
+    {
+      "name": "set_compute_unit_price",
+      "title": "Set compute unit price",
+      "disc8": "0300000000000000",
+      "rawPrefixHex": "03",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Sets the priority-fee price in micro-lamports per compute unit; moves no tokens but raises the fee payer's SOL cost.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "micro_lamports_per_compute_unit"
+      },
+      "notes": "Wire data is 9 bytes: [03][micro_lamports u64le]; the raw first 8 bytes would include 7 price bytes, so disc8 is the tag zero-padded. Runtime accepts any u64. The fee payer pays ceil(price * compute_unit_limit / 1,000,000) lamports (limit at most 1,400,000), so an unbounded price can burn the payer's SOL: cap `amount` when the mandate owner pays fees. Kept read_only per SCHEMA.md (compute budget) because no tokens move. At most one per transaction. Top-level only (a CPI has no effect; inferred from agave v4.3.0 source). Ignored in v1-format transactions per the solana.com compute-budget docs."
+    },
+    {
+      "name": "set_loaded_accounts_data_size_limit",
+      "title": "Set loaded accounts data size limit",
+      "disc8": "0400000000000000",
+      "rawPrefixHex": "04",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Caps the total account data the transaction may load; moves no funds and changes no account state.",
+      "amount": {
+        "offset": 1,
+        "size": 4,
+        "type": "u32le",
+        "unit": "bytes"
+      },
+      "notes": "Wire data is 5 bytes: [04][bytes u32le]. disc8 is the tag zero-padded. Value must be non-zero (0 gives InvalidLoadedAccountsDataSizeLimit); effective limit is clamped to 64 MiB (67,108,864). At most one per transaction. Top-level only (a CPI has no effect; inferred from agave v4.3.0 source)."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/anza-xyz/solana-sdk/blob/249b2f9e3583d307f7966d14c87054953264f889/compute-budget-interface/src/lib.rs",
+      "kind": "source",
+      "ref": "compute-budget-interface@v3.1.0 (249b2f9e3583d307f7966d14c87054953264f889); default branch byte-identical on 2026-10-10",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/solana-sdk/blob/249b2f9e3583d307f7966d14c87054953264f889/sdk-ids/src/lib.rs",
+      "kind": "source",
+      "ref": "solana-sdk-ids at 249b2f9e3583d307f7966d14c87054953264f889 (declare_id for compute_budget)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/compute-budget/blob/b68894cf2ca3664db1f9530061c63033a461ac33/idl.json",
+      "kind": "idl",
+      "ref": "Codama IDL at b68894cf2ca3664db1f9530061c63033a461ac33 (js@v0.19.0)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://solana.com/docs/core/fees/compute-budget",
+      "kind": "docs",
+      "ref": "solana.com Compute Budget page as served 2026-10-10 (links agave v3.1.8)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/compute-budget-instruction/src/compute_budget_instruction_details.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (825efd18292aff6ffcf9daa0f7612f21b3531a72)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/programs/compute-budget/src/lib.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (825efd18292aff6ffcf9daa0f7612f21b3531a72); entrypoint is a no-op, 150 CU",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/compute-budget/src/compute_budget_limits.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (825efd18292aff6ffcf9daa0f7612f21b3531a72); priority fee formula",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/program-runtime/src/execution_budget.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (825efd18292aff6ffcf9daa0f7612f21b3531a72); limit constants",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/runtime-transaction/src/runtime_transaction/transaction_view.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (825efd18292aff6ffcf9daa0f7612f21b3531a72); details built from transaction.program_instructions_iter()",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/c2b350023ba849d1b33142592264aaa51fcb7f1e/sdk/src/compute_budget.rs",
+      "kind": "source",
+      "ref": "agave v1.18.26 (c2b350023ba849d1b33142592264aaa51fcb7f1e); tag 0 already named Unused",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/77daab497df191ef485a7ad36ed291c1874596e5/sdk/src/compute_budget.rs",
+      "kind": "source",
+      "ref": "agave v1.17.34 (77daab497df191ef485a7ad36ed291c1874596e5); tag 0 = RequestUnitsDeprecated { units, additional_fee }",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/77daab497df191ef485a7ad36ed291c1874596e5/program-runtime/src/compute_budget.rs",
+      "kind": "source",
+      "ref": "agave v1.17.34 (77daab497df191ef485a7ad36ed291c1874596e5); RequestUnitsDeprecated honored only while remove_deprecated_request_unit_ix is inactive",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/77daab497df191ef485a7ad36ed291c1874596e5/program-runtime/src/prioritization_fee.rs",
+      "kind": "source",
+      "ref": "agave v1.17.34 (77daab497df191ef485a7ad36ed291c1874596e5); Deprecated(fee) = flat lamports",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/77daab497df191ef485a7ad36ed291c1874596e5/sdk/src/feature_set.rs",
+      "kind": "source",
+      "ref": "agave v1.17.34 (77daab497df191ef485a7ad36ed291c1874596e5); remove_deprecated_request_unit_ix id",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

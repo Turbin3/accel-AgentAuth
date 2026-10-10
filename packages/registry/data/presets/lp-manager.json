@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "name": "lp-manager",
+  "title": "Orca LP manager (deposit and maintain)",
+  "description": "Lets an agent set up tick arrays, open positions, add liquidity and refresh fee counters on Orca Whirlpools, without any instruction that pays out to a caller-chosen account.",
+  "audience": "Liquidity-management agents where a human or separate key performs withdrawals and fee collection.",
+  "risk_summary": "The agent can deposit owner funds into pools and open or re-range positions, so it can lose value to bad ranges or impermanent loss, but cannot route tokens to an outside address. It cannot withdraw, collect or close.",
+  "permissions": [
+    {
+      "program": "orca-whirlpool",
+      "instructions": [
+        "initialize_tick_array",
+        "initialize_dynamic_tick_array",
+        "open_position",
+        "open_position_with_metadata",
+        "open_position_with_token_extensions",
+        "increase_liquidity",
+        "increase_liquidity_v2",
+        "increase_liquidity_by_token_amounts_v2",
+        "update_fees_and_rewards",
+        "reset_position_range"
+      ],
+      "notes": "Withheld because they pay out to caller-chosen token accounts (program checks the mint only, not the owner): decrease_liquidity, decrease_liquidity_v2, collect_fees, collect_fees_v2, collect_reward, collect_reward_v2, reposition_liquidity_v2 (net delta). Swaps also send output anywhere: swap, swap_v2, two_hop_swap, two_hop_swap_v2. open_position* mint the position NFT to a caller-chosen owner, so an agent could create positions owned by others (empty, only rent is lost); increase_liquidity deposits only into positions whose token account the signer owns. increase_liquidity* spends are capped per token by token_max_a/b, amount is null, so a per-tx limit cannot be derived from one offset.",
+      "suggested": {
+        "perTxLimit": {
+          "human": "Not expressible with one number",
+          "note": "Deposit caps are token_max_a and token_max_b (two mints) inside the instruction data; pick the advisory per-tx cap in the units your integrator reports and pin the pool."
+        },
+        "lifetimeLimit": {
+          "human": "Choose per pool",
+          "note": "Unit-less per program counter; do not combine different token pairs."
+        }
+      }
+    }
+  ],
+  "explicitly_blocked": [
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_config",
+      "why": "[admin] Creates a WhirlpoolsConfig and assigns its fee, protocol-fee and reward authorities. The funder must be one of the program's hard-coded ADMINS keys."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_pool",
+      "why": "[other] Creates a pool and two token vaults at a caller-chosen initial price; funder pays rent. Permissionless and unneeded for swapping or LP on existing pools."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_fee_tier",
+      "why": "[admin] Creates a fee-tier account that sets the default fee rate for a tick spacing. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_reward",
+      "why": "[admin] Sets up a liquidity-mining reward slot and vault on a pool. Signed by the pool's reward authority; the funder pays rent."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_reward_emissions",
+      "why": "[admin] Changes the emission rate of one pool reward. Only that reward's authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "decrease_liquidity",
+      "why": "[not allowlisted, position_mgmt] Withdraws liquidity to caller-chosen token accounts of the pool's mints, not tied to the position owner; token_min_a/b are slippage floors. Position authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "collect_fees",
+      "why": "[not allowlisted, value_out] Pays a position's accrued trading fees from the pool vaults to caller-chosen token accounts of the pool's mints. Position authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "collect_reward",
+      "why": "[not allowlisted, value_out] Pays a position's accrued liquidity-mining reward from the reward vault to a caller-chosen token account of the reward mint. Position authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "collect_protocol_fees",
+      "why": "[admin] Sweeps accrued protocol fees from pool vaults to caller-chosen accounts. Only the config's collect-protocol-fees authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "swap",
+      "why": "[not allowlisted, value_swap] Swaps one pool token for the other; output may go to any token account of the output mint. Needs spend limit and output floor."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "close_position",
+      "why": "[account_close] Burns the position NFT and closes the position and token accounts; rent goes to a caller-chosen receiver. Allowed only when the position is empty."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_default_fee_rate",
+      "why": "[admin] Changes the default fee rate a fee tier gives to new pools. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_default_protocol_fee_rate",
+      "why": "[admin] Changes the default protocol fee rate for new pools in a config. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_fee_rate",
+      "why": "[admin] Changes the swap fee rate of one pool. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_protocol_fee_rate",
+      "why": "[admin] Changes the protocol fee rate of one pool. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_fee_authority",
+      "why": "[authority_change] Reassigns the config's fee authority to a new key, which then controls fee rates and fee tiers. The current fee authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_collect_protocol_fees_authority",
+      "why": "[authority_change] Reassigns the config's protocol-fee collection authority, which can sweep protocol fees. The current collect-protocol-fees authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_reward_authority",
+      "why": "[authority_change] Reassigns the authority of one pool reward index, which controls its emissions. The current reward authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_reward_authority_by_super_authority",
+      "why": "[authority_change] Reassigns a pool reward's authority using the config's reward super authority, overriding the current reward authority."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_reward_emissions_super_authority",
+      "why": "[authority_change] Reassigns the config's reward super authority, which can reassign every pool reward authority. The current super authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "two_hop_swap",
+      "why": "[not allowlisted, value_swap] Swaps through two pools atomically; the final output may go to any token account of the output mint. Needs spend limit and output floor."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "delete_position_bundle",
+      "why": "[account_close] Burns the position-bundle NFT and closes the bundle and token accounts; rent goes to a caller-chosen receiver. Allowed only with no open positions."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "close_bundled_position",
+      "why": "[account_close] Closes an empty bundled position and frees its bundle index; rent goes to a caller-chosen receiver. Bundle authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "close_position_with_token_extensions",
+      "why": "[account_close] Burns the Token-2022 position NFT and closes the position, token and mint accounts; rent goes to a caller-chosen receiver. Allowed only when empty."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "lock_position",
+      "why": "[other] Permanently freezes the position NFT and blocks liquidity withdrawal, so principal can never be removed. Irreversible; position authority and funder sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "transfer_locked_position",
+      "why": "[authority_change] Moves a locked position NFT to a caller-chosen token account, transferring control of the position. Only the NFT owner, not a delegate, may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_adaptive_fee_tier",
+      "why": "[admin] Creates an adaptive fee tier with its fee constants and its pool-initialization and fee-delegation authorities. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_default_base_fee_rate",
+      "why": "[admin] Changes the default base fee rate of an adaptive fee tier. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_delegated_fee_authority",
+      "why": "[authority_change] Reassigns the delegated fee authority of an adaptive fee tier, which can set pool fee rates. The config's fee authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_initialize_pool_authority",
+      "why": "[authority_change] Reassigns the authority allowed to create pools in an adaptive fee tier. The config's fee authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_preset_adaptive_fee_constants",
+      "why": "[admin] Changes the adaptive-fee constants preset of an adaptive fee tier. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_pool_with_adaptive_fee",
+      "why": "[other] Creates an adaptive-fee pool and its oracle at a caller-chosen price; funder pays rent. Permissioned tiers also need the tier's pool-initialization authority."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_fee_rate_by_delegated_fee_authority",
+      "why": "[admin] Changes the fee rate of one pool; signed by the adaptive fee tier's delegated fee authority."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_adaptive_fee_constants",
+      "why": "[admin] Changes selected adaptive-fee constants on one pool's oracle. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_config_feature_flag",
+      "why": "[admin] Sets a feature flag (token-badge support) on a WhirlpoolsConfig. The signer must be one of the program's hard-coded ADMINS keys."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "migrate_repurpose_reward_authority_space",
+      "why": "[admin] Permissionless one-off migration that zeroes reward-info extension fields of a pool account; needs no signer. Removed from the source after 0.9.0."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "collect_fees_v2",
+      "why": "[not allowlisted, value_out] Pays a position's accrued trading fees from the pool vaults to caller-chosen token accounts of the pool's mints. Position authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "collect_protocol_fees_v2",
+      "why": "[admin] Sweeps accrued protocol fees from pool vaults to caller-chosen accounts. Only the config's collect-protocol-fees authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "collect_reward_v2",
+      "why": "[not allowlisted, value_out] Pays a position's accrued liquidity-mining reward from the reward vault to a caller-chosen token account of the reward mint. Position authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "decrease_liquidity_v2",
+      "why": "[not allowlisted, position_mgmt] Withdraws liquidity to caller-chosen token accounts of the pool's mints, not tied to the position owner; token_min_a/b are slippage floors. Position authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_pool_v2",
+      "why": "[other] Creates a pool and two token vaults at a caller-chosen initial price; funder pays rent. Permissionless and unneeded for swapping or LP on existing pools."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_reward_v2",
+      "why": "[admin] Sets up a liquidity-mining reward slot and vault on a pool. Signed by the pool's reward authority; the funder pays rent."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_reward_emissions_v2",
+      "why": "[admin] Changes the emission rate of one pool reward. Only that reward's authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "swap_v2",
+      "why": "[not allowlisted, value_swap] Swaps one pool token for the other; output may go to any token account of the output mint. Needs spend limit and output floor."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "two_hop_swap_v2",
+      "why": "[not allowlisted, value_swap] Swaps through two pools atomically; the final output may go to any token account of the output mint. Needs spend limit and output floor."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "reposition_liquidity_v2",
+      "why": "[not allowlisted, position_mgmt] Atomically withdraws a position's liquidity, moves it to a new tick range and redeposits within the given token bounds. Position authority and funder sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_config_extension",
+      "why": "[admin] Creates the WhirlpoolsConfigExtension account that holds the config extension and token-badge authorities. Only the config's fee authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_config_extension_authority",
+      "why": "[authority_change] Reassigns the config extension authority, which controls the token-badge authority. The current config extension authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_token_badge_authority",
+      "why": "[authority_change] Reassigns the token badge authority, which creates, edits and deletes TokenBadges. The config extension authority signs."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "initialize_token_badge",
+      "why": "[admin] Creates a TokenBadge that lets a Token-2022 mint with otherwise-rejected features be used in pools and rewards. Only the token badge authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "delete_token_badge",
+      "why": "[account_close] Closes a TokenBadge account, withdrawing that mint's exemption; rent goes to a caller-chosen receiver. Only the token badge authority may sign."
+    },
+    {
+      "program": "orca-whirlpool",
+      "instruction": "set_token_badge_attribute",
+      "why": "[admin] Sets an attribute on a TokenBadge, such as requiring non-transferable positions. Only the token badge authority may sign."
+    }
+  ],
+  "requires": {
+    "mints": [],
+    "relay": false,
+    "warnings": [
+      "The relay does not hard-enforce any Orca instruction; every limit here is advisory unless the integrator calls AgentAuth verify before executing.",
+      "Positions cannot be closed by the agent (close_position* are blocked), so exits need a human or a separate key.",
+      "Pin the pool (whirlpool) and position accounts in the integrator; an allowlisted instruction against an unexpected pool is not detected by discriminator alone.",
+      "Token-2022 pool mints are handled by the _v2 instructions and may carry extensions such as transfer fees or hooks; check each mint in mints.json."
+    ]
+  },
+  "honest_limits": [
+    "Per-tx limits are per verify call: AgentAuth checks each reported instruction against the limit independently, so N calls in one transaction or across transactions can each pass.",
+    "Spend counters are unit-less per program: lifetime and per-tx amounts are plain numbers per program id, not per mint, so base units of different tokens (and lamports) are summed together. Choose limits in the units of one mint only.",
+    "Only relay transfer_checked and the pinned swap are HARD enforced (the relay is the SPL delegate and checks recipient allowlist, budget and floor itself). Everything else in this preset is advisory unless the integrator calls AgentAuth verify before executing it.",
+    "Withheld payout instructions are an allowlist decision, not an on-chain guard: if a mandate also allows them, they can send value to any account of the pool mint."
+  ]
+}

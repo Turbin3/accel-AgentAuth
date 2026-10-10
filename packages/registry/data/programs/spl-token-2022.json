@@ -1,0 +1,1261 @@
+{
+  "schemaVersion": 1,
+  "slug": "spl-token-2022",
+  "name": "SPL Token-2022 (Token Extensions)",
+  "kind": "native",
+  "programIds": {
+    "mainnet-beta": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "devnet": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+  },
+  "discriminatorScheme": "u8-tag",
+  "instructions": [
+    {
+      "name": "initialize_mint",
+      "title": "Initialize mint",
+      "disc8": "0000000000000000",
+      "rawPrefixHex": "00",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated mint account; cannot touch existing balances or authorities.",
+      "amount": null,
+      "notes": "PROGRAM-LEVEL NOTES FOR THIS FILE. (1) Base instructions carry a 1-byte tag at data[0]; disc8 = tag + 7 zero bytes. (2) Extension instructions (tags 26,27,28,30,33,34,36,37,39,40,41,42,43,44,46) are TWO bytes on the wire: extension tag, then sub-tag, then args. The program rejects an extension tag with no sub-tag, so this file has no standalone entry for those 15 tags; every sub-instruction is listed with rawPrefixHex = both bytes and disc8 = [tag, sub-tag, 6 zero bytes] (registry convention; integrators must report this 2-byte form). Sub-tag 0 therefore has the same disc8 as the plain 1-byte value of its tag, so a reporter that sends only the first byte would resolve every sub-instruction of that extension to its sub-tag-0 entry. (3) Nine token-metadata and token-group interface instructions use 8-byte hash discriminators (first 8 bytes of sha256 of namespace:name); rawPrefixHex = disc8, and none starts with a valid tag byte (0-46, 255), so dispatch is unambiguous. (4) batch (tag 255) can wrap any other instruction. (5) Deployment checked 2026-10-10: the mainnet-beta ELF is byte-identical to release program@v11.0.0 and the devnet ELF to program@v11.1.0; tags, sub-tags and layouts are identical in both. The program is upgradeable (upgrade authority set on both clusters). THIS ENTRY: Tag 0 (TokenInstruction::InitializeMint). Data: decimals u8 @1, mint authority @2..34, freeze authority option @34 (flag, then pubkey). Must share a transaction with the System create_account that allocates the mint. Needs the Rent sysvar (see initialize_mint2). Accounts: mint (w), Rent sysvar."
+    },
+    {
+      "name": "initialize_account",
+      "title": "Initialize token account",
+      "disc8": "0100000000000000",
+      "rawPrefixHex": "01",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated token account for a mint and owner; moves no tokens and touches no existing balances.",
+      "amount": null,
+      "notes": "Tag 1 (TokenInstruction::InitializeAccount). Writes only the account being initialized; must share a transaction with the System create_account that allocates it. Accounts: account (w), mint, owner, Rent sysvar."
+    },
+    {
+      "name": "initialize_multisig",
+      "title": "Initialize multisig",
+      "disc8": "0200000000000000",
+      "rawPrefixHex": "02",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a new multisig account with M of N signers; changes no existing authority and moves no funds.",
+      "amount": null,
+      "notes": "Tag 2 (TokenInstruction::InitializeMultisig). m (required signers) u8 @1; the N signers (1..=11) follow as accounts. Accounts: multisig (w), Rent sysvar, signers."
+    },
+    {
+      "name": "transfer",
+      "title": "Transfer (deprecated)",
+      "disc8": "0300000000000000",
+      "rawPrefixHex": "03",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Deprecated unchecked transfer of tokens from an owner or delegate account to a destination account chosen by the caller.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 3 (TokenInstruction::Transfer). Deprecated in favor of transfer_checked and transfer_checked_with_fee; fails if either account has the TransferFeeAmount extension. Owner or delegate signs. Accounts: source (w), destination (w), authority (s)."
+    },
+    {
+      "name": "approve",
+      "title": "Approve delegate",
+      "disc8": "0400000000000000",
+      "rawPrefixHex": "04",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Authorizes a delegate to spend up to an amount from the source account.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 4 (TokenInstruction::Approve). The amount is the delegated allowance, not a transfer. Accounts: source (w), delegate, owner (s)."
+    },
+    {
+      "name": "revoke",
+      "title": "Revoke delegate",
+      "disc8": "0500000000000000",
+      "rawPrefixHex": "05",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Clears the delegate on a token account; it only removes spending authority but still changes authority state.",
+      "amount": null,
+      "notes": "Tag 5 (TokenInstruction::Revoke). No instruction data. Accounts: source (w), owner or delegate (s)."
+    },
+    {
+      "name": "set_authority",
+      "title": "Set authority",
+      "disc8": "0600000000000000",
+      "rawPrefixHex": "06",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Sets or clears an authority of a mint or token account: mint, freeze, owner, close, fee, hook, pause and others.",
+      "amount": null,
+      "notes": "Tag 6 (TokenInstruction::SetAuthority). authority_type u8 @1 (0 MintTokens, 1 FreezeAccount, 2 AccountOwner, 3 CloseAccount, 4 TransferFeeConfig, 5 WithheldWithdraw, 6 CloseMint, 7 InterestRate, 8 PermanentDelegate, 9 ConfidentialTransferMint, 10 TransferHookProgramId, 11 ConfidentialTransferFeeConfig, 12 MetadataPointer, 13 GroupPointer, 14 GroupMemberPointer, 15 ScaledUiAmount, 16 Pause, 17 PermissionedBurn), then the new authority as an option: flag @2, pubkey @3. AccountOwner hands the whole token account to the new authority. Accounts: mint or account (w), current authority (s)."
+    },
+    {
+      "name": "mint_to",
+      "title": "Mint to",
+      "disc8": "0700000000000000",
+      "rawPrefixHex": "07",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 7 (TokenInstruction::MintTo). Creates supply instead of debiting an account, so it matters when the mandate owner is the mint authority. The native mint does not support minting. Classed admin (deny by default) rather than value_out; the amount offset is given so a cap can be applied if it is explicitly allowed. Accounts: mint (w), destination (w), mint authority (s)."
+    },
+    {
+      "name": "burn",
+      "title": "Burn",
+      "disc8": "0800000000000000",
+      "rawPrefixHex": "08",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Destroys tokens from an owner or delegate account, an irreversible loss bounded by the amount.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 8 (TokenInstruction::Burn). Not supported on native (wrapped SOL) accounts; use close_account. Accounts: source (w), mint (w), owner or delegate (s)."
+    },
+    {
+      "name": "close_account",
+      "title": "Close token account",
+      "disc8": "0900000000000000",
+      "rawPrefixHex": "09",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Closes a token account (or a mint with a close authority) and sends all its lamports to a caller-chosen destination.",
+      "amount": null,
+      "notes": "Tag 9 (TokenInstruction::CloseAccount). No instruction data. Non-native accounts must hold zero tokens; a native (wrapped SOL) account may be closed with a balance and its whole value goes to the destination. A close authority, if set, signs instead of the owner. A mint needs the MintCloseAuthority extension and zero supply. Accounts: account (w), destination (w), owner or close authority (s)."
+    },
+    {
+      "name": "freeze_account",
+      "title": "Freeze account",
+      "disc8": "0a00000000000000",
+      "rawPrefixHex": "0a",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Issuer power: freezes a holder token account so its tokens cannot move; requires the mint freeze authority.",
+      "amount": null,
+      "notes": "Tag 10 (TokenInstruction::FreezeAccount). No instruction data. Mint-level power over other holders accounts. Accounts: account (w), mint, freeze authority (s)."
+    },
+    {
+      "name": "thaw_account",
+      "title": "Thaw account",
+      "disc8": "0b00000000000000",
+      "rawPrefixHex": "0b",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Issuer power: unfreezes a frozen token account; requires the mint freeze authority.",
+      "amount": null,
+      "notes": "Tag 11 (TokenInstruction::ThawAccount). No instruction data. Accounts: account (w), mint, freeze authority (s)."
+    },
+    {
+      "name": "transfer_checked",
+      "title": "Transfer (checked)",
+      "disc8": "0c00000000000000",
+      "rawPrefixHex": "0c",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Transfers tokens from an owner or delegate account to a destination chosen by the caller, verifying mint and decimals.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 12 (TokenInstruction::TransferChecked). decimals u8 @9. If either account has TransferFeeAmount the fee is withheld at the destination (transfer_checked_with_fee pins the expected fee). Accounts: source (w), mint, destination (w), owner or delegate (s)."
+    },
+    {
+      "name": "approve_checked",
+      "title": "Approve delegate (checked)",
+      "disc8": "0d00000000000000",
+      "rawPrefixHex": "0d",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Authorizes a delegate to spend up to an amount from the source account, verifying mint and decimals.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 13 (TokenInstruction::ApproveChecked). The amount is the delegated allowance, not a transfer; decimals u8 @9. Accounts: source (w), mint, delegate, owner (s)."
+    },
+    {
+      "name": "mint_to_checked",
+      "title": "Mint to (checked)",
+      "disc8": "0e00000000000000",
+      "rawPrefixHex": "0e",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Issuer power: mints new tokens to any token account, inflating supply, verifying decimals; requires the mint authority.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 14 (TokenInstruction::MintToChecked). decimals u8 @9. Same exposure and classification as mint_to. Accounts: mint (w), destination (w), mint authority (s)."
+    },
+    {
+      "name": "burn_checked",
+      "title": "Burn (checked)",
+      "disc8": "0f00000000000000",
+      "rawPrefixHex": "0f",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Destroys tokens from an owner or delegate account, verifying decimals; an irreversible loss bounded by the amount.",
+      "amount": {
+        "offset": 1,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Tag 15 (TokenInstruction::BurnChecked). decimals u8 @9. Not supported on native (wrapped SOL) accounts; use close_account. Accounts: source (w), mint (w), owner or delegate (s)."
+    },
+    {
+      "name": "initialize_account2",
+      "title": "Initialize token account (v2)",
+      "disc8": "1000000000000000",
+      "rawPrefixHex": "10",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated token account, taking the owner from instruction data; touches no existing funds.",
+      "amount": null,
+      "notes": "Tag 16 (TokenInstruction::InitializeAccount2). Owner pubkey @1..33. Accounts: account (w), mint, Rent sysvar."
+    },
+    {
+      "name": "sync_native",
+      "title": "Sync native (wrapped SOL)",
+      "disc8": "1100000000000000",
+      "rawPrefixHex": "11",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Updates a wrapped SOL account token amount to match its lamports; credits lamports already deposited and moves nothing.",
+      "amount": null,
+      "notes": "Tag 17 (TokenInstruction::SyncNative). No instruction data. Accounts: native token account (w)."
+    },
+    {
+      "name": "initialize_account3",
+      "title": "Initialize token account (v3)",
+      "disc8": "1200000000000000",
+      "rawPrefixHex": "12",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Like initialize_account2 without the Rent sysvar; initializes a fresh token account and touches no existing funds.",
+      "amount": null,
+      "notes": "Tag 18 (TokenInstruction::InitializeAccount3). Owner pubkey @1..33. Accounts: account (w), mint."
+    },
+    {
+      "name": "initialize_multisig2",
+      "title": "Initialize multisig (v2)",
+      "disc8": "1300000000000000",
+      "rawPrefixHex": "13",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Like initialize_multisig without the Rent sysvar; initializes a new multisig, changing no existing authority and moving no funds.",
+      "amount": null,
+      "notes": "Tag 19 (TokenInstruction::InitializeMultisig2). m u8 @1; signers follow as accounts. Accounts: multisig (w), signers."
+    },
+    {
+      "name": "initialize_mint2",
+      "title": "Initialize mint (v2)",
+      "disc8": "1400000000000000",
+      "rawPrefixHex": "14",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Initializes a freshly allocated mint account; cannot touch existing balances or authorities.",
+      "amount": null,
+      "notes": "Tag 20 (TokenInstruction::InitializeMint2). Same data layout as initialize_mint. Accounts: mint (w)."
+    },
+    {
+      "name": "get_account_data_size",
+      "title": "Get account data size",
+      "disc8": "1500000000000000",
+      "rawPrefixHex": "15",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Query only: returns the token account size for a mint plus listed extensions through return data; changes no state.",
+      "amount": null,
+      "notes": "Tag 21 (TokenInstruction::GetAccountDataSize). Extension types (2 bytes each) follow the tag. Accounts: mint."
+    },
+    {
+      "name": "initialize_immutable_owner",
+      "title": "Initialize immutable owner",
+      "disc8": "1600000000000000",
+      "rawPrefixHex": "16",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Enables the ImmutableOwner extension on a fresh token account, which only restricts future owner changes.",
+      "amount": null,
+      "notes": "Tag 22 (TokenInstruction::InitializeImmutableOwner). No instruction data. Must run before the account is initialized. Accounts: account (w)."
+    },
+    {
+      "name": "amount_to_ui_amount",
+      "title": "Amount to UI amount",
+      "disc8": "1700000000000000",
+      "rawPrefixHex": "17",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Query only: converts a raw token amount to a UI string through return data; changes no state.",
+      "amount": null,
+      "notes": "Tag 23 (TokenInstruction::AmountToUiAmount). The u64 @1 is a conversion input, not value moved, so no amount descriptor is given. For interest-bearing or scaled-UI mints the conversion uses floating-point math. Accounts: mint."
+    },
+    {
+      "name": "ui_amount_to_amount",
+      "title": "UI amount to amount",
+      "disc8": "1800000000000000",
+      "rawPrefixHex": "18",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Query only: converts a UI amount string to a raw token amount through return data; changes no state.",
+      "amount": null,
+      "notes": "Tag 24 (TokenInstruction::UiAmountToAmount). A UTF-8 string follows the tag; the result is a u64 LE in return data. Accounts: mint."
+    },
+    {
+      "name": "initialize_mint_close_authority",
+      "title": "Initialize mint close authority",
+      "disc8": "1900000000000000",
+      "rawPrefixHex": "19",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Assigns the authority that may later close a new mint; must run before initialize_mint.",
+      "amount": null,
+      "notes": "Tag 25 (TokenInstruction::InitializeMintCloseAuthority). Close authority option: flag @1, pubkey @2. Accounts: mint (w)."
+    },
+    {
+      "name": "initialize_transfer_fee_config",
+      "title": "Transfer fee: initialize config",
+      "disc8": "1a00000000000000",
+      "rawPrefixHex": "1a00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the transfer fee rate, cap and fee authorities on a new mint; mint-level setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 26 (TokenInstruction::TransferFeeExtension) + sub-tag 0 (TransferFeeInstruction::InitializeTransferFeeConfig); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: config authority option, withdraw-withheld authority option, fee basis points u16, maximum fee u64. Accounts: mint (w)."
+    },
+    {
+      "name": "transfer_checked_with_fee",
+      "title": "Transfer fee: transfer (checked, with fee)",
+      "disc8": "1a01000000000000",
+      "rawPrefixHex": "1a01",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Transfers tokens to any destination, verifying mint, decimals and the expected fee; signed by owner or delegate.",
+      "amount": {
+        "offset": 2,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Extension tag 26 (TokenInstruction::TransferFeeExtension) + sub-tag 1 (TransferFeeInstruction::TransferCheckedWithFee); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Layout: amount u64 @2, decimals u8 @10, expected fee u64 @11 (the fee, not the principal). Accounts: source (w), mint, destination (w), owner or delegate (s)."
+    },
+    {
+      "name": "withdraw_withheld_tokens_from_mint",
+      "title": "Transfer fee: withdraw withheld from mint",
+      "disc8": "1a02000000000000",
+      "rawPrefixHex": "1a02",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Withdraws all fees withheld on the mint to any fee-receiver account; needs the withdraw-withheld authority; no amount to cap.",
+      "amount": null,
+      "notes": "Extension tag 26 (TokenInstruction::TransferFeeExtension) + sub-tag 2 (TransferFeeInstruction::WithdrawWithheldTokensFromMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag, so the amount cannot be capped; denied by default. Accounts: mint (w), fee receiver (w), withdraw-withheld authority (s)."
+    },
+    {
+      "name": "withdraw_withheld_tokens_from_accounts",
+      "title": "Transfer fee: withdraw withheld from accounts",
+      "disc8": "1a03000000000000",
+      "rawPrefixHex": "1a03",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Withdraws all fees withheld on listed token accounts to any fee-receiver account; needs the withdraw-withheld authority; no amount to cap.",
+      "amount": null,
+      "notes": "Extension tag 26 (TokenInstruction::TransferFeeExtension) + sub-tag 3 (TransferFeeInstruction::WithdrawWithheldTokensFromAccounts); 2-byte prefix, disc8 = both bytes + 6 zero bytes. num_token_accounts u8 @2; the source accounts follow the signers. No amount, so it cannot be capped; denied by default. Accounts: mint, fee receiver (w), withdraw-withheld authority (s), sources (w)."
+    },
+    {
+      "name": "harvest_withheld_tokens_to_mint",
+      "title": "Transfer fee: harvest withheld to mint",
+      "disc8": "1a04000000000000",
+      "rawPrefixHex": "1a04",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Permissionless: moves fees already withheld on token accounts into the mint; no owner funds are affected.",
+      "amount": null,
+      "notes": "Extension tag 26 (TokenInstruction::TransferFeeExtension) + sub-tag 4 (TransferFeeInstruction::HarvestWithheldTokensToMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts without the TransferFeeAmount extension are skipped. Accounts: mint (w), source token accounts (w)."
+    },
+    {
+      "name": "set_transfer_fee",
+      "title": "Transfer fee: set fee",
+      "disc8": "1a05000000000000",
+      "rawPrefixHex": "1a05",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the mint transfer fee rate and maximum fee; requires the transfer-fee config authority.",
+      "amount": null,
+      "notes": "Extension tag 26 (TokenInstruction::TransferFeeExtension) + sub-tag 5 (TransferFeeInstruction::SetTransferFee); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: fee basis points u16 @2, maximum fee u64 @4. Accounts: mint (w), config authority (s)."
+    },
+    {
+      "name": "initialize_confidential_transfer_mint",
+      "title": "Confidential transfer: initialize mint",
+      "disc8": "1b00000000000000",
+      "rawPrefixHex": "1b00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Enables confidential transfers on a new mint, setting its authority, auto-approve flag and auditor key; run before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 0 (ConfidentialTransferInstruction::InitializeMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "update_confidential_transfer_mint",
+      "title": "Confidential transfer: update mint",
+      "disc8": "1b01000000000000",
+      "rawPrefixHex": "1b01",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the auto-approve flag and auditor ElGamal key of a confidential-transfer mint; requires the confidential transfer authority.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 1 (ConfidentialTransferInstruction::UpdateMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), confidential transfer mint authority (s)."
+    },
+    {
+      "name": "configure_confidential_transfer_account",
+      "title": "Confidential transfer: configure account",
+      "disc8": "1b02000000000000",
+      "rawPrefixHex": "1b02",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Turns on confidential transfers for a token account and registers its ElGamal key; owner-signed configuration backed by a proof.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 2 (ConfidentialTransferInstruction::ConfigureAccount); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Needs a pubkey-validity proof in the same transaction or a context account. Accounts: account (w), mint, instructions sysvar or proof context, owner (s)."
+    },
+    {
+      "name": "approve_confidential_transfer_account",
+      "title": "Confidential transfer: approve account",
+      "disc8": "1b03000000000000",
+      "rawPrefixHex": "1b03",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Approves a token account for confidential transfers; requires the confidential transfer mint authority.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 3 (ConfidentialTransferInstruction::ApproveAccount); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Only needed when the mint requires approval of new accounts. Accounts: account (w), mint, confidential transfer mint authority (s)."
+    },
+    {
+      "name": "empty_confidential_transfer_account",
+      "title": "Confidential transfer: empty account",
+      "disc8": "1b04000000000000",
+      "rawPrefixHex": "1b04",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Resets the confidential available balance after a zero-balance proof, preparing the account to close; moves no value.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 4 (ConfidentialTransferInstruction::EmptyAccount); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Needs a zero-ciphertext proof in the same transaction or a context account. Accounts: account (w), instructions sysvar or proof context, owner (s)."
+    },
+    {
+      "name": "confidential_deposit",
+      "title": "Confidential transfer: deposit",
+      "disc8": "1b05000000000000",
+      "rawPrefixHex": "1b05",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Moves tokens from a public balance into the same account confidential pending balance; funds stay under the owner.",
+      "amount": {
+        "offset": 2,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 5 (ConfidentialTransferInstruction::Deposit); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Layout: amount u64 @2, decimals u8 @10. Fails if the account is frozen, or the mint is non-transferable, paused or uses confidential mint/burn. Accounts: token account (w), mint, owner or delegate (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "confidential_withdraw",
+      "title": "Confidential transfer: withdraw",
+      "disc8": "1b06000000000000",
+      "rawPrefixHex": "1b06",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Moves tokens from the confidential available balance back to the same account public balance; needs ZK proofs.",
+      "amount": {
+        "offset": 2,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 6 (ConfidentialTransferInstruction::Withdraw); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Layout: amount u64 @2, decimals u8 @10, then the new decryptable balance and two proof offsets (i8). Needs equality and range proofs. Accounts: token account (w), mint, proofs, owner (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "confidential_transfer",
+      "title": "Confidential transfer: transfer",
+      "disc8": "1b07000000000000",
+      "rawPrefixHex": "1b07",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Transfers tokens confidentially to another account; the amount is encrypted so it cannot be read or capped from instruction data.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 7 (ConfidentialTransferInstruction::Transfer); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data carries ciphertexts and proof offsets only, so a spend limit cannot be enforced from instruction data; denied by default. Accounts: source (w), mint, destination (w), proofs, owner (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "apply_confidential_pending_balance",
+      "title": "Confidential transfer: apply pending balance",
+      "disc8": "1b08000000000000",
+      "rawPrefixHex": "1b08",
+      "risk": "position_mgmt",
+      "defaultDeny": false,
+      "rationale": "Rolls the pending confidential balance into the available balance of the same account; moves no value out.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 8 (ConfidentialTransferInstruction::ApplyPendingBalance); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: expected pending credit counter u64 @2, then the new decryptable balance. Accounts: account (w), owner (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "enable_confidential_credits",
+      "title": "Confidential transfer: enable confidential credits",
+      "disc8": "1b09000000000000",
+      "rawPrefixHex": "1b09",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Account setting: lets the account receive incoming confidential transfers; owner-signed configuration.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 9 (ConfidentialTransferInstruction::EnableConfidentialCredits); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "disable_confidential_credits",
+      "title": "Confidential transfer: disable confidential credits",
+      "disc8": "1b0a000000000000",
+      "rawPrefixHex": "1b0a",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Account setting: makes the account reject incoming confidential transfers; owner-signed configuration.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 10 (ConfidentialTransferInstruction::DisableConfidentialCredits); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "enable_non_confidential_credits",
+      "title": "Confidential transfer: enable non-confidential credits",
+      "disc8": "1b0b000000000000",
+      "rawPrefixHex": "1b0b",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Account setting: lets a confidential account receive non-confidential transfers; owner-signed configuration.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 11 (ConfidentialTransferInstruction::EnableNonConfidentialCredits); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "disable_non_confidential_credits",
+      "title": "Confidential transfer: disable non-confidential credits",
+      "disc8": "1b0c000000000000",
+      "rawPrefixHex": "1b0c",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Account setting: makes a confidential account reject non-confidential transfers; owner-signed configuration.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 12 (ConfidentialTransferInstruction::DisableNonConfidentialCredits); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "confidential_transfer_with_fee",
+      "title": "Confidential transfer: transfer with fee",
+      "disc8": "1b0d000000000000",
+      "rawPrefixHex": "1b0d",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Transfers tokens confidentially with a fee; the amount is encrypted so it cannot be read or capped from instruction data.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 13 (ConfidentialTransferInstruction::TransferWithFee); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data carries ciphertexts and five proof offsets only, so a spend limit cannot be enforced; denied by default. Accounts: source (w), mint, destination (w), proofs, owner (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "configure_confidential_transfer_account_with_registry",
+      "title": "Confidential transfer: configure account (registry)",
+      "disc8": "1b0e000000000000",
+      "rawPrefixHex": "1b0e",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Configures a token account for confidential transfers from an ElGamal registry account, skipping the proof; may also fund a reallocation.",
+      "amount": null,
+      "notes": "Extension tag 27 (TokenInstruction::ConfidentialTransferExtension) + sub-tag 14 (ConfidentialTransferInstruction::ConfigureAccountWithRegistry); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. An optional payer and System program account can fund a reallocation. Accounts: account (w), mint, ElGamal registry, optional payer (w,s), optional System program."
+    },
+    {
+      "name": "initialize_default_account_state",
+      "title": "Default account state: initialize",
+      "disc8": "1c00000000000000",
+      "rawPrefixHex": "1c00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the default state (such as frozen) of new token accounts for a new mint; setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 28 (TokenInstruction::DefaultAccountStateExtension) + sub-tag 0 (DefaultAccountStateInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: AccountState byte @2. Accounts: mint (w)."
+    },
+    {
+      "name": "update_default_account_state",
+      "title": "Default account state: update",
+      "disc8": "1c01000000000000",
+      "rawPrefixHex": "1c01",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the default state of new token accounts for a mint; requires the freeze authority.",
+      "amount": null,
+      "notes": "Extension tag 28 (TokenInstruction::DefaultAccountStateExtension) + sub-tag 1 (DefaultAccountStateInstruction::Update); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: AccountState byte @2. Accounts: mint (w), freeze authority (s)."
+    },
+    {
+      "name": "reallocate",
+      "title": "Reallocate token account",
+      "disc8": "1d00000000000000",
+      "rawPrefixHex": "1d",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Resizes a token account for new extensions; the payer SOL funds the extra rent, a small amount bounded by the extension sizes.",
+      "amount": null,
+      "notes": "Tag 29 (TokenInstruction::Reallocate). Extension types (2 bytes each) follow the tag. The owner signs and the payer transfers lamports through the System program when more rent is needed (program/src/extension/reallocate.rs). No amount field, so the spend cannot be capped; denied by default. Accounts: account (w), payer (w,s), System program, owner (s)."
+    },
+    {
+      "name": "enable_memo_transfers",
+      "title": "Memo transfers: enable",
+      "disc8": "1e00000000000000",
+      "rawPrefixHex": "1e00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Account setting: requires a memo on incoming transfers into the token account; owner-signed configuration.",
+      "amount": null,
+      "notes": "Extension tag 30 (TokenInstruction::MemoTransferExtension) + sub-tag 0 (RequiredMemoTransfersInstruction::Enable); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Adds the MemoTransfer extension if missing. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "disable_memo_transfers",
+      "title": "Memo transfers: disable",
+      "disc8": "1e01000000000000",
+      "rawPrefixHex": "1e01",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Account setting: stops requiring a memo on incoming transfers, removing a receive-side protection; owner-signed configuration.",
+      "amount": null,
+      "notes": "Extension tag 30 (TokenInstruction::MemoTransferExtension) + sub-tag 1 (RequiredMemoTransfersInstruction::Disable); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "create_native_mint",
+      "title": "Create native mint",
+      "disc8": "1f00000000000000",
+      "rawPrefixHex": "1f",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "One-time permissionless creation of the native (wrapped SOL) mint; the funder pays a fixed rent top-up.",
+      "amount": null,
+      "notes": "Tag 31 (TokenInstruction::CreateNativeMint). No instruction data. The program requires the account to be the fixed native mint address and the funder pays the rent difference through the System program. Never needed per agent; denied by default. Accounts: funder (w,s), native mint (w), System program."
+    },
+    {
+      "name": "initialize_non_transferable_mint",
+      "title": "Initialize non-transferable mint",
+      "disc8": "2000000000000000",
+      "rawPrefixHex": "20",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Marks a new mint as non-transferable, permanently blocking token transfers; mint-level setup before initialize_mint.",
+      "amount": null,
+      "notes": "Tag 32 (TokenInstruction::InitializeNonTransferableMint). No instruction data. Accounts: mint (w)."
+    },
+    {
+      "name": "initialize_interest_bearing_mint",
+      "title": "Interest-bearing: initialize",
+      "disc8": "2100000000000000",
+      "rawPrefixHex": "2100",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the interest rate and rate authority on a new mint; mint-level setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 33 (TokenInstruction::InterestBearingMintExtension) + sub-tag 0 (InterestBearingMintInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "update_rate_interest_bearing_mint",
+      "title": "Interest-bearing: update rate",
+      "disc8": "2101000000000000",
+      "rawPrefixHex": "2101",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the interest rate of a mint; requires the rate authority.",
+      "amount": null,
+      "notes": "Extension tag 33 (TokenInstruction::InterestBearingMintExtension) + sub-tag 1 (InterestBearingMintInstruction::UpdateRate); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: BasisPoints @2. Accounts: mint (w), rate authority (s)."
+    },
+    {
+      "name": "enable_cpi_guard",
+      "title": "CPI guard: enable",
+      "disc8": "2200000000000000",
+      "rawPrefixHex": "2200",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Enables CPI Guard on a token account, restricting owner-signed transfers, burns, approvals and closes made via CPI; can break relayed execution.",
+      "amount": null,
+      "notes": "Extension tag 34 (TokenInstruction::CpiGuardExtension) + sub-tag 0 (CpiGuardInstruction::Enable); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Per the source docs, while enabled: Transfer and Burn must go through a delegate, CloseAccount can only return lamports to the owner, SetAuthority can only remove an existing close authority, and Approve is disallowed. CPI Guard cannot be enabled or disabled via CPI. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "disable_cpi_guard",
+      "title": "CPI guard: disable",
+      "disc8": "2201000000000000",
+      "rawPrefixHex": "2201",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Disables CPI Guard on a token account, removing its protection against cross-program transfers, burns, approvals and closes.",
+      "amount": null,
+      "notes": "Extension tag 34 (TokenInstruction::CpiGuardExtension) + sub-tag 1 (CpiGuardInstruction::Disable); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Cannot be invoked via CPI (source docs), so a CPI relay cannot toggle it. Implicitly initializes the extension if absent. Accounts: account (w), owner (s)."
+    },
+    {
+      "name": "initialize_permanent_delegate",
+      "title": "Initialize permanent delegate",
+      "disc8": "2300000000000000",
+      "rawPrefixHex": "23",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Sets a permanent delegate on a new mint that can transfer or burn tokens in any holder account; unrestricted control.",
+      "amount": null,
+      "notes": "Tag 35 (TokenInstruction::InitializePermanentDelegate). Delegate pubkey @1..33; must run before initialize_mint. Per source docs the delegate may sign for Transfers and Burns on any account of the mint. Accounts: mint (w)."
+    },
+    {
+      "name": "initialize_transfer_hook",
+      "title": "Transfer hook: initialize",
+      "disc8": "2400000000000000",
+      "rawPrefixHex": "2400",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the transfer-hook program and its authority on a new mint, before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 36 (TokenInstruction::TransferHookExtension) + sub-tag 0 (TransferHookInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: authority and hook program id. Accounts: mint (w)."
+    },
+    {
+      "name": "update_transfer_hook",
+      "title": "Transfer hook: update",
+      "disc8": "2401000000000000",
+      "rawPrefixHex": "2401",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the transfer-hook program id of a mint; requires the transfer hook authority.",
+      "amount": null,
+      "notes": "Extension tag 36 (TokenInstruction::TransferHookExtension) + sub-tag 1 (TransferHookInstruction::Update); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), transfer hook authority (s)."
+    },
+    {
+      "name": "initialize_confidential_transfer_fee",
+      "title": "Confidential transfer fee: initialize",
+      "disc8": "2500000000000000",
+      "rawPrefixHex": "2500",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the confidential fee authority and withdraw-withheld ElGamal key on a new mint; setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 37 (TokenInstruction::ConfidentialTransferFeeExtension) + sub-tag 0 (ConfidentialTransferFeeInstruction::InitializeConfidentialTransferFeeConfig); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "withdraw_withheld_tokens_from_mint_for_confidential_transfer_fee",
+      "title": "Confidential transfer fee: withdraw withheld from mint",
+      "disc8": "2501000000000000",
+      "rawPrefixHex": "2501",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Withdraws all confidential fees withheld on the mint to any fee-receiver account; amounts encrypted; needs the withdraw-withheld authority.",
+      "amount": null,
+      "notes": "Extension tag 37 (TokenInstruction::ConfidentialTransferFeeExtension) + sub-tag 1 (ConfidentialTransferFeeInstruction::WithdrawWithheldTokensFromMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Needs a ZK proof instruction or context account. No plaintext amount, so it cannot be capped; denied by default. Accounts: mint (w), fee receiver (w), proof, withdraw-withheld authority (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "withdraw_withheld_tokens_from_accounts_for_confidential_transfer_fee",
+      "title": "Confidential transfer fee: withdraw withheld from accounts",
+      "disc8": "2502000000000000",
+      "rawPrefixHex": "2502",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Withdraws all confidential fees withheld on listed token accounts to any fee-receiver account; amounts encrypted; needs the withdraw-withheld authority.",
+      "amount": null,
+      "notes": "Extension tag 37 (TokenInstruction::ConfidentialTransferFeeExtension) + sub-tag 2 (ConfidentialTransferFeeInstruction::WithdrawWithheldTokensFromAccounts); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Needs a ZK proof instruction or context account. No plaintext amount, so it cannot be capped; denied by default. Accounts: mint, fee receiver (w), proof, withdraw-withheld authority (s), sources (w). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "harvest_withheld_tokens_to_mint_for_confidential_transfer_fee",
+      "title": "Confidential transfer fee: harvest withheld to mint",
+      "disc8": "2503000000000000",
+      "rawPrefixHex": "2503",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Permissionless: moves confidential fees withheld on token accounts into the mint; no owner funds are affected.",
+      "amount": null,
+      "notes": "Extension tag 37 (TokenInstruction::ConfidentialTransferFeeExtension) + sub-tag 3 (ConfidentialTransferFeeInstruction::HarvestWithheldTokensToMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts lacking the required extensions are skipped. Accounts: mint (w), source token accounts (w). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "enable_harvest_to_mint",
+      "title": "Confidential transfer fee: enable harvest to mint",
+      "disc8": "2504000000000000",
+      "rawPrefixHex": "2504",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Lets the mint accept harvested confidential fees; requires the confidential transfer fee authority.",
+      "amount": null,
+      "notes": "Extension tag 37 (TokenInstruction::ConfidentialTransferFeeExtension) + sub-tag 4 (ConfidentialTransferFeeInstruction::EnableHarvestToMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: mint (w), confidential transfer fee authority (s)."
+    },
+    {
+      "name": "disable_harvest_to_mint",
+      "title": "Confidential transfer fee: disable harvest to mint",
+      "disc8": "2505000000000000",
+      "rawPrefixHex": "2505",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Stops the mint from accepting harvested confidential fees; requires the confidential transfer fee authority.",
+      "amount": null,
+      "notes": "Extension tag 37 (TokenInstruction::ConfidentialTransferFeeExtension) + sub-tag 5 (ConfidentialTransferFeeInstruction::DisableHarvestToMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: mint (w), confidential transfer fee authority (s)."
+    },
+    {
+      "name": "withdraw_excess_lamports",
+      "title": "Withdraw excess lamports",
+      "disc8": "2600000000000000",
+      "rawPrefixHex": "26",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Sends all lamports above the rent reserve out of a mint, token account or multisig to any destination; token balances are untouched.",
+      "amount": null,
+      "notes": "Tag 38 (TokenInstruction::WithdrawExcessLamports). No instruction data, so no amount can be capped: everything above the rent-exempt minimum moves. Native (wrapped SOL) token accounts are rejected. Authority is the token account owner, the mint authority or the multisig itself. Denied by default because it cannot be amount-limited. Accounts: source (w), destination (w), authority (s)."
+    },
+    {
+      "name": "initialize_metadata_pointer",
+      "title": "Metadata pointer: initialize",
+      "disc8": "2700000000000000",
+      "rawPrefixHex": "2700",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the metadata pointer address and authority on a new mint, before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 39 (TokenInstruction::MetadataPointerExtension) + sub-tag 0 (MetadataPointerInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "update_metadata_pointer",
+      "title": "Metadata pointer: update",
+      "disc8": "2701000000000000",
+      "rawPrefixHex": "2701",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the metadata address a mint points to; requires the metadata pointer authority.",
+      "amount": null,
+      "notes": "Extension tag 39 (TokenInstruction::MetadataPointerExtension) + sub-tag 1 (MetadataPointerInstruction::Update); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), metadata pointer authority (s)."
+    },
+    {
+      "name": "initialize_group_pointer",
+      "title": "Group pointer: initialize",
+      "disc8": "2800000000000000",
+      "rawPrefixHex": "2800",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the group pointer address and authority on a new mint, before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 40 (TokenInstruction::GroupPointerExtension) + sub-tag 0 (GroupPointerInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "update_group_pointer",
+      "title": "Group pointer: update",
+      "disc8": "2801000000000000",
+      "rawPrefixHex": "2801",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the group address a mint points to; requires the group pointer authority.",
+      "amount": null,
+      "notes": "Extension tag 40 (TokenInstruction::GroupPointerExtension) + sub-tag 1 (GroupPointerInstruction::Update); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), group pointer authority (s)."
+    },
+    {
+      "name": "initialize_group_member_pointer",
+      "title": "Group member pointer: initialize",
+      "disc8": "2900000000000000",
+      "rawPrefixHex": "2900",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets the group member pointer address and authority on a new mint, before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 41 (TokenInstruction::GroupMemberPointerExtension) + sub-tag 0 (GroupMemberPointerInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "update_group_member_pointer",
+      "title": "Group member pointer: update",
+      "disc8": "2901000000000000",
+      "rawPrefixHex": "2901",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the group member address a mint points to; requires the group member pointer authority.",
+      "amount": null,
+      "notes": "Extension tag 41 (TokenInstruction::GroupMemberPointerExtension) + sub-tag 1 (GroupMemberPointerInstruction::Update); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), group member pointer authority (s)."
+    },
+    {
+      "name": "initialize_confidential_mint_burn",
+      "title": "Confidential mint/burn: initialize",
+      "disc8": "2a00000000000000",
+      "rawPrefixHex": "2a00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Enables confidential minting and burning on a new mint with a supply ElGamal key; setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 42 (TokenInstruction::ConfidentialMintBurnExtension) + sub-tag 0 (ConfidentialMintBurnInstruction::InitializeMint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "rotate_supply_elgamal_pubkey",
+      "title": "Confidential mint/burn: rotate supply ElGamal key",
+      "disc8": "2a01000000000000",
+      "rawPrefixHex": "2a01",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Rotates the ElGamal key that encrypts the confidential supply; requires the confidential mint authority and a proof.",
+      "amount": null,
+      "notes": "Extension tag 42 (TokenInstruction::ConfidentialMintBurnExtension) + sub-tag 1 (ConfidentialMintBurnInstruction::RotateSupplyElGamalPubkey); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: new supply ElGamal pubkey and a proof instruction offset. Accounts: mint (w), proof, confidential mint authority (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "update_confidential_mint_burn_decryptable_supply",
+      "title": "Confidential mint/burn: update decryptable supply",
+      "disc8": "2a02000000000000",
+      "rawPrefixHex": "2a02",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Updates the decryptable confidential supply value of a mint; requires the confidential mint authority.",
+      "amount": null,
+      "notes": "Extension tag 42 (TokenInstruction::ConfidentialMintBurnExtension) + sub-tag 2 (ConfidentialMintBurnInstruction::UpdateDecryptableSupply); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), confidential mint authority (s)."
+    },
+    {
+      "name": "confidential_mint",
+      "title": "Confidential mint/burn: mint",
+      "disc8": "2a03000000000000",
+      "rawPrefixHex": "2a03",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Issuer power: mints tokens into a confidential balance with an encrypted amount that cannot be capped; requires the mint authority.",
+      "amount": null,
+      "notes": "Extension tag 42 (TokenInstruction::ConfidentialMintBurnExtension) + sub-tag 3 (ConfidentialMintBurnInstruction::Mint); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data carries ciphertexts and proof offsets only, so no amount is readable; denied by default. Accounts: token account (w), mint (w), proofs, mint authority (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "confidential_burn",
+      "title": "Confidential mint/burn: burn",
+      "disc8": "2a04000000000000",
+      "rawPrefixHex": "2a04",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Burns tokens from the signer confidential balance; the amount is encrypted so it cannot be read or capped.",
+      "amount": null,
+      "notes": "Extension tag 42 (TokenInstruction::ConfidentialMintBurnExtension) + sub-tag 4 (ConfidentialMintBurnInstruction::Burn); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data carries ciphertexts and proof offsets only, so a limit cannot be enforced; denied by default. Accounts: token account (w), mint (w), proofs, owner (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "apply_confidential_pending_burn",
+      "title": "Confidential mint/burn: apply pending burn",
+      "disc8": "2a05000000000000",
+      "rawPrefixHex": "2a05",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Applies the pending burn amount to the confidential supply; requires the mint authority.",
+      "amount": null,
+      "notes": "Extension tag 42 (TokenInstruction::ConfidentialMintBurnExtension) + sub-tag 5 (ConfidentialMintBurnInstruction::ApplyPendingBurn); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w), mint authority (s). Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "initialize_scaled_ui_amount_mint",
+      "title": "Scaled UI amount: initialize",
+      "disc8": "2b00000000000000",
+      "rawPrefixHex": "2b00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets a UI amount multiplier and its authority on a new mint; setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 43 (TokenInstruction::ScaledUiAmountExtension) + sub-tag 0 (ScaledUiAmountMintInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "update_multiplier_scaled_ui_mint",
+      "title": "Scaled UI amount: update multiplier",
+      "disc8": "2b01000000000000",
+      "rawPrefixHex": "2b01",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the UI amount multiplier of a mint from a given time; requires the multiplier authority; changes displayed balances.",
+      "amount": null,
+      "notes": "Extension tag 43 (TokenInstruction::ScaledUiAmountExtension) + sub-tag 1 (ScaledUiAmountMintInstruction::UpdateMultiplier); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: new multiplier and the UNIX timestamp it takes effect (a past timestamp applies it immediately). Accounts: mint (w), multiplier authority (s)."
+    },
+    {
+      "name": "initialize_pausable_config",
+      "title": "Pausable: initialize",
+      "disc8": "2c00000000000000",
+      "rawPrefixHex": "2c00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Sets a pause authority on a new mint so minting, burning and transfers can later be paused; setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 44 (TokenInstruction::PausableExtension) + sub-tag 0 (PausableInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Accounts: mint (w)."
+    },
+    {
+      "name": "pause",
+      "title": "Pausable: pause",
+      "disc8": "2c01000000000000",
+      "rawPrefixHex": "2c01",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Pauses minting, burning and transferring for the whole mint; requires the pause authority.",
+      "amount": null,
+      "notes": "Extension tag 44 (TokenInstruction::PausableExtension) + sub-tag 1 (PausableInstruction::Pause); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: mint (w), pause authority (s)."
+    },
+    {
+      "name": "resume",
+      "title": "Pausable: resume",
+      "disc8": "2c02000000000000",
+      "rawPrefixHex": "2c02",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Resumes minting, burning and transferring for a paused mint; requires the pause authority.",
+      "amount": null,
+      "notes": "Extension tag 44 (TokenInstruction::PausableExtension) + sub-tag 2 (PausableInstruction::Resume); 2-byte prefix, disc8 = both bytes + 6 zero bytes. No data after the sub-tag. Accounts: mint (w), pause authority (s)."
+    },
+    {
+      "name": "unwrap_lamports",
+      "title": "Unwrap lamports",
+      "disc8": "2d00000000000000",
+      "rawPrefixHex": "2d",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Moves lamports out of a native (wrapped SOL) token account to any destination; omitting the amount moves the whole balance.",
+      "amount": null,
+      "notes": "Tag 45 (TokenInstruction::UnwrapLamports). Data is an optional amount: option flag u8 @1, then a u64 LE amount @2 ONLY when the flag is 1. Flag 0 moves the ENTIRE balance and the program ignores any trailing bytes (decode_instruction_data_with_coption_u64), so a reader that trusts offset 2 without checking byte 1 == 1 can be bypassed; for that reason amount is null here (treat flag 0 as unbounded). The source must be a native token account; a delegate is limited to its delegated amount. Denied by default. Accounts: source (w), destination (w), owner or delegate (s)."
+    },
+    {
+      "name": "initialize_permissioned_burn",
+      "title": "Permissioned burn: initialize",
+      "disc8": "2e00000000000000",
+      "rawPrefixHex": "2e00",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Requires a designated authority to co-sign burns of a new mint; setup before initialize_mint.",
+      "amount": null,
+      "notes": "Extension tag 46 (TokenInstruction::PermissionedBurnExtension) + sub-tag 0 (PermissionedBurnInstruction::Initialize); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data: the authority pubkey @2..34. Accounts: mint (w)."
+    },
+    {
+      "name": "permissioned_burn",
+      "title": "Permissioned burn: burn",
+      "disc8": "2e01000000000000",
+      "rawPrefixHex": "2e01",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Burns tokens from an account of a permissioned-burn mint; needs the permissioned burn authority and the owner or delegate to sign.",
+      "amount": {
+        "offset": 2,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Extension tag 46 (TokenInstruction::PermissionedBurnExtension) + sub-tag 1 (PermissionedBurnInstruction::Burn); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Layout: amount u64 @2. Accounts: source (w), mint (w), permissioned burn authority (s), owner or delegate (s)."
+    },
+    {
+      "name": "permissioned_burn_checked",
+      "title": "Permissioned burn: burn (checked)",
+      "disc8": "2e02000000000000",
+      "rawPrefixHex": "2e02",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Burns tokens from an account of a permissioned-burn mint, verifying decimals; needs the burn authority and the owner or delegate to sign.",
+      "amount": {
+        "offset": 2,
+        "size": 8,
+        "type": "u64le",
+        "unit": "token_base_units"
+      },
+      "notes": "Extension tag 46 (TokenInstruction::PermissionedBurnExtension) + sub-tag 2 (PermissionedBurnInstruction::BurnChecked); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Layout: amount u64 @2, decimals u8 @10. Accounts: source (w), mint (w), permissioned burn authority (s), owner or delegate (s)."
+    },
+    {
+      "name": "permissioned_confidential_burn",
+      "title": "Permissioned burn: confidential burn",
+      "disc8": "2e03000000000000",
+      "rawPrefixHex": "2e03",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Burns tokens from the confidential balance of a permissioned-burn mint; the amount is encrypted so it cannot be read or capped.",
+      "amount": null,
+      "notes": "Extension tag 46 (TokenInstruction::PermissionedBurnExtension) + sub-tag 3 (PermissionedBurnInstruction::ConfidentialBurn); 2-byte prefix, disc8 = both bytes + 6 zero bytes. Data carries ciphertexts and proof offsets only, so a limit cannot be enforced; denied by default. Compiled behind the zk-ops build feature (a default feature of program@v11.0.0 and v11.1.0); runtime availability also depends on the cluster ZK ElGamal proof program and was not verified."
+    },
+    {
+      "name": "batch",
+      "title": "Batch",
+      "disc8": "ff00000000000000",
+      "rawPrefixHex": "ff",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Executes a sequence of nested token instructions, including transfers and authority changes, hidden from a per-instruction allowlist.",
+      "amount": null,
+      "notes": "Tag 255 (TokenInstruction::Batch). After the tag the data repeats [num_accounts u8][data_len u8][nested instruction data starting with its own tag]; accounts for the nested instructions follow in order and the outer signers authorize them. Nested instructions can be any base or extension instruction; a nested batch is rejected. A per-instruction allowlist or amount limit cannot see inside, so allowing batch effectively allows everything it can contain. Classed other with defaultDeny: its risk is the union of the nested instructions."
+    },
+    {
+      "name": "initialize_token_metadata",
+      "title": "Token metadata: initialize",
+      "disc8": "d2e11ea258b84d8d",
+      "rawPrefixHex": "d2e11ea258b84d8d",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Writes name, symbol and URI metadata into a mint and assigns its update authority; requires the mint authority.",
+      "amount": null,
+      "notes": "spl-token-metadata-interface v1.0.1 TokenMetadataInstruction::Initialize: 8-byte discriminator = sha256(\"spl_token_metadata_interface:initialize_account\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Borsh data after the discriminator: name, symbol, uri (u32 length-prefixed strings). Requires the MetadataPointer extension; the mint account itself holds the metadata. Resizes the account but moves no lamports, so it must be pre-funded. Accounts: metadata (the mint) (w), update authority, mint, mint authority (s)."
+    },
+    {
+      "name": "update_token_metadata_field",
+      "title": "Token metadata: update field",
+      "disc8": "dde9312db5cadcc8",
+      "rawPrefixHex": "dde9312db5cadcc8",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the name, symbol, URI or a custom field of token metadata; requires the update authority; can alter token identity.",
+      "amount": null,
+      "notes": "spl-token-metadata-interface v1.0.1 TokenMetadataInstruction::UpdateField: 8-byte discriminator = sha256(\"spl_token_metadata_interface:updating_field\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Borsh data: Field enum (Name, Symbol, Uri, Key(string)) and a value string. Resizes the account but moves no lamports. Accounts: metadata (w), update authority (s)."
+    },
+    {
+      "name": "remove_token_metadata_key",
+      "title": "Token metadata: remove key",
+      "disc8": "ea122038598d25b5",
+      "rawPrefixHex": "ea122038598d25b5",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Removes a custom key from token metadata; requires the update authority.",
+      "amount": null,
+      "notes": "spl-token-metadata-interface v1.0.1 TokenMetadataInstruction::RemoveKey: 8-byte discriminator = sha256(\"spl_token_metadata_interface:remove_key_ix\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Borsh data: idempotent bool, key string. Accounts: metadata (w), update authority (s)."
+    },
+    {
+      "name": "update_token_metadata_update_authority",
+      "title": "Token metadata: update authority",
+      "disc8": "d7e4a6e45464567b",
+      "rawPrefixHex": "d7e4a6e45464567b",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Transfers or clears the token-metadata update authority; clearing makes the metadata immutable.",
+      "amount": null,
+      "notes": "spl-token-metadata-interface v1.0.1 TokenMetadataInstruction::UpdateAuthority: 8-byte discriminator = sha256(\"spl_token_metadata_interface:update_the_authority\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Data: new authority (nullable pubkey). Accounts: metadata (w), current update authority (s)."
+    },
+    {
+      "name": "emit_token_metadata",
+      "title": "Token metadata: emit",
+      "disc8": "faa6b4fa0d0cb846",
+      "rawPrefixHex": "faa6b4fa0d0cb846",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Query only: returns token metadata through return data; changes no state.",
+      "amount": null,
+      "notes": "spl-token-metadata-interface v1.0.1 TokenMetadataInstruction::Emit: 8-byte discriminator = sha256(\"spl_token_metadata_interface:emitter\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Borsh data: optional start and end of the byte range. Accounts: metadata."
+    },
+    {
+      "name": "initialize_token_group",
+      "title": "Token group: initialize group",
+      "disc8": "79716c2736330004",
+      "rawPrefixHex": "79716c2736330004",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Creates a token group on a mint with an update authority and a maximum size; requires the mint authority.",
+      "amount": null,
+      "notes": "spl-token-group-interface v0.7.2 TokenGroupInstruction::InitializeGroup: 8-byte discriminator = sha256(\"spl_token_group_interface:initialize_token_group\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Data: update authority (nullable pubkey) and max size u64. Accounts: group (w), mint, mint authority (s)."
+    },
+    {
+      "name": "update_token_group_max_size",
+      "title": "Token group: update max size",
+      "disc8": "6c25ab8ff81e126e",
+      "rawPrefixHex": "6c25ab8ff81e126e",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Changes the maximum size of a token group; requires the group update authority.",
+      "amount": null,
+      "notes": "spl-token-group-interface v0.7.2 TokenGroupInstruction::UpdateGroupMaxSize: 8-byte discriminator = sha256(\"spl_token_group_interface:update_group_max_size\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Data: max size u64. Accounts: group (w), update authority (s)."
+    },
+    {
+      "name": "update_token_group_update_authority",
+      "title": "Token group: update authority",
+      "disc8": "a1695801edddd8cb",
+      "rawPrefixHex": "a1695801edddd8cb",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Transfers or clears the token-group update authority.",
+      "amount": null,
+      "notes": "spl-token-group-interface v0.7.2 TokenGroupInstruction::UpdateGroupAuthority: 8-byte discriminator = sha256(\"spl_token_group_interface:update_authority\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. Data: new authority (nullable pubkey). Accounts: group (w), current update authority (s)."
+    },
+    {
+      "name": "initialize_token_group_member",
+      "title": "Token group: initialize member",
+      "disc8": "9820deb0dfed7486",
+      "rawPrefixHex": "9820deb0dfed7486",
+      "risk": "admin",
+      "defaultDeny": true,
+      "rationale": "Adds a mint as a member of a token group; requires the member mint authority and the group update authority.",
+      "amount": null,
+      "notes": "spl-token-group-interface v0.7.2 TokenGroupInstruction::InitializeMember: 8-byte discriminator = sha256(\"spl_token_group_interface:initialize_member\")[0..8], equal to the IDL bytes; rawPrefixHex = disc8. No data after the discriminator. Accounts: member (w), member mint, member mint authority (s), group (w), group update authority (s)."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/solana-program/token-2022/blob/9bc02757f600ffe754746708a8a072bcd49d1260/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "program@v11.0.0 (9bc02757f600ffe754746708a8a072bcd49d1260), interface crate v3.0.0; the build deployed on mainnet-beta; file is byte-identical to the v11.1.0 one",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/blob/8867f751c0f69367ba03af4f85510b5611989491/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491), interface crate v3.1.2; the build deployed on devnet; TokenInstruction pack/unpack gives the 48 top-level tags (0-46, 255)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/tree/8867f751c0f69367ba03af4f85510b5611989491/interface/src/extension",
+      "kind": "source",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491); per-extension instruction.rs enums give the 58 sub-tags and data layouts; only confidential_mint_burn builder helpers differ from v11.0.0",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/blob/8867f751c0f69367ba03af4f85510b5611989491/program/src/pod_instruction.rs",
+      "kind": "source",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491); PodTokenInstruction is the on-chain tag enum (0-46, Batch = 255) and agrees with pack()",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/blob/8867f751c0f69367ba03af4f85510b5611989491/program/src/processor.rs",
+      "kind": "source",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491); dispatch order (Batch first, extension prefixes forward input[1..], metadata then group interface fallback), process_batch, close_account, withdraw_excess_lamports, unwrap_lamports, create_native_mint",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/tree/8867f751c0f69367ba03af4f85510b5611989491/program/src/extension",
+      "kind": "source",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491); per-extension processors (every sub-instruction has a dispatch arm; zk-ops gating), reallocate.rs, token_metadata and token_group processors",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/blob/8867f751c0f69367ba03af4f85510b5611989491/idl.json",
+      "kind": "idl",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491); Codama IDL (program version 3.0.1) with 100 instructions and explicit tag, sub-tag and 8-byte discriminators; the file does not exist at v11.0.0",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/blob/8867f751c0f69367ba03af4f85510b5611989491/interface/src/lib.rs",
+      "kind": "source",
+      "ref": "program@v11.1.0 (8867f751c0f69367ba03af4f85510b5611989491); declare_id!(\"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb\")",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-metadata/blob/7038969ec74a89f1afdb9bc97c112d4d26fead9a/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "interface@v1.0.1 (7038969ec74a89f1afdb9bc97c112d4d26fead9a); discriminator_hash_input strings for the 5 token-metadata instructions; Token-2022 depends on spl-token-metadata-interface 1.0.x",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-group/blob/2645064953937118572735993ed0ac1d07db5f14/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "interface@v0.7.2 (2645064953937118572735993ed0ac1d07db5f14); discriminator_hash_input strings for the 4 token-group instructions; Token-2022 depends on spl-token-group-interface 0.7.2",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/releases/tag/program%40v11.0.0",
+      "kind": "docs",
+      "ref": "program@v11.0.0 release; asset spl_token_2022.so sha256 9bbf90b30e06778ca0feca100b29f0eeb9be576ae024f6323cc207308f51a5d1 is byte-identical to the on-chain ELF on mainnet-beta (last deployed slot 427147035, 2026-06-17); release notes: available on all networks",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/token-2022/releases/tag/program%40v11.1.0",
+      "kind": "docs",
+      "ref": "program@v11.1.0 release; asset spl_token_2022.so sha256 3dde54d202caa2d10514fd58a154df5f26f07643f9f5fd0402ff08084f0cb954 is byte-identical to the on-chain ELF on devnet (last deployed slot 503153936, 2026-09-23); release notes: devnet and testnet",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

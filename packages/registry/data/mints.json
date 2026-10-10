@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "retrieved": "2026-10-11",
+  "description": "Well-known Solana token mints, each address taken from the issuer or protocol documentation and confirmed by a read-only getAccountInfo. relayCompatible = owned by classic SPL Token with no Token-2022 extension (the AgentAuth relay supports only those).",
+  "mints": [
+    {
+      "symbol": "SOL",
+      "name": "Wrapped SOL",
+      "issuer": "Native mint (Solana runtime / SPL Token program)",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "So11111111111111111111111111111111111111112",
+          "tokenProgram": "spl-token",
+          "decimals": 9,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "no mint authority, no freeze authority",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        },
+        "devnet": {
+          "address": "So11111111111111111111111111111111111111112",
+          "tokenProgram": "spl-token",
+          "decimals": 9,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "no mint authority, no freeze authority",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "devnet"
+        }
+      },
+      "notes": "Same address on every cluster. Relay rejects the native mint as budget_mint and in_mint (programs/relay/src/ids.rs NATIVE_MINT), so wSOL cannot be the spend mint of a relay mandate.",
+      "sources": [
+        {
+          "url": "https://github.com/solana-program/token/blob/main/interface/src/native_mint.rs",
+          "kind": "source",
+          "retrieved": "2026-10-11",
+          "note": "DECIMALS = 9; declare_id!(\"So111...112\")"
+        }
+      ]
+    },
+    {
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "issuer": "Circle",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "tokenProgram": "spl-token",
+          "decimals": 6,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "mint authority and freeze authority both set (issuer can freeze any token account)",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        },
+        "devnet": {
+          "address": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "tokenProgram": "spl-token",
+          "decimals": 6,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "mint authority and freeze authority both set (Circle devnet faucet mint)",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "devnet"
+        }
+      },
+      "notes": "The mainnet address does not exist on devnet and the Circle devnet mint does not exist on mainnet. The issuer freeze authority means the issuer can freeze the account holding funds; this is outside AgentAuth control.",
+      "sources": [
+        {
+          "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "Solana mainnet and Solana Devnet rows"
+        }
+      ]
+    },
+    {
+      "symbol": "USDT",
+      "name": "Tether USD (USDT)",
+      "issuer": "Tether",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+          "tokenProgram": "spl-token",
+          "decimals": 6,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "mint authority and freeze authority both set (issuer can freeze)",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        }
+      },
+      "notes": "No official devnet mint found in Tether documentation; omitted. Same address does not exist on devnet (RPC checked).",
+      "sources": [
+        {
+          "url": "https://tether.to/en/supported-protocols/",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "\"Solana Token via Solana Blockchain\" USD₮ contract address"
+        }
+      ]
+    },
+    {
+      "symbol": "CASH",
+      "name": "Phantom CASH",
+      "issuer": "Phantom (see usecash.xyz)",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH",
+          "tokenProgram": "spl-token-2022",
+          "decimals": 6,
+          "extensions": [
+            "mintCloseAuthority",
+            "permanentDelegate",
+            "defaultAccountState",
+            "confidentialTransferMint",
+            "transferHook",
+            "metadataPointer",
+            "tokenMetadata"
+          ],
+          "relayCompatible": false,
+          "authorities": "mint authority and freeze authority both set",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        }
+      },
+      "notes": "Phantom docs list the \"Standard\" as \"SPL Token\" but the on-chain owner is the Token-2022 program with extensions including permanentDelegate and transferHook. Docs say a devnet mint is available only on request, so no devnet entry. NOT relay compatible (extensions).",
+      "sources": [
+        {
+          "url": "https://docs.phantom.com/cash",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "Mint CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH, decimals 6; devnet by request only"
+        }
+      ]
+    },
+    {
+      "symbol": "PYUSD",
+      "name": "PayPal USD",
+      "issuer": "Paxos Trust Company (for PayPal)",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+          "tokenProgram": "spl-token-2022",
+          "decimals": 6,
+          "extensions": [
+            "mintCloseAuthority",
+            "permanentDelegate",
+            "transferFeeConfig",
+            "confidentialTransferMint",
+            "confidentialTransferFeeConfig",
+            "transferHook",
+            "metadataPointer",
+            "tokenMetadata"
+          ],
+          "relayCompatible": false,
+          "authorities": "mint authority, freeze authority and permanent delegate set",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        },
+        "devnet": {
+          "address": "CXk2AMBfi3TwaEL2468s6zP8xq9NxTXjp9gjMgzeUynM",
+          "tokenProgram": "spl-token-2022",
+          "decimals": 6,
+          "extensions": [
+            "mintCloseAuthority",
+            "permanentDelegate",
+            "transferFeeConfig",
+            "confidentialTransferMint",
+            "confidentialTransferFeeConfig",
+            "transferHook",
+            "metadataPointer",
+            "tokenMetadata"
+          ],
+          "relayCompatible": false,
+          "authorities": "mint authority, freeze authority and permanent delegate set",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "devnet"
+        }
+      },
+      "notes": "Token-2022 with a permanent delegate (issuer can move tokens from any holder) and a transfer hook. NOT relay compatible (extensions). The transfer fee is configured on-chain; read the current fee before relying on received amounts.",
+      "sources": [
+        {
+          "url": "https://docs.paxos.com/guides/stablecoin/pyusd/mainnet",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "Solana Mainnet Beta row"
+        },
+        {
+          "url": "https://docs.paxos.com/guides/stablecoin/pyusd/testnet",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "Solana Devnet row"
+        },
+        {
+          "url": "https://solana.com/news/pyusd-paypal-solana-developer",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "Mint address and token extensions overview"
+        }
+      ]
+    },
+    {
+      "symbol": "mSOL",
+      "name": "Marinade staked SOL",
+      "issuer": "Marinade Finance",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+          "tokenProgram": "spl-token",
+          "decimals": 9,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "mint authority is the Marinade PDA 3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM; no freeze authority",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        },
+        "devnet": {
+          "address": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+          "tokenProgram": "spl-token",
+          "decimals": 9,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "same mint authority PDA; no freeze authority",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "devnet"
+        }
+      },
+      "notes": "Marinade documents the same address for mainnet and devnet.",
+      "sources": [
+        {
+          "url": "https://docs.marinade.finance/developers/contract-addresses",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "\"mSOL - mainnet-beta\" and \"mSOL - devnet\" sections"
+        }
+      ]
+    },
+    {
+      "symbol": "JitoSOL",
+      "name": "Jito Staked SOL",
+      "issuer": "Jito Foundation",
+      "clusters": {
+        "mainnet-beta": {
+          "address": "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+          "tokenProgram": "spl-token",
+          "decimals": 9,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "mint authority is the stake pool withdraw authority PDA 6iQKfEyhr3bZMotVkW6beNZz5CPAkiwvgV2CTje9pVSS; no freeze authority",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "mainnet-beta"
+        },
+        "devnet": {
+          "address": "J1tos8mqbhdGcF3pgj4PCKyVjzWSURcpLZU7pPGHxSYi",
+          "tokenProgram": "spl-token",
+          "decimals": 9,
+          "extensions": [],
+          "relayCompatible": true,
+          "authorities": "mint authority is a stake pool PDA (8HPpFV5PFqGmDumjRTFw9BhsjrZYjJBDuHX2p6H5nBmd); no freeze authority",
+          "rpcCheckedAt": "2026-10-11",
+          "rpcCluster": "devnet"
+        }
+      },
+      "notes": "The devnet mint differs from the mainnet mint. Jito docs list one address for \"Mainnet & Testnet\" and one under \"Devnet\"; only the mainnet and devnet ones are recorded.",
+      "sources": [
+        {
+          "url": "https://github.com/jito-foundation/jito-omnidocs/blob/master/jitosol/jitosol-liquid-staking/security/deployed-programs/index.md",
+          "kind": "docs",
+          "retrieved": "2026-10-11",
+          "note": "Jito Stake Pool Addresses: JitoSOL Mint per network"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "method": "Address from the cited primary doc, then getAccountInfo jsonParsed on the stated cluster: owner program, decimals, extensions and authorities read from the account.",
+    "checkedAt": "2026-10-11"
+  }
+}

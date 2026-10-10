@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "name": "treasury-ops",
+  "title": "Treasury operations",
+  "description": "USDC (or other classic SPL token) payouts with a memo reference and idempotent creation of recipient token accounts.",
+  "audience": "Treasury or finance agents running recurring payouts that must carry a reference and may pay new recipients.",
+  "risk_summary": "Same value exposure as payments-usdc plus SOL rent spent on new associated token accounts and public memo text. Authority and close instructions are blocked.",
+  "permissions": [
+    {
+      "program": "spl-token",
+      "instructions": [
+        "transfer_checked"
+      ],
+      "notes": "Amount at raw data offset 1 (u64). Pair with the relay recipient allowlist.",
+      "suggested": {
+        "perTxLimit": {
+          "human": "1,000 USDC",
+          "note": "Example only (1000000000 base units, 6 decimals)."
+        },
+        "lifetimeLimit": {
+          "human": "25,000 USDC",
+          "note": "Example only. Unit-less per program counter."
+        }
+      }
+    },
+    {
+      "program": "memo",
+      "instructions": [
+        "memo"
+      ],
+      "notes": "Memo has no discriminator; the registry disc8 0000000000000000 is a convention. Memo text is public and permanent; never put secrets in it. Not value-moving."
+    },
+    {
+      "program": "associated-token-account",
+      "instructions": [
+        "create_idempotent"
+      ],
+      "notes": "create_idempotent funds the new account rent from the payer, so it spends SOL even though no token moves; the rent is a small fixed amount but unbounded in count. Allowed here so transfers to new recipients work."
+    }
+  ],
+  "explicitly_blocked": [
+    {
+      "program": "spl-token",
+      "instruction": "transfer",
+      "why": "[not allowlisted, value_out] Moves tokens from an owner- or delegate-controlled account to a destination account chosen by the caller."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "approve",
+      "why": "[authority_change] Grants a delegate spending rights over the source account up to an amount, replacing any existing delegate."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "revoke",
+      "why": "[authority_change] Clears the account delegate and delegated amount; removes rather than grants authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "set_authority",
+      "why": "[authority_change] Reassigns or removes a mint authority, freeze authority, token-account owner or close authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "mint_to",
+      "why": "[admin] Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "burn",
+      "why": "[not allowlisted, value_out] Destroys tokens from an owner- or delegate-controlled account; irreversible loss bounded by the amount."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "close_account",
+      "why": "[account_close] Closes a token account and sends all its lamports to a destination account chosen by the signer."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "freeze_account",
+      "why": "[authority_change] Freezes a token account so its owner cannot move tokens; requires the mint's freeze authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "thaw_account",
+      "why": "[authority_change] Unfreezes a frozen token account; requires the mint's freeze authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "approve_checked",
+      "why": "[authority_change] Grants a delegate spending rights up to an amount, with mint and decimals verified."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "mint_to_checked",
+      "why": "[admin] Issuer power: mints new tokens to any token account, inflating supply; requires the mint authority."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "burn_checked",
+      "why": "[not allowlisted, value_out] Destroys tokens like burn with decimals verified; irreversible loss bounded by the amount."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "withdraw_excess_lamports",
+      "why": "[value_out] Sends lamports above the rent-exempt reserve out of a mint, token account or multisig to a destination chosen by the caller."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "unwrap_lamports",
+      "why": "[value_out] Moves lamports out of a native (wrapped SOL) token account to any destination account chosen by the caller."
+    },
+    {
+      "program": "spl-token",
+      "instruction": "batch",
+      "why": "[other] Runs a sequence of inner Token instructions, including transfers, approvals and authority changes, hiding them from a per-instruction allowlist."
+    },
+    {
+      "program": "associated-token-account",
+      "instruction": "recover_nested",
+      "why": "[account_close] Moves the entire balance of a nested associated token account to the wallet's own ATA, then closes it, sending lamports to the wallet."
+    },
+    {
+      "program": "associated-token-account",
+      "instruction": "create_with_args",
+      "why": "[other] p-ATA-only create with optional hints, not live yet; on Token-2022 the caller-set account_len can inflate the funder's rent, so deny by default."
+    },
+    {
+      "program": "associated-token-account",
+      "instruction": "create",
+      "why": "[not allowlisted, read_only] Non-idempotent create fails if the account exists; create_idempotent is the safe variant."
+    }
+  ],
+  "requires": {
+    "mints": [
+      "USDC"
+    ],
+    "relay": true,
+    "warnings": [
+      "Only classic SPL Token mints without extensions work through the relay; PYUSD and CASH are Token-2022 and are not supported.",
+      "Memo and create_idempotent are not enforced by the relay; they are advisory unless verify is called."
+    ]
+  },
+  "honest_limits": [
+    "Per-tx limits are per verify call: AgentAuth checks each reported instruction against the limit independently, so N calls in one transaction or across transactions can each pass.",
+    "Spend counters are unit-less per program: lifetime and per-tx amounts are plain numbers per program id, not per mint, so base units of different tokens (and lamports) are summed together. Choose limits in the units of one mint only.",
+    "Only relay transfer_checked and the pinned swap are HARD enforced (the relay is the SPL delegate and checks recipient allowlist, budget and floor itself). Everything else in this preset is advisory unless the integrator calls AgentAuth verify before executing it.",
+    "create_idempotent rent spending has no token-denominated limit; the lifetime counter does not track SOL rent."
+  ]
+}

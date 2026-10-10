@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "name": "read-only-observer",
+  "title": "Read-only observer",
+  "description": "Memo and compute-budget instructions only: an agent that can annotate and shape transaction fees but moves no tokens.",
+  "audience": "Monitoring or reporting agents that need to write on-chain notes.",
+  "risk_summary": "No token or SOL transfers. Residual risk is a high compute unit price burning the fee payer SOL and public memo spam.",
+  "permissions": [
+    {
+      "program": "memo",
+      "instructions": [
+        "memo"
+      ],
+      "notes": "Public and permanent text. Not value-moving."
+    },
+    {
+      "program": "compute-budget",
+      "instructions": [
+        "set_compute_unit_limit",
+        "set_compute_unit_price",
+        "request_heap_frame",
+        "set_loaded_accounts_data_size_limit"
+      ],
+      "notes": "set_compute_unit_price (u64 micro-lamports at offset 1) times the unit limit is paid in SOL by the fee payer; an unbounded price can burn it, so cap amount in the integrator.",
+      "suggested": {
+        "perTxLimit": {
+          "human": "Cap price at your normal priority-fee level",
+          "note": "Unit is micro-lamports per compute unit, not tokens."
+        },
+        "lifetimeLimit": {
+          "human": "Set per day budget in lamports",
+          "note": "Counter is unit-less per program id."
+        }
+      }
+    }
+  ],
+  "explicitly_blocked": [
+    {
+      "program": "compute-budget",
+      "instruction": "unused",
+      "why": "[other] Deprecated reserved tag 0 (formerly RequestUnits with a flat lamport fee); the runtime now rejects it, so deny by default."
+    }
+  ],
+  "requires": {
+    "mints": [],
+    "relay": false,
+    "warnings": [
+      "An observer mandate still needs a fee payer; the payer is usually the owner, so priority fees spend owner SOL."
+    ]
+  },
+  "honest_limits": [
+    "Per-tx limits are per verify call: AgentAuth checks each reported instruction against the limit independently, so N calls in one transaction or across transactions can each pass.",
+    "Spend counters are unit-less per program: lifetime and per-tx amounts are plain numbers per program id, not per mint, so base units of different tokens (and lamports) are summed together. Choose limits in the units of one mint only.",
+    "Only relay transfer_checked and the pinned swap are HARD enforced (the relay is the SPL delegate and checks recipient allowlist, budget and floor itself). Everything else in this preset is advisory unless the integrator calls AgentAuth verify before executing it.",
+    "This preset only restricts which instructions are reported; it cannot stop another program in the same transaction from doing anything."
+  ]
+}

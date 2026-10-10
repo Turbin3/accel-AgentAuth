@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "slug": "memo",
+  "name": "SPL Memo",
+  "kind": "native",
+  "programIds": {
+    "mainnet-beta": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+    "devnet": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+  },
+  "discriminatorScheme": "custom",
+  "instructions": [
+    {
+      "name": "memo",
+      "title": "Add memo",
+      "disc8": "0000000000000000",
+      "rawPrefixHex": "",
+      "risk": "read_only",
+      "defaultDeny": false,
+      "rationale": "Validates UTF-8 text and logs it plus signer addresses; never writes accounts or moves value. The text is public and caller-chosen.",
+      "amount": null,
+      "notes": "NO DISCRIMINATOR: disc8 is a registry convention, not an on-chain value. The program never reads a tag; the ENTIRE instruction data is the UTF-8 memo (spl-memo processor does from_utf8(input); build_memo sets data = memo bytes; the official Codama IDLs list one instruction, addMemo, whose only argument is a utf8 string, with no discriminator). The first 8 data bytes are therefore arbitrary caller-chosen text, and a memo may be shorter than 8 bytes (the official docs example is 4 bytes). Integrators MUST NOT derive disc8 from the data prefix: for every instruction sent to a Memo program id, report the constant 0000000000000000 (rawPrefixHex is empty; equals `node scripts/disc.js u8 0`). Key policy on (programId, disc8) only: the all-zero value is also the canonical disc8 of tag-0 instructions in other programs, and a valid memo may itself begin with 8 NUL bytes, so the data prefix can never identify a memo. A Memo permission cannot be narrowed by disc8: it lets the agent publish any text on-chain, and if the owner or a relay PDA is passed as a signer the log shows that address as 'Signed by' for that text. Accounts: v1 ignores them; v3 and v4 require every account passed to be a signer (else MissingRequiredSignature) and never write them; no value moves. OTHER MEMO PROGRAM IDS (SCHEMA.md holds one id per cluster, so they are recorded only here; both verified executable on mainnet-beta and devnet on 2026-10-10 via getAccountInfo and `solana program show`; all three are no-discriminator, and the official JS client lists the three as every Memo address ever deployed): Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo is legacy Memo v1 (deprecated BPF Loader v1; source only validates UTF-8, no signer check, no log; mainnet-beta and devnet binaries differ). Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH is Memo v4 'p-memo' (Pinocchio; same data format and signer rule; UTF-8 checked by the sol_log_ syscall) and is the id the official JS, JS-legacy and Rust clients emit for NEW memos (main eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2), so integrators must handle it too; it is UPGRADEABLE on both clusters (authority GbX5VJUWBXgqDFKXZAmaneVHFuhauMVgvgGE7NPsJahD), so its behavior can change. This entry's id is 'Memo version 3' in spl-memo-interface, a legacy id in the official JS client (BPF Loader v2, not upgradeable; sha256 of `solana program dump` f520eaf096361abbb9639ea4dc3e5388a87b9330e121f476607b87c46ef67954 on both clusters). verification.disc8RecomputedFromNames is true only in the sense that the convention value was re-derived with disc.js; there are no Anchor names to hash."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/solana-program/memo/blob/e49b49d701ebabbcd74bf1927adbc7442135db09/interface/src/lib.rs",
+      "kind": "source",
+      "ref": "spl-memo-interface 2.1.0 at e49b49d701ebabbcd74bf1927adbc7442135db09 (tag program@v4.0.0): mod v1 = Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo, mod v3 = MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr, mod v4 = Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH; byte-identical on main eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2 (2026-10-10)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/e49b49d701ebabbcd74bf1927adbc7442135db09/interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "spl-memo-interface 2.1.0 at e49b49d701ebabbcd74bf1927adbc7442135db09: build_memo() sets data = memo bytes and accounts = read-only signers; byte-identical on main",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/e49b49d701ebabbcd74bf1927adbc7442135db09/idl.json",
+      "kind": "idl",
+      "ref": "Codama IDL at e49b49d701ebabbcd74bf1927adbc7442135db09 (tag program@v4.0.0): publicKey MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr, version 3.0.1; one instruction addMemo, sole argument memo = utf8 string, optional signer remaining accounts, no discriminator node",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/abf19880eebac1e9f3af7fa29a2761f90a86572c/program/src/processor.rs",
+      "kind": "source",
+      "ref": "spl-memo 3.0.0 at abf19880eebac1e9f3af7fa29a2761f90a86572c (tag program@v3.0.0): original signed-memo processor; logic identical to 7.0.0 (diff is imports and tests only); log strings match the on-chain binary",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/abf19880eebac1e9f3af7fa29a2761f90a86572c/program/src/lib.rs",
+      "kind": "source",
+      "ref": "spl-memo 3.0.0 at abf19880eebac1e9f3af7fa29a2761f90a86572c: declare_id!(MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr) and build_memo",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/3cc53570e1ce7162eb281e69e2b7b02763b2f3d7/program/src/processor.rs",
+      "kind": "source",
+      "ref": "spl-memo 7.0.0 at 3cc53570e1ce7162eb281e69e2b7b02763b2f3d7 (last implementation before p-memo replaced it): from_utf8(input); every account must be a signer; logs 'Signed by' and 'Memo (len N)'",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/3cc53570e1ce7162eb281e69e2b7b02763b2f3d7/program/Cargo.toml",
+      "kind": "source",
+      "ref": "spl-memo 7.0.0 at 3cc53570e1ce7162eb281e69e2b7b02763b2f3d7: package.metadata.solana program-id = MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/e49b49d701ebabbcd74bf1927adbc7442135db09/program/src/entrypoint.rs",
+      "kind": "source",
+      "ref": "pinocchio-memo-program 4.0.0 at e49b49d701ebabbcd74bf1927adbc7442135db09 (tag program@v4.0.0): Memo v4 logs all instruction data, every account must be a signer, UTF-8 validated by the sol_log_ syscall; byte-identical on main",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2/idl.json",
+      "kind": "idl",
+      "ref": "Codama IDL on main at eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2: publicKey Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH, version 4.0.0; same single addMemo instruction, no discriminator",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/479839141a99b7d0c3a35bc648c0fa1e4704ea3e/program/src/lib.rs",
+      "kind": "source",
+      "ref": "spl-memo 1.0.7 at 479839141a99b7d0c3a35bc648c0fa1e4704ea3e (tag program@v1.0.0): declare_id!(Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/479839141a99b7d0c3a35bc648c0fa1e4704ea3e/program/src/entrypoint.rs",
+      "kind": "source",
+      "ref": "spl-memo 1.0.7 at 479839141a99b7d0c3a35bc648c0fa1e4704ea3e: v1 process_instruction only runs from_utf8(instruction_data); accounts ignored; nothing logged",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/solana-sdk/blob/249b2f9e3583d307f7966d14c87054953264f889/sdk-ids/src/lib.rs",
+      "kind": "source",
+      "ref": "solana-sdk-ids at 249b2f9e3583d307f7966d14c87054953264f889: BPFLoader1111... = bpf_loader_deprecated, BPFLoader2111... = bpf_loader, BPFLoaderUpgradeab1e... = bpf_loader_upgradeable (owners reported by solana program show)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2/clients/js/src/constants.ts",
+      "kind": "source",
+      "ref": "@solana-program/memo JS client on main at eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2: SUPPORTED_MEMO_PROGRAM_ADDRESSES = [v1 Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo, v3 MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr, v4 Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH] ('every Memo program address ever deployed'); v1 and v3 are legacy, MEMO_PROGRAM_ADDRESS (v4) builds new memos",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2/clients/js-legacy/src/index.ts",
+      "kind": "source",
+      "ref": "JS legacy client on main at eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2: MEMO_PROGRAM_ID = Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH; createMemoInstruction() sets data = Buffer.from(memo, 'utf8') and keys = read-only signers",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/memo/blob/eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2/clients/rust/src/generated/programs.rs",
+      "kind": "source",
+      "ref": "Rust client on main at eb5ca9ab0f4a77dc1e1f5d2af151a3ebcf7332d2: MEMO_ID = Memo4c2pN8afCj432Lb7RMVKi9PbQnnW7ewFFaV3oAH",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://www.solana-program.com/docs/memo",
+      "kind": "docs",
+      "ref": "Memo docs page as served 2026-10-10 (https://spl.solana.com/memo redirects here); shows MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr logs: Signed by, Memo (len N), Invalid UTF-8, from byte N, missing required signature, invalid instruction data",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": null,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}

@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "slug": "system",
+  "name": "System Program",
+  "kind": "native",
+  "programIds": {
+    "mainnet-beta": "11111111111111111111111111111111",
+    "devnet": "11111111111111111111111111111111"
+  },
+  "discriminatorScheme": "u32le-tag",
+  "instructions": [
+    {
+      "name": "create_account",
+      "title": "Create account",
+      "disc8": "0000000000000000",
+      "rawPrefixHex": "00000000",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Funds a brand-new account from the payer and sets its owner program; the lamports leave the payer and are controlled by that program.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Wire: u32le tag 0 | lamports u64le @4 | space u64le @12 | owner [u8;32] @20; total 52 bytes. Accounts: 0 [W,S] Funding account; 1 [W,S] New account. Both accounts sign. Fails if the new account already holds lamports or data, or is not system-owned."
+    },
+    {
+      "name": "assign",
+      "title": "Assign owner program",
+      "disc8": "0100000000000000",
+      "rawPrefixHex": "01000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Changes the owner program of an account, handing it control of the account's data and lamports. Assigning a wallet account can brick it.",
+      "amount": null,
+      "notes": "Wire: u32le tag 1 | owner [u8;32] @4; total 36 bytes. Accounts: 0 [W,S] Assigned account public key. The account signs unless it is already owned by the target program (then a no-op). Moves no lamports. The solana-system-interface docs warn that assign and allocate can brick a wallet if used incorrectly."
+    },
+    {
+      "name": "transfer",
+      "title": "Transfer SOL",
+      "disc8": "0200000000000000",
+      "rawPrefixHex": "02000000",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Moves lamports from a signing system-owned account to any recipient address the caller chooses.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Wire: u32le tag 2 | lamports u64le @4; total 12 bytes. Accounts: 0 [W,S] Funding account; 1 [W] Recipient account. Called transferSol in the Codama IDL and @solana-program/system. The sender signs and must carry no data. Report the zero-padded disc8, never the first 8 raw bytes: those include 4 bytes of the amount."
+    },
+    {
+      "name": "create_account_with_seed",
+      "title": "Create account (seed-derived)",
+      "disc8": "0300000000000000",
+      "rawPrefixHex": "03000000",
+      "risk": "value_out",
+      "defaultDeny": true,
+      "rationale": "Funds a new seed-derived account owned by a caller-chosen program. The lamports field follows the variable-length seed, so no fixed-offset spend cap is possible.",
+      "amount": null,
+      "notes": "Wire: u32le tag 3 | base [u8;32] @4 | seed string (u64le length + utf8 bytes) @36 | lamports u64le @44+L | space u64le @52+L | owner [u8;32] @60+L; total 92+L bytes (L = seed length). Accounts: 0 [W,S] Funding account; 1 [W] Created account; 2 [S] (optional) Base account. amount is null: lamports follows the variable-length seed, so no fixed-offset cap applies (hence defaultDeny). Integrators can read it at 44+len(seed), where len(seed) is the u64 LE at offset 36. The funder and the base must sign (the base may be the funder); the new address must equal create_with_seed(base, seed, owner)."
+    },
+    {
+      "name": "advance_nonce_account",
+      "title": "Advance nonce",
+      "disc8": "0400000000000000",
+      "rawPrefixHex": "04000000",
+      "risk": "other",
+      "defaultDeny": false,
+      "rationale": "Consumes a nonce account's stored nonce, replacing it with a successor; needs the nonce authority's signature. Moves no funds and changes no authority.",
+      "amount": null,
+      "notes": "Wire: u32le tag 4; total 4 bytes. Accounts: 0 [W] Nonce account; 1 [] RecentBlockhashes sysvar; 2 [S] Nonce authority. Classified other, not read_only, because it mutates nonce state. Must be the first instruction of a durable-nonce transaction (Anza docs). Fails if already advanced this slot (NonceBlockhashNotExpired) or the account is uninitialized. Raw data is only the 4-byte tag; disc8 pads it with 4 zero bytes."
+    },
+    {
+      "name": "withdraw_nonce_account",
+      "title": "Withdraw from nonce account",
+      "disc8": "0500000000000000",
+      "rawPrefixHex": "05000000",
+      "risk": "account_close",
+      "defaultDeny": true,
+      "rationale": "Withdraws lamports from a nonce account to any recipient; withdrawing the full balance closes the account. Needs the nonce authority's signature.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Wire: u32le tag 5 | lamports u64le @4; total 12 bytes. Accounts: 0 [W] Nonce account; 1 [W] Recipient account; 2 [] RecentBlockhashes sysvar; 3 [] Rent sysvar; 4 [S] Nonce authority. Classified at the stricter account_close; partial withdrawals act like value_out and the amount applies. A partial withdrawal must leave the rent-exempt minimum; withdrawing the full balance resets the state to Uninitialized (Anza docs: the account becomes eligible for deletion). If the nonce account is still uninitialized, its own key must sign instead of an authority."
+    },
+    {
+      "name": "initialize_nonce_account",
+      "title": "Initialize nonce account",
+      "disc8": "0600000000000000",
+      "rawPrefixHex": "06000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Sets the authority of an uninitialized, funded nonce account. Requires no signature, so whoever initializes it first chooses who controls it.",
+      "amount": null,
+      "notes": "Wire: u32le tag 6 | nonce_authority [u8;32] @4; total 36 bytes. Accounts: 0 [W] Nonce account; 1 [] RecentBlockhashes sysvar; 2 [] Rent sysvar. The processor has no signer check, so anyone can initialize a funded, uninitialized nonce account with any authority. The account must be writable and hold the rent-exempt minimum. Normally follows create_account in the same transaction."
+    },
+    {
+      "name": "authorize_nonce_account",
+      "title": "Change nonce authority",
+      "disc8": "0700000000000000",
+      "rawPrefixHex": "07000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Hands control of a nonce account, and the lamports in it, to a new authority. Requires the current authority's signature.",
+      "amount": null,
+      "notes": "Wire: u32le tag 7 | new_nonce_authority [u8;32] @4; total 36 bytes. Accounts: 0 [W] Nonce account; 1 [S] Nonce authority. The current nonce authority signs; fails if the account is uninitialized. Anza docs: grants full control over the account and its balance to the new authority."
+    },
+    {
+      "name": "allocate",
+      "title": "Allocate account space",
+      "disc8": "0800000000000000",
+      "rawPrefixHex": "08000000",
+      "risk": "other",
+      "defaultDeny": true,
+      "rationale": "Sets an empty system-owned account's data size. No lamports move, but a system account with data can no longer send System Program transfers.",
+      "amount": null,
+      "notes": "Wire: u32le tag 8 | space u64le @4; total 12 bytes. Accounts: 0 [W,S] New account. Classified other with defaultDeny: destructive but fits no value or authority class. Once a system account holds data, System transfers from it fail (\"Transfer: `from` must not carry data\"), so allocating on a wallet bricks SOL transfers. The account signs, must be system-owned and empty; space is capped at MAX_PERMITTED_DATA_LENGTH."
+    },
+    {
+      "name": "allocate_with_seed",
+      "title": "Allocate space (seed-derived)",
+      "disc8": "0900000000000000",
+      "rawPrefixHex": "09000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Sets data size of a seed-derived account and assigns it to the owner program used in its derivation, which can strand the account's funds.",
+      "amount": null,
+      "notes": "Wire: u32le tag 9 | base [u8;32] @4 | seed string (u64le length + utf8 bytes) @36 | space u64le @44+L | owner [u8;32] @52+L; total 84+L bytes (L = seed length). Accounts: 0 [W] Allocated account; 1 [S] Base account. Runs allocate then assign (allocate_and_assign), so it also reassigns the account to owner. The derived address must equal create_with_seed(base, seed, owner) and the base must sign. Moves no lamports."
+    },
+    {
+      "name": "assign_with_seed",
+      "title": "Assign owner program (seed-derived)",
+      "disc8": "0a00000000000000",
+      "rawPrefixHex": "0a000000",
+      "risk": "authority_change",
+      "defaultDeny": true,
+      "rationale": "Changes the owner program of a seed-derived account, authorized by its base key. The new owner controls the account's data and lamports.",
+      "amount": null,
+      "notes": "Wire: u32le tag 10 | base [u8;32] @4 | seed string (u64le length + utf8 bytes) @36 | owner [u8;32] @44+L; total 76+L bytes (L = seed length). Accounts: 0 [W] Assigned account; 1 [S] Base account. The derived address must equal create_with_seed(base, seed, owner) and the base must sign. No-op if already owned by owner. Moves no lamports."
+    },
+    {
+      "name": "transfer_with_seed",
+      "title": "Transfer SOL (seed-derived)",
+      "disc8": "0b00000000000000",
+      "rawPrefixHex": "0b000000",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Moves lamports from a seed-derived system account, authorized by its base key, to any recipient the caller chooses.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Wire: u32le tag 11 | lamports u64le @4 | from_seed string (u64le length + utf8 bytes) @12 | from_owner [u8;32] @20+L; total 52+L bytes (L = seed length). Accounts: 0 [W] Funding account; 1 [S] Base for funding account; 2 [W] Recipient account. Called transferSolWithSeed in the Codama IDL. The base (index 1) signs; account 0 must equal create_with_seed(base, from_seed, from_owner) and carry no data. lamports comes first, so offset 4 is fixed despite the variable total length."
+    },
+    {
+      "name": "upgrade_nonce_account",
+      "title": "Upgrade nonce account",
+      "disc8": "0c00000000000000",
+      "rawPrefixHex": "0c000000",
+      "risk": "other",
+      "defaultDeny": false,
+      "rationale": "Permissionless one-time migration of a legacy nonce account's stored version. Moves no funds and changes no authority.",
+      "amount": null,
+      "notes": "Wire: u32le tag 12; total 4 bytes. Accounts: 0 [W] Nonce account. No signature required. Needs a writable, system-owned legacy nonce account; fails with InvalidArgument if there is nothing to upgrade. Classified other because it rewrites account state."
+    },
+    {
+      "name": "create_account_allow_prefund",
+      "title": "Create account (allow prefund)",
+      "disc8": "0d00000000000000",
+      "rawPrefixHex": "0d000000",
+      "risk": "value_out",
+      "defaultDeny": false,
+      "rationale": "Like create_account but accepts an already-funded target; transfers any extra lamports from the funder and sets the owner program.",
+      "amount": {
+        "offset": 4,
+        "size": 8,
+        "type": "u64le",
+        "unit": "lamports"
+      },
+      "notes": "Wire: u32le tag 13 | lamports u64le @4 | space u64le @12 | owner [u8;32] @20; total 52 bytes. Accounts: 0 [W,S] New account; 1 [W,S] Funding account. Gated by SIMD-0312 (feature 6sPDzwyARRExKH52LECxcGoqziH8G7SZofwuxi8Ja331): InvalidInstructionData while inactive. Active on mainnet-beta since slot 422928004 and devnet since slot 454464000 (feature accounts read 2026-10-10). Account order differs from create_account: new account is index 0, funder index 1 (omitted when lamports is 0). The new account may already hold lamports."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/anza-xyz/solana-sdk/blob/ab3e8a14bf2bab443bb8af32e95efe2fb65944db/system-interface/src/instruction.rs",
+      "kind": "source",
+      "ref": "solana-system-interface v3.3.0 (tag system-interface@v3.3.0, commit ab3e8a14bf2bab443bb8af32e95efe2fb65944db)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/solana-program/system/blob/15f18487535a4f248afc1bf700a1a8a14f305452/idl.json",
+      "kind": "idl",
+      "ref": "Codama IDL, tag js@v0.15.0 (commit 15f18487535a4f248afc1bf700a1a8a14f305452)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/programs/system/src/system_processor.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (commit 825efd18292aff6ffcf9daa0f7612f21b3531a72), the version mainnet-beta reported on 2026-10-10",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/programs/system/src/system_instruction.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (commit 825efd18292aff6ffcf9daa0f7612f21b3531a72), nonce instruction handlers",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://github.com/anza-xyz/agave/blob/825efd18292aff6ffcf9daa0f7612f21b3531a72/feature-set/src/lib.rs",
+      "kind": "source",
+      "ref": "agave v4.3.0 (commit 825efd18292aff6ffcf9daa0f7612f21b3531a72), feature create_account_allow_prefund (SIMD-0312)",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "url": "https://docs.anza.xyz/implemented-proposals/durable-tx-nonces",
+      "kind": "docs",
+      "ref": "Anza docs, page as served 2026-10-10",
+      "retrieved": "2026-10-10"
+    }
+  ],
+  "verification": {
+    "disc8RecomputedFromNames": true,
+    "idlExplicitDiscriminatorsMatch": true,
+    "onchainExecutable": {
+      "mainnet-beta": true,
+      "devnet": true
+    },
+    "checkedAt": "2026-10-11"
+  }
+}
