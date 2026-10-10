@@ -1,0 +1,46 @@
+{
+  "name": "@agentauth-sol/cli",
+  "version": "0.1.0",
+  "description": "agentauth: command line for AgentAuth mandates on Solana (unaudited devnet prototype)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "agentauth": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "test": "vitest run",
+    "e2e": "bash test/e2e.sh",
+    "prepack": "pnpm build"
+  },
+  "keywords": [
+    "solana",
+    "agent",
+    "authorization",
+    "mandate",
+    "cli",
+    "agentauth"
+  ],
+  "repository": {
+    "type": "git",
+    "directory": "packages/cli"
+  },
+  "dependencies": {
+    "@agentauth-sol/registry": "workspace:*",
+    "@agentauth-sol/sdk": "workspace:*",
+    "@solana/kit": "8.4.0",
+    "commander": "^15.0.0"
+  }
+}

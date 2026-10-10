@@ -1,0 +1,117 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`registry and misc > registry decode and presets snapshots (--json) 1`] = `
+{
+  "cluster": "devnet",
+  "command": "registry decode",
+  "data": {
+    "amountRaw": "1000000",
+    "defaultDeny": false,
+    "disc8": "0c00000000000000",
+    "instruction": "transfer_checked",
+    "known": true,
+    "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "risk": "value_out",
+  },
+  "ok": true,
+  "schema": "agentauth-cli/1",
+}
+`;
+
+exports[`registry and misc > registry decode and presets snapshots (--json) 2`] = `
+{
+  "cluster": "devnet",
+  "command": "registry presets",
+  "data": {
+    "presets": [
+      {
+        "description": "Lets an agent swap one input mint for one output mint on a single pinned Raydium CPMM pool using swap_base_input only.",
+        "name": "dex-trader-single-pool",
+        "programs": [
+          "raydium-cpmm",
+        ],
+        "title": "Single-pool DEX trader",
+      },
+      {
+        "description": "Lets an agent set up tick arrays, open positions, add liquidity and refresh fee counters on Orca Whirlpools, without any instruction that pays out to a caller-chosen account.",
+        "name": "lp-manager",
+        "programs": [
+          "orca-whirlpool",
+        ],
+        "title": "Orca LP manager (deposit and maintain)",
+      },
+      {
+        "description": "Lets an agent pay USDC to approved recipients with SPL Token transfer_checked and nothing else.",
+        "name": "payments-usdc",
+        "programs": [
+          "spl-token",
+        ],
+        "title": "USDC payments",
+      },
+      {
+        "description": "Memo and compute-budget instructions only: an agent that can annotate and shape transaction fees but moves no tokens.",
+        "name": "read-only-observer",
+        "programs": [
+          "memo",
+          "compute-budget",
+        ],
+        "title": "Read-only observer",
+      },
+      {
+        "description": "USDC (or other classic SPL token) payouts with a memo reference and idempotent creation of recipient token accounts.",
+        "name": "treasury-ops",
+        "programs": [
+          "spl-token",
+          "memo",
+          "associated-token-account",
+        ],
+        "title": "Treasury operations",
+      },
+    ],
+  },
+  "ok": true,
+  "schema": "agentauth-cli/1",
+}
+`;
+
+exports[`relay pay > exit 2 with the decoded relay 104 when the pre-flight denies; nothing is sent 1`] = `
+{
+  "cluster": "devnet",
+  "command": "relay pay",
+  "error": {
+    "hint": "Nothing was sent. The pre-flight mirrors the programs' checks against live chain data; --no-preflight lands the attempt anyway (a failed attempt still pays the fee).",
+    "kind": "denied",
+    "message": "pre-flight: the relay would refuse 40 to 6XuR9JY9W7Gp513nkwwoqHt5njTqRXT6F5UnYdRbdM1z",
+    "program": {
+      "code": 104,
+      "hint": "Only the allowlisted token accounts can be paid. The owner must close and re-init the policy to change them.",
+      "message": "The destination token account is not on the policy allowlist (or equals the source).",
+      "name": "RecipientNotAllowed",
+      "program": "relay",
+      "retryable": false,
+    },
+    "programErrorSource": "relay",
+  },
+  "exitCode": 2,
+  "ok": false,
+  "schema": "agentauth-cli/1",
+}
+`;
+
+exports[`relay pay > output snapshot of a successful payment (--json) 1`] = `
+{
+  "cluster": "devnet",
+  "command": "relay pay",
+  "data": {
+    "amount": "3",
+    "amountRaw": "3000000",
+    "destination": "E5gtaymVr9FmjrnWm3HXVCdsZiSnDSkKJFT8m2TWi8VX",
+    "explorer": "https://explorer.solana.com/tx/5sigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSig?cluster=devnet",
+    "mandate": "6hkeYMvXRNaqGu5X4acKjNVZLPfybxxphbRhdLuDmN3m",
+    "signature": "5sigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSigSig",
+    "simulated": false,
+  },
+  "ok": true,
+  "schema": "agentauth-cli/1",
+}
+`;

@@ -1,0 +1,19 @@
+{
+  "name": "invoice-agent",
+  "owner": "3YhwEJsgRiwZQ6H8e7iRttvNxmh9gecHbyga9dwcjR1u",
+  "agent": "9BxwKg2P7NydhASpiSMt2Cahrbfe6rQBDM6i4fw2WPou",
+  "expiry": "7d",
+  "permissions": [
+    {
+      "program": "spl-token",
+      "instructions": ["transfer_checked"],
+      "spendLimit": "500",
+      "perTxLimit": "50",
+      "mints": ["USDC"]
+    }
+  ],
+  "relay": {
+    "recipients": ["E5gtaymVr9FmjrnWm3HXVCdsZiSnDSkKJFT8m2TWi8VX"],
+    "delegate": "500"
+  }
+}

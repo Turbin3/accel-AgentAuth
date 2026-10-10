@@ -45,7 +45,9 @@ WS_PORT=$((RPC_PORT + 1))
 FAUCET_PORT=$((9900 + INSTANCE))
 RPC_URL="http://127.0.0.1:$RPC_PORT"
 DEMO_DIR="$ROOT/.demo$SUFFIX"
-HEALTH_TIMEOUT_SECS=90
+# Waits are generous because a loaded machine (parallel builds, other validators) starts slowly; override with
+# AA_LOCALNET_TIMEOUT (seconds, applies to the health wait; block production and program waits scale with it).
+HEALTH_TIMEOUT_SECS="${AA_LOCALNET_TIMEOUT:-240}"
 
 # Solana CLI installer puts its binaries here; non-interactive shells often lack it on PATH.
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
@@ -159,9 +161,9 @@ cmd_start() {
   # The first slots are not ready for transactions (fees are still stabilising): wait for slot 2.
   waited=0
   until [ "$(current_slot)" -ge 2 ] 2>/dev/null; do
-    if [ "$waited" -ge 30 ]; then
+    if [ "$waited" -ge "$((HEALTH_TIMEOUT_SECS / 2))" ]; then
       cmd_stop >/dev/null 2>&1 || true
-      die "validator did not produce blocks within 30s (see $LOG_FILE)"
+      die "validator did not produce blocks within $((HEALTH_TIMEOUT_SECS / 2))s (see $LOG_FILE)"
     fi
     sleep 1
     waited=$((waited + 1))
@@ -170,7 +172,7 @@ cmd_start() {
   for i in "${!PROGRAM_IDS[@]}"; do
     waited=0
     until program_executable "${PROGRAM_IDS[$i]}"; do
-      if [ "$waited" -ge 30 ]; then
+      if [ "$waited" -ge "$((HEALTH_TIMEOUT_SECS / 2))" ]; then
         cmd_stop >/dev/null 2>&1 || true
         die "program ${PROGRAM_NAMES[$i]} (${PROGRAM_IDS[$i]}) is not executable on the validator"
       fi

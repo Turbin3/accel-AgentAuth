@@ -1,0 +1,469 @@
+
+# 1. First look: environment and registry
+
+$ agentauth doctor
+ok    node                       v24.10.0
+ok    cluster                    localnet (http://127.0.0.1:8909), demo environment found
+ok    rpc                        reachable, slot 81
+ok    program agent_auth         deployed (AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if)
+ok    program agent_auth_relay   deployed (33VpeDjreoanKn8Qa5HLLF247W1ctwgMnixg36yhqkN6)
+ok    program mock_amm           deployed (6QhMSWnMsDQKBPswWHpYdtXEDLyRzv3S5BnDBH2M2vLw)
+ok    program gated_example      deployed (CoXCzcw7MfX6N7kPQJYhJNdGetovatuPq6xo39pHBQLZ)
+ok    owner                      12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA (demo key), 100 SOL
+ok    agent                      7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i (demo key), 0.05 SOL
+ok    demo DUSD                  owner holds 1000 DUSD
+ok    demo DOUT                  owner holds 0 DOUT
+
+AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay transfer and the pinned swap; everything else is advisory.
+Next: agentauth mandate create --preset payments-usdc --per-call 25 --budget 100 --recipient @recipientDusd
+[exit 0]
+
+$ agentauth registry list
+SLUG                      PROGRAM                            INSTRUCTIONS  DEFAULT-DENY  PROGRAM ID
+associated-token-account  Associated Token Account           4             2             ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL
+compute-budget            Compute Budget                     5             1             ComputeBudget111111111111111111111111111111
+memo                      SPL Memo                           1             0             MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr
+orca-whirlpool            Orca Whirlpools                    66            41            whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
+raydium-cpmm              Raydium CP-Swap (CPMM)             20            13            DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb
+spl-token-2022            SPL Token-2022 (Token Extensions)  100           74            TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+spl-token                 SPL Token                          28            12            TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+stake                     Stake Program                      18            9             Stake11111111111111111111111111111111111111
+system                    System Program                     14            8             11111111111111111111111111111111
+
+Details: agentauth registry show <slug>. Risk and amount calls are conservative judgements from cited sources, not guarantees.
+[exit 0]
+
+$ agentauth registry show spl-token
+SPL Token  (spl-token, native, u8-tag)
+program id: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+
+INSTRUCTION                 DISC8             RISK              DENY          AMOUNT
+initialize_mint             0000000000000000  read_only                       -
+initialize_account          0100000000000000  read_only                       -
+initialize_multisig         0200000000000000  read_only                       -
+transfer                    0300000000000000  value_out                       u64le@1
+approve                     0400000000000000  authority_change  default-deny  u64le@1
+revoke                      0500000000000000  authority_change  default-deny  -
+set_authority               0600000000000000  authority_change  default-deny  -
+mint_to                     0700000000000000  admin             default-deny  u64le@1
+burn                        0800000000000000  value_out                       u64le@1
+close_account               0900000000000000  account_close     default-deny  -
+freeze_account              0a00000000000000  authority_change  default-deny  -
+thaw_account                0b00000000000000  authority_change  default-deny  -
+transfer_checked            0c00000000000000  value_out                       u64le@1
+approve_checked             0d00000000000000  authority_change  default-deny  u64le@1
+mint_to_checked             0e00000000000000  admin             default-deny  u64le@1
+burn_checked                0f00000000000000  value_out                       u64le@1
+initialize_account2         1000000000000000  read_only                       -
+sync_native                 1100000000000000  read_only                       -
+initialize_account3         1200000000000000  read_only                       -
+initialize_multisig2        1300000000000000  read_only                       -
+initialize_mint2            1400000000000000  read_only                       -
+get_account_data_size       1500000000000000  read_only                       -
+initialize_immutable_owner  1600000000000000  read_only                       -
+amount_to_ui_amount         1700000000000000  read_only                       -
+ui_amount_to_amount         1800000000000000  read_only                       -
+withdraw_excess_lamports    2600000000000000  value_out         default-deny  -
+unwrap_lamports             2d00000000000000  value_out         default-deny  u64le@2
+batch                       ff00000000000000  other             default-deny  -
+[exit 0]
+
+$ agentauth registry preset payments-usdc
+USDC payments  (payments-usdc)
+Lets an agent pay USDC to approved recipients with SPL Token transfer_checked and nothing else.
+For: Teams letting an agent pay invoices, subscriptions or API fees in USDC.
+
+Allows
+  spl-token.transfer_checked  0c00000000000000, value_out
+
+Risk
+  Worst case is the agent spending the lifetime limit to an attacker-chosen recipient if no recipient allowlist is set. With the relay allowlist the worst case is spending the limit to allowlisted recipients.
+
+Not allowed (15, for example)
+  spl-token.transfer  [not allowlisted, value_out] Moves tokens from an owner- or delegate-controlled account to a destination account chosen by the caller.
+  spl-token.approve  [authority_change] Grants a delegate spending rights over the source account up to an amount, replacing any existing delegate.
+  spl-token.revoke  [authority_change] Clears the account delegate and delegated amount; removes rather than grants authority.
+  spl-token.set_authority  [authority_change] Reassigns or removes a mint authority, freeze authority, token-account owner or close authority.
+
+Honest limits
+  Per-tx limits are per verify call: AgentAuth checks each reported instruction against the limit independently, so N calls in one transaction or across transactions can each pass.
+  Spend counters are unit-less per program: lifetime and per-tx amounts are plain numbers per program id, not per mint, so base units of different tokens (and lamports) are summed together. Choose limits in the units of one mint only.
+  Only relay transfer_checked and the pinned swap are HARD enforced (the relay is the SPL delegate and checks recipient allowlist, budget and floor itself). Everything else in this preset is advisory unless the integrator calls AgentAuth verify before executing it.
+  This preset does not stop the agent from sending to a wrong but allowlisted recipient, nor does it detect fraudulent invoices.
+
+Use it: agentauth mandate create --preset payments-usdc --per-call <amount> --budget <amount> ...
+[exit 0]
+
+
+# 2. Lint a plan before creating anything (static, no chain)
+
+$ agentauth lint packages/cli/test/fixtures/plan-good.json --max-expiry 30d
+packages/cli/test/fixtures/plan-good.json
+  no findings
+
+0 error(s), 0 warning(s), 0 info
+[exit 0]
+
+$ agentauth lint packages/cli/test/fixtures/plan-bad.json --max-expiry 30d
+packages/cli/test/fixtures/plan-bad.json
+  error  AA001  permissions[0].spendLimit  the lifetime limit is unlimited (0)
+                  On chain 0 means unlimited. Set a finite budget.
+  error  AA003  permissions[0].instructions[1]  approve is authority_change and is default-deny in the registry
+                  An agent that can call this can hand control of the owner funds to someone else.
+  error  AA003  permissions[0].instructions[2]  set_authority is authority_change and is default-deny in the registry
+                  An agent that can call this can hand control of the owner funds to someone else.
+  error  AA004  expiry  the mandate lives 365 day(s), longer than the allowed 30 day(s)
+                  Shorter mandates limit how long a leaked agent key stays useful.
+  error  AA007  relay.swap  a swap is allowed without a price floor (relay.swap.floorOut / floorIn)
+                  Without a floor the agent can swap at any price; the relay enforces max(minOut, floor).
+  error  AA008  owner  the owner and the agent are the same key
+                  Use a separate agent key; the agent must never hold owner authority.
+  warn   AA005  relay.recipients  the relay recipient allowlist is empty (every relay transfer is refused until recipients are set)
+                  List the exact recipient token accounts; the allowlist is the main brake on a fooled agent.
+  warn   AA006  permissions[0].mints  the spend counter is unit-less but this permission is used with 2 mints (USDC, USDT)
+                  Base units of different tokens are summed together. Use one mint per program, or split the budget.
+  warn   AA012  permissions[1].perTxLimit  the per-call limit (5000) is larger than the lifetime budget (1000)
+  info   AA011  permissions[0]  SPL Token: transfer_checked, approve, set_authority is advisory unless the target program calls verify
+                  Only the relay transfer and the pinned swap are hard-enforced.
+
+6 error(s), 3 warning(s), 1 info
+error lint failed: 6 error(s), 3 warning(s)
+[exit 1]
+
+
+# 3. Create the mandate from a preset (preview with warnings, then send)
+
+$ agentauth mandate create --preset payments-usdc --per-call 5 DUSD --budget 20 DUSD --recipient @recipientDusd --swap-pool demo --swap-per-call 5 --swap-budget 10 --delegate 50 DUSD --allow-override --simulate
+Preview: mandate 6Pydct…QKREsm on localnet
+owner 12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA  agent 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+
+Warnings
+  ! AgentAuth is an unaudited prototype built for devnet. Do not put funds you cannot lose behind it.
+  ! source account: delegateCap 50000000 exceeds the smallest lifetime limit 10000000 (allowOverride).
+  ! SPL allows one delegate per token account: each Approve REPLACES any existing delegate on that account.
+  ! Until the final step (init_policy) lands, the relay fails closed with InvalidPolicy (101); the agent can do nothing through it.
+  ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
+  ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
+  ! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+  ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
+
+Agent 7Qsx…FK9i acts for owner 12f2…aMoA with 2 permissions (active); expires 2026-10-17T20:42:37.000Z (in 7 days). A relay policy hard-enforces transfers and one pinned swap.
+status  active   expires 2026-10-17T20:42:37.000Z (in 7 days)
+
+The agent can
+  + Pay token 2Yd1…GouC from the owner's account 4cKN…MHvm to 1 allowlisted token account (EFuE…ciCd) through the relay (hard-enforced)
+  + Swap 2Yd1…GouC for BiPr…mD5P on the ONE pinned pool BaSN…SZf4 at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
+
+The agent cannot
+  - Call any program or instruction not listed in a permission (verify returns ProgramNotAllowed or DiscriminatorNotAllowed, if the program calls verify).
+  - Change the mandate, its permissions or the relay policy (owner-only instructions).
+  - Pay any token account that is not on the allowlist (relay error 104).
+  - Take custody: the relay's only token authority is a per-mandate PDA, and the agent key holds none (assuming the owner followed the setup flow).
+  - Move more than 50 (50000000 raw units) from the source account through the relay: the SPL delegation is a hard cap enforced by the Token program.
+
+Limits
+  SPL Token (Toke…Q5DA): at most 5 (5000000 raw units) per call; 20 (20000000 raw units) of 20 (20000000 raw units) lifetime budget left; 0 calls so far
+  Mock AMM (test only) (6QhM…2vLw): at most 5000000 raw units per call; 10000000 raw units of 10000000 raw units lifetime budget left; 0 calls so far
+
+Enforcement
+  HARD      Transfer (checked) on SPL Token (Toke…Q5DA) (only via relay transfer, to allowlisted token accounts)
+  HARD      Swap (exact input) on Mock AMM (test only) (6QhM…2vLw) (only via relay swap, on the pinned pool)
+
+Transactions (2, signed by the owner 12f2…aMoA)
+  1. Create mandate, grant permissions, delegate: 532 B
+  2. Activate relay policy: 1072 B, after step 1
+  Onboard agent 7Qsx…FK9i for owner 12f2…aMoA: create mandate (expires 2026-10-17T20:42:37.000Z), 2 permissions, delegate 50000000 raw units of 2Yd1…GouC to the relay authority, allowlist 1 recipient token account, one pinned swap pool. 2 transactions, unsigned.; each must stay under 1232 bytes
+
+AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay transfer and the pinned swap; everything else is advisory.
+
+  ok step 1/2 Create mandate, grant permissions, delegate: simulated, 6981 compute units
+  - step 2/2 Activate relay policy: not simulated (needs step 1 to land first)
+Simulation only: nothing was sent (--simulate).
+[exit 0]
+
+$ agentauth mandate create --preset payments-usdc --per-call 5 DUSD --budget 20 DUSD --recipient @recipientDusd --swap-pool demo --swap-per-call 5 --swap-budget 10 --delegate 50 DUSD --allow-override --yes
+Preview: mandate 6Pydct…QKREsm on localnet
+owner 12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA  agent 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+
+Warnings
+  ! AgentAuth is an unaudited prototype built for devnet. Do not put funds you cannot lose behind it.
+  ! source account: delegateCap 50000000 exceeds the smallest lifetime limit 10000000 (allowOverride).
+  ! SPL allows one delegate per token account: each Approve REPLACES any existing delegate on that account.
+  ! Until the final step (init_policy) lands, the relay fails closed with InvalidPolicy (101); the agent can do nothing through it.
+  ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
+  ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
+  ! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+  ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
+
+Agent 7Qsx…FK9i acts for owner 12f2…aMoA with 2 permissions (active); expires 2026-10-17T20:42:37.000Z (in 7 days). A relay policy hard-enforces transfers and one pinned swap.
+status  active   expires 2026-10-17T20:42:37.000Z (in 7 days)
+
+The agent can
+  + Pay token 2Yd1…GouC from the owner's account 4cKN…MHvm to 1 allowlisted token account (EFuE…ciCd) through the relay (hard-enforced)
+  + Swap 2Yd1…GouC for BiPr…mD5P on the ONE pinned pool BaSN…SZf4 at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
+
+The agent cannot
+  - Call any program or instruction not listed in a permission (verify returns ProgramNotAllowed or DiscriminatorNotAllowed, if the program calls verify).
+  - Change the mandate, its permissions or the relay policy (owner-only instructions).
+  - Pay any token account that is not on the allowlist (relay error 104).
+  - Take custody: the relay's only token authority is a per-mandate PDA, and the agent key holds none (assuming the owner followed the setup flow).
+  - Move more than 50 (50000000 raw units) from the source account through the relay: the SPL delegation is a hard cap enforced by the Token program.
+
+Limits
+  SPL Token (Toke…Q5DA): at most 5 (5000000 raw units) per call; 20 (20000000 raw units) of 20 (20000000 raw units) lifetime budget left; 0 calls so far
+  Mock AMM (test only) (6QhM…2vLw): at most 5000000 raw units per call; 10000000 raw units of 10000000 raw units lifetime budget left; 0 calls so far
+
+Enforcement
+  HARD      Transfer (checked) on SPL Token (Toke…Q5DA) (only via relay transfer, to allowlisted token accounts)
+  HARD      Swap (exact input) on Mock AMM (test only) (6QhM…2vLw) (only via relay swap, on the pinned pool)
+
+Transactions (2, signed by the owner 12f2…aMoA)
+  1. Create mandate, grant permissions, delegate: 532 B
+  2. Activate relay policy: 1072 B, after step 1
+  Onboard agent 7Qsx…FK9i for owner 12f2…aMoA: create mandate (expires 2026-10-17T20:42:37.000Z), 2 permissions, delegate 50000000 raw units of 2Yd1…GouC to the relay authority, allowlist 1 recipient token account, one pinned swap pool. 2 transactions, unsigned.; each must stay under 1232 bytes
+
+AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay transfer and the pinned swap; everything else is advisory.
+
+  ok step 1/2 Create mandate, grant permissions, delegate  63AChKLsAfuthKqrpaB1fqQJUv9rUj3RtD6ADaWuTQ6aVdbz9nikSWULQZQ6hCtmdEunyJt39eWeUQYCwTsmLA6o
+     https://explorer.solana.com/tx/63AChKLsAfuthKqrpaB1fqQJUv9rUj3RtD6ADaWuTQ6aVdbz9nikSWULQZQ6hCtmdEunyJt39eWeUQYCwTsmLA6o?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  ok step 2/2 Activate relay policy  41sKp4Uv49YhAmuekUM6YVFVhykdpx1s4rtQ7q4MoCAmWRh5BNpz7B2wFhf61hoATHW8tNWHvYkaCPvSoTtNaXJb
+     https://explorer.solana.com/tx/41sKp4Uv49YhAmuekUM6YVFVhykdpx1s4rtQ7q4MoCAmWRh5BNpz7B2wFhf61hoATHW8tNWHvYkaCPvSoTtNaXJb?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+
+Mandate created. 6PydctnTUoNk19JAPtGJNo2FoUdjeSQjN2Usy2QKREsm
+Next:
+  agentauth mandate show 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+  agentauth relay pay --to <recipient token account> --amount "1"
+[exit 0]
+
+$ agentauth mandate show
+Mandate 6PydctnTUoNk19JAPtGJNo2FoUdjeSQjN2Usy2QKREsm   active · expires in 6d 23h
+owner   12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA
+agent   7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+expiry  2026-10-17T20:42:37.000Z
+
+Permissions
+PROGRAM               INSTRUCTIONS      SPENT / BUDGET    PER-CALL  CALLS
+SPL Token             transfer_checked  0 DUSD / 20 DUSD  5 DUSD    0
+Mock AMM (test only)  swap_base_input   0 DUSD / 10 DUSD  5 DUSD    0
+
+Relay (hard enforcement for the relay transfer and the pinned swap)
+  paused          no
+  top-level only  yes
+  source account  4cKNk9ezTAckJyHUoE4N7WDxzkLrhVosRzkz8FEtMHvm  balance 1000 DUSD
+  SPL delegation  50 DUSD to the relay authority
+  recipients      EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+  swap            pool BaSNQ6VbQEEcfKPkMRwqQPkZ9nZYc9HJtqXu4Bp6SZf4 via 6QhM…2vLw, floor 95/100 (raw), output to C4NB…rhKE
+
+Right now the agent can move at most 5 DUSD in one call (limited by per_call_limit).
+
+! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
+! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
+! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
+
+Plain English: agentauth mandate explain 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+[exit 0]
+
+$ agentauth mandate explain
+Warnings
+  ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
+  ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
+  ! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+  ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
+
+Agent 7Qsx…FK9i acts for owner 12f2…aMoA with 2 permissions (active); expires 2026-10-17T20:42:37.000Z (in 6 days 23 hours). A relay policy hard-enforces transfers and one pinned swap.
+status  active   expires 2026-10-17T20:42:37.000Z (in 6 days 23 hours)
+
+The agent can
+  + Pay token 2Yd1…GouC from the owner's account 4cKN…MHvm to 1 allowlisted token account (EFuE…ciCd) through the relay (hard-enforced)
+  + Swap 2Yd1…GouC for BiPr…mD5P on the ONE pinned pool BaSN…SZf4 at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
+
+The agent cannot
+  - Call any program or instruction not listed in a permission (verify returns ProgramNotAllowed or DiscriminatorNotAllowed, if the program calls verify).
+  - Change the mandate, its permissions or the relay policy (owner-only instructions).
+  - Pay any token account that is not on the allowlist (relay error 104).
+  - Take custody: the relay's only token authority is a per-mandate PDA, and the agent key holds none (assuming the owner followed the setup flow).
+  - Move more than 50 (50000000 raw units) from the source account through the relay: the SPL delegation is a hard cap enforced by the Token program.
+
+Limits
+  SPL Token (Toke…Q5DA): at most 5 (5000000 raw units) per call; 20 (20000000 raw units) of 20 (20000000 raw units) lifetime budget left; 0 calls so far
+  Mock AMM (test only) (6QhM…2vLw): at most 5000000 raw units per call; 10000000 raw units of 10000000 raw units lifetime budget left; 0 calls so far
+
+Enforcement
+  HARD      Transfer (checked) on SPL Token (Toke…Q5DA) (only via relay transfer, to allowlisted token accounts)
+  HARD      Swap (exact input) on Mock AMM (test only) (6QhM…2vLw) (only via relay swap, on the pinned pool)
+
+Right now the agent can move at most 5 DUSD in one call (limited by per_call_limit).
+
+AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay transfer and the pinned swap; everything else is advisory.
+[exit 0]
+
+
+# 4. Normal work: a payment through the relay (hard-enforced), signed by the AGENT key
+
+$ agentauth relay pay --to @recipientDusd --amount 3 DUSD
+Paid 3 DUSD to EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+  relay -> AgentAuth.verify -> Token.TransferChecked (hard-enforced)
+  61FEp2iLXgh6Vbc4U2ENLgdVCbAyij9Ga18FdLG3xrcJUsSTZXp2tMrFe4MJe2JGDv2p84ggK2ceG6xvSmaT75Hh
+  https://explorer.solana.com/tx/61FEp2iLXgh6Vbc4U2ENLgdVCbAyij9Ga18FdLG3xrcJUsSTZXp2tMrFe4MJe2JGDv2p84ggK2ceG6xvSmaT75Hh?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+[exit 0]
+
+$ agentauth check --program spl-token --instruction transfer_checked --amount 3
+allowed by the mandate: SPL Token.transfer_checked, amount 3
+  Hard enforcement applies only through the relay: use `agentauth relay pay` / `relay swap`.
+[exit 0]
+
+
+# 5. Blocked: a wrong recipient (the pre-flight stops it; --no-preflight lands it so the chain records it)
+
+$ agentauth relay pay --to @attackerDusd --amount 40 DUSD
+error pre-flight: the relay would refuse 40 DUSD to 8wZgQFEK479BNpXDAC7jN7r26QX6yhwEUoGZTA9wFn2D
+  program error  relay:104 RecipientNotAllowed
+  why            The destination token account is not on the policy allowlist (or equals the source).
+  fix            Only the allowlisted token accounts can be paid. The owner must close and re-init the policy to change them.
+  hint           Nothing was sent. The pre-flight mirrors the programs' checks against live chain data; --no-preflight lands the attempt anyway (a failed attempt still pays the fee).
+[exit 2]
+
+$ agentauth relay pay --to @attackerDusd --amount 40 DUSD --no-preflight
+error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
+  program error  relay:104 RecipientNotAllowed
+  why            The destination token account is not on the policy allowlist (or equals the source).
+  fix            Only the allowlisted token accounts can be paid. The owner must close and re-init the policy to change them.
+  hint           Explorer: https://explorer.solana.com/tx/6345tSNnoSA1TwrHFWJcwCQmvgXAsNubgNi8GpbUKD3DRockjHESNTWpHinoJVoa8T5ZrivL4JCY2XLCkEVA6ogi?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+[exit 3]
+
+
+# 6. Blocked: over the per-call cap to the allowed recipient
+
+$ agentauth relay pay --to @recipientDusd --amount 40 DUSD
+error pre-flight: the relay would refuse 40 DUSD to EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+  program error  agent_auth:8 PerTxExceeded
+  why            The amount is larger than the permission's per-call limit.
+  fix            Retry with a smaller amount. The limit is per verify call, not per transaction.
+  hint           Nothing was sent. The pre-flight mirrors the programs' checks against live chain data; --no-preflight lands the attempt anyway (a failed attempt still pays the fee).
+[exit 2]
+
+$ agentauth relay pay --to @recipientDusd --amount 40 DUSD --no-preflight
+error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
+  program error  agent_auth:8 PerTxExceeded
+  why            The amount is larger than the permission's per-call limit.
+  fix            Retry with a smaller amount. The limit is per verify call, not per transaction.
+  hint           Explorer: https://explorer.solana.com/tx/3AUpeiUSTwMv7yRmRciT5ASM4QFhNCFoTFHXw9ALiXrHFwnMiGP5CNHjgqZJ3vNQbmoHYqbQZJX7C43Lr2hqxW3h?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+[exit 3]
+
+
+# 7. Live per-program revoke: remove the Token permission, the swap keeps working
+
+$ agentauth permission remove spl-token --yes
+Revoke the permission for Toke…Q5DA on mandate 6Pyd…REsm, unsigned.
+  ! remove_permission deletes the WHOLE slot (all discriminators). Re-adding it later resets spend_total and call_count.
+  Revoke permission: Owner-signed core edit.
+    236 B of 1232 (worst case with a priority fee 290 B): fits in one transaction
+The agent will fail with ProgramNotAllowed (AgentAuth 6) for this program from the next call on.
+
+  ok step 1/1 Revoke permission  4XFUNkj4WChBXB8PxQc5uef8i9UaACJhhoxaeT1nxKMAce1z1EN7nFhvS3v6NareE3Ltpk2JDDXTCwceYVcTxapf
+     https://explorer.solana.com/tx/4XFUNkj4WChBXB8PxQc5uef8i9UaACJhhoxaeT1nxKMAce1z1EN7nFhvS3v6NareE3Ltpk2JDDXTCwceYVcTxapf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+
+Done.
+[exit 0]
+
+$ agentauth relay pay --to @recipientDusd --amount 1 DUSD
+error pre-flight: the relay would refuse 1 DUSD to EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+  program error  agent_auth:6 ProgramNotAllowed
+  why            The mandate has no permission slot for that program id.
+  fix            The owner can add one with add_permission. If a slot was just removed with remove_permission, this is the expected result.
+  hint           Nothing was sent. The pre-flight mirrors the programs' checks against live chain data; --no-preflight lands the attempt anyway (a failed attempt still pays the fee).
+[exit 2]
+
+$ agentauth relay pay --to @recipientDusd --amount 1 DUSD --no-preflight
+error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
+  program error  agent_auth:6 ProgramNotAllowed
+  why            The mandate has no permission slot for that program id.
+  fix            The owner can add one with add_permission. If a slot was just removed with remove_permission, this is the expected result.
+  hint           Explorer: https://explorer.solana.com/tx/45PWdQrUqJqcLT8PSRj1HYttQj92k21wXHT8MW9ed3RxcShYucUcAtbr8tTkmmjzRRKtRdTqNAfuqRWbEbBr2pE1?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+[exit 3]
+
+$ agentauth relay swap --amount-in 5 DUSD
+Swapped 5 DUSD for 4.997501 DOUT, output to the owner's own account
+  Price floor is a static guard on the pinned pool, not MEV protection.
+  29cS2w2cwtvqGG9BBE2VNvjpGNbzo5pkWixzWtaMora9WvUDU8aKdgSwxmAbSXCb1W6rxTSRhRPWxDWsLVSSxcbd
+  https://explorer.solana.com/tx/29cS2w2cwtvqGG9BBE2VNvjpGNbzo5pkWixzWtaMora9WvUDU8aKdgSwxmAbSXCb1W6rxTSRhRPWxDWsLVSSxcbd?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+[exit 0]
+
+
+# 8. What happened: the activity feed shows ok rows and BLOCKED attempts with the decoded reason
+
+$ agentauth activity --limit 20
+TIME    KIND                  OUTCOME                                 AMOUNT   SIGNATURE
+2m ago  relay swap            ok                                      5 DUSD   29cS2w…SSxcbd
+2m ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1 DUSD   45PWdQ…Br2pE1
+2m ago  remove permission     ok                                      -        4XFUNk…cTxapf
+2m ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40 DUSD  3AUpei…hqxW3h
+2m ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40 DUSD  6345tS…VA6ogi
+2m ago  relay pay             ok                                      3 DUSD   61FEp2…aT75Hh
+2m ago  relay policy created  ok                                      -        41sKp4…tNaXJb
+2m ago  mandate created       ok                                      -        63AChK…smLA6o
+2m ago  add permission        ok                                      -        63AChK…smLA6o
+2m ago  add permission        ok                                      -        63AChK…smLA6o
+[exit 0]
+
+$ agentauth activity --limit 20
+TIME    KIND                  OUTCOME                                 AMOUNT   SIGNATURE
+2m ago  relay swap            ok                                      5 DUSD   29cS2w…SSxcbd
+2m ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1 DUSD   45PWdQ…Br2pE1
+2m ago  remove permission     ok                                      -        4XFUNk…cTxapf
+2m ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40 DUSD  3AUpei…hqxW3h
+2m ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40 DUSD  6345tS…VA6ogi
+2m ago  relay pay             ok                                      3 DUSD   61FEp2…aT75Hh
+2m ago  relay policy created  ok                                      -        41sKp4…tNaXJb
+2m ago  mandate created       ok                                      -        63AChK…smLA6o
+2m ago  add permission        ok                                      -        63AChK…smLA6o
+2m ago  add permission        ok                                      -        63AChK…smLA6o
+[exit 0]
+
+
+# 9. One-transaction unwind, then the agent tries again
+
+$ agentauth mandate revoke --yes
+Unwind mandate 6Pyd…REsm: 1 delegation revoke, revoke_mandate, close_policy in 1 transaction, unsigned.
+  ! Revoking stops future agent actions only; it does not undo transfers that already happened.
+  ! Send with a priority fee if you need this to land quickly during congestion (setComputeUnitPriceIx).
+  ! revoke_mandate destroys the counters. Re-creating a mandate for the same agent gives the same address but a new generation.
+  Unwind: revoke delegation, mandate and policy: One owner-signed transaction: SPL Revoke per delegated account, revoke_mandate, close_policy.
+    377 B of 1232 (worst case with a priority fee 431 B): fits in one transaction
+Revoking does not undo transfers that already happened.
+
+  ok step 1/1 Unwind: revoke delegation, mandate and policy  2VQFyv4TF1mt5f783ofgtphERQ5GCAa2yBfj2m2pc6JLtZGMz2j63RTYebBG2JvYtLk5qpqrbf9NZdpJdUU7VuiM
+     https://explorer.solana.com/tx/2VQFyv4TF1mt5f783ofgtphERQ5GCAa2yBfj2m2pc6JLtZGMz2j63RTYebBG2JvYtLk5qpqrbf9NZdpJdUU7VuiM?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+
+Done.
+[exit 0]
+
+$ agentauth relay pay --to @recipientDusd --amount 1 DUSD
+error pre-flight: this mandate has no relay policy (revoked, closed or never created)
+  program error  relay:101 InvalidPolicy
+  why            The policy account is missing or malformed (owner program, length, discriminator, version or flags).
+  fix            No relay policy exists for this mandate (or it was closed). The owner must run init_policy; until then the relay fails closed.
+  hint           --no-preflight (with --source and --mint) lands the attempt on chain anyway; a failed attempt still pays the fee.
+[exit 2]
+
+$ agentauth relay pay --to @recipientDusd --amount 1 DUSD --no-preflight --source @ownerDusd --mint @dusd
+error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
+  program error  relay:101 InvalidPolicy
+  why            The policy account is missing or malformed (owner program, length, discriminator, version or flags).
+  fix            No relay policy exists for this mandate (or it was closed). The owner must run init_policy; until then the relay fails closed.
+  hint           Explorer: https://explorer.solana.com/tx/4CKe8kCN8ktexuZvG8arH2yzdyPYdts5RWfuMwZRC8TP1xyHWVxwiHUB2onLHEMfiPxQSQHQ3KFJy1PJiPGSX7Vy?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+[exit 3]
+
+$ agentauth mandate show
+error no mandate exists for owner 12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA and agent 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+  hint           Create one with `agentauth mandate create` (or check --owner / --agent).
+[exit 1]
+
+
+# 10. Machine-readable output
+
+$ agentauth --json registry decode spl-token 0c40420f000000000006
+{"schema":"agentauth-cli/1","ok":true,"command":"registry decode","cluster":"localnet","data":{"programId":"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA","known":true,"instruction":"transfer_checked","disc8":"0c00000000000000","risk":"value_out","defaultDeny":false,"amountRaw":"1000000"}}
+[exit 0]
+

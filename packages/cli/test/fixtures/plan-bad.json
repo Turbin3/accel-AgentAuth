@@ -1,0 +1,25 @@
+{
+  "owner": "9BxwKg2P7NydhASpiSMt2Cahrbfe6rQBDM6i4fw2WPou",
+  "agent": "9BxwKg2P7NydhASpiSMt2Cahrbfe6rQBDM6i4fw2WPou",
+  "expiry": "365d",
+  "permissions": [
+    {
+      "program": "spl-token",
+      "instructions": ["transfer_checked", "approve", "set_authority"],
+      "spendLimit": "unlimited",
+      "perTxLimit": "100",
+      "mints": ["USDC", "USDT"]
+    },
+    {
+      "program": "raydium-cpmm",
+      "instructions": ["swap_base_input"],
+      "spendLimit": "1000",
+      "perTxLimit": "5000"
+    }
+  ],
+  "relay": {
+    "recipients": [],
+    "delegate": "5000",
+    "swap": { "floorOut": "0", "floorIn": "0" }
+  }
+}
