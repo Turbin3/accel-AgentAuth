@@ -11,7 +11,12 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "lint": "pnpm -r --if-present run lint",
     "test": "pnpm -r --if-present run test",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore"
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore",
+    "localnet": "scripts/localnet.sh",
+    "bootstrap": "pnpm --filter @agentauth-sol/demo bootstrap",
+    "demo:contrast": "pnpm --filter @agentauth-sol/demo contrast",
+    "demo:scenario": "pnpm --filter @agentauth-sol/demo scenario",
+    "demo:attacks": "pnpm --filter @agentauth-sol/demo attacks"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

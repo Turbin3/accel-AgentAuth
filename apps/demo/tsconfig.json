@@ -5,5 +5,5 @@
     "types": ["node"],
     "rootDir": "."
   },
-  "include": ["src", "test", "vitest.config.ts"]
+  "include": ["src", "test", "live-agent", "vitest.config.ts"]
 }

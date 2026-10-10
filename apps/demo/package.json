@@ -15,9 +15,15 @@
     "bootstrap": "tsx src/bootstrap.ts",
     "smoke": "tsx src/smoke.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" vitest.config.ts",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" vitest.config.ts",
-    "test": "vitest run"
+    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"live-agent/**/*.ts\" vitest.config.ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"live-agent/**/*.ts\" vitest.config.ts",
+    "test": "vitest run",
+    "contrast": "tsx src/scenarios/contrast.ts",
+    "scenario": "tsx src/scenarios/scenario.ts",
+    "attacks": "tsx src/scenarios/attacks.ts",
+    "live-setup": "tsx live-agent/setup.ts",
+    "live-check": "tsx live-agent/check.ts",
+    "live-unwind": "tsx live-agent/unwind.ts"
   },
   "dependencies": {
     "@agentauth-sol/sdk": "workspace:*",
