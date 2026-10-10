@@ -19,11 +19,17 @@ function row(over: Partial<ActivityItem>): ActivityItem {
   }
 }
 
-function renderRow(item: ActivityItem, labels: Record<string, string> = {}) {
+function renderRow(item: ActivityItem, labels: Record<string, string> = {}, symbol?: string) {
   return render(
     <ConfigProvider config={TEST_CONFIG}>
       <ul>
-        <ActivityRow item={item} decimals={6} labels={labels} nowSeconds={1_700_000_030} />
+        <ActivityRow
+          item={item}
+          decimals={6}
+          {...(symbol ? { symbol } : {})}
+          labels={labels}
+          nowSeconds={1_700_000_030}
+        />
       </ul>
     </ConfigProvider>,
   )
@@ -37,6 +43,11 @@ describe('ActivityRow', () => {
     expect(screen.getByText('Relay payment')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('Alice')).toBeInTheDocument()
+  })
+
+  it('shows the token symbol after the amount', () => {
+    renderRow(row({ amount: 3_000_000n, recipient: RECIPIENT }), {}, 'DUSD')
+    expect(screen.getByTestId('activity-row')).toHaveTextContent('Amount 3 DUSD')
   })
 
   it('shows a blocked attempt with the decoded program, name and code', () => {

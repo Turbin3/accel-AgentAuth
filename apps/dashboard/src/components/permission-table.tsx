@@ -30,6 +30,8 @@ export interface PermissionTableProps {
   readonly policy: RelayPolicy | null
   readonly registry: RegistryLike
   readonly decimalsFor: (program: Address) => number | null
+  /** Token symbol shown after amounts of a slot (optional). */
+  readonly unitFor?: (program: Address) => string | null
   /** When given, each instruction gets a Revoke button. */
   readonly onRevoke?: (permission: Permission, discHex: string, title: string) => void
   readonly disabled?: boolean
@@ -41,6 +43,7 @@ export function PermissionTable({
   policy,
   registry,
   decimalsFor,
+  unitFor,
   onRevoke,
   disabled,
 }: PermissionTableProps) {
@@ -55,6 +58,7 @@ export function PermissionTable({
     <ul className="space-y-4" aria-label="Permissions">
       {mandate.permissions.map((perm) => {
         const decimals = decimalsFor(perm.program)
+        const unit = unitFor?.(perm.program) ?? null
         const programInfo = describeInstruction(
           perm.program,
           perm.discriminatorsHex[0] ?? '',
@@ -67,8 +71,10 @@ export function PermissionTable({
             data-testid="permission-slot"
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-medium">{programInfo.programName ?? 'Unlisted program'}</p>
+              <div className="min-w-0 max-w-full">
+                <p className="break-words font-medium">
+                  {programInfo.programName ?? 'Unlisted program'}
+                </p>
                 <AddressText value={perm.program} link />
               </div>
               <div className="text-right text-xs text-muted">
@@ -76,6 +82,7 @@ export function PermissionTable({
                   per call:{' '}
                   <span className="font-mono">
                     {formatLimit(perm.perTxUnlimited ? 'unlimited' : perm.perTxLimit, decimals)}
+                    {unit && !perm.perTxUnlimited ? ` ${unit}` : ''}
                   </span>
                 </p>
                 <p>
@@ -89,6 +96,7 @@ export function PermissionTable({
                 used={perm.spendTotal}
                 limit={perm.spendUnlimited ? 'unlimited' : perm.spendLimit}
                 decimals={decimals}
+                {...(unit ? { unit } : {})}
               />
             </div>
             <ul
@@ -101,28 +109,31 @@ export function PermissionTable({
                 return (
                   <li
                     key={disc}
-                    className="flex flex-wrap items-center gap-2 py-2"
+                    className="flex flex-col gap-2 py-2 sm:flex-row sm:flex-wrap sm:items-center"
                     data-testid="permission-instruction"
                   >
-                    <span className="min-w-0 flex-1 text-sm">
+                    <span className="min-w-0 break-words text-sm sm:flex-1">
                       <span className="font-medium">{title}</span>{' '}
-                      <span className="font-mono text-xs text-muted">{disc}</span>
+                      <span className="break-all font-mono text-xs text-muted">{disc}</span>
                     </span>
-                    {info.known ? (
-                      <RiskBadge risk={info.risk} />
-                    ) : (
-                      <Chip tone="warn">not in registry</Chip>
-                    )}
-                    {info.defaultDeny ? <Chip tone="bad">default-deny</Chip> : null}
-                    <EnforcementTag
-                      level={isHard(policy, perm.program, disc) ? 'hard' : 'advisory'}
-                    />
+                    <span className="flex flex-wrap items-center gap-2">
+                      {info.known ? (
+                        <RiskBadge risk={info.risk} />
+                      ) : (
+                        <Chip tone="warn">not in registry</Chip>
+                      )}
+                      {info.defaultDeny ? <Chip tone="bad">default-deny</Chip> : null}
+                      <EnforcementTag
+                        level={isHard(policy, perm.program, disc) ? 'hard' : 'advisory'}
+                      />
+                    </span>
                     {onRevoke ? (
                       <Button
                         variant="danger"
                         disabled={disabled}
                         aria-label={`Revoke ${title} on ${programInfo.programName ?? perm.program}`}
                         onClick={() => onRevoke(perm, disc, title)}
+                        className="self-start sm:self-auto"
                         data-testid="revoke-instruction"
                       >
                         Revoke

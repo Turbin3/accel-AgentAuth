@@ -5,6 +5,8 @@ export interface DemoStatus {
   readonly available: boolean
   readonly reason: string | null
   readonly problems: readonly string[]
+  /** True when the state file exists but the validator did not answer. */
+  readonly unreachable: boolean
   readonly env: DemoEnv | null
 }
 
@@ -19,17 +21,19 @@ export async function readDemoStatus(): Promise<DemoStatus> {
       available: false,
       reason: e instanceof Error ? e.message : 'The demo environment is not set up.',
       problems: [],
+      unreachable: false,
       env: null,
     }
   }
   try {
     const problems = await checkDemoEnv(env, connect())
-    return { available: problems.length === 0, reason: null, problems, env }
-  } catch (e) {
+    return { available: problems.length === 0, reason: null, problems, unreachable: false, env }
+  } catch {
     return {
       available: false,
-      reason: `Cannot reach the validator: ${e instanceof Error ? e.message : String(e)}`,
+      reason: `Cannot reach the RPC at ${env.rpcUrl}`,
       problems: [],
+      unreachable: true,
       env,
     }
   }

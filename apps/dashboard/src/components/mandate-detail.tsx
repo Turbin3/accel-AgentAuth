@@ -12,7 +12,7 @@ import { useActivity } from '@/lib/use-activity'
 import { useAsync } from '@/lib/use-async'
 import { useWallet } from '@/lib/wallet/wallet-provider'
 import { ActivityRow } from './activity-row'
-import { AddressText } from './address'
+import { AddressText, ExplorerNote } from './address'
 import { AsyncBoundary } from './async-boundary'
 import { ExplainPreview } from './explain'
 import { StatusChip, useNowSeconds } from './mandate-card'
@@ -69,6 +69,7 @@ function ActivityFeed({ detail }: { detail: MandateDetail }) {
                     key={`${item.signature}:${item.instructionIndex}:${item.kind}`}
                     item={item}
                     decimals={decimals}
+                    symbol={detail.symbol}
                     labels={labels}
                     nowSeconds={now}
                   />
@@ -225,6 +226,7 @@ function Body({ detail, refresh }: { detail: MandateDetail; refresh: () => void 
   const policy = detail.view.policy
   const capacity = detail.view.capacity
   const decimals = detail.budgetMint?.decimals ?? null
+  const unit = detail.symbol ? ` ${detail.symbol}` : ''
 
   const buildPlan = async () => {
     if (!wallet || !action) throw new Error('No action')
@@ -305,6 +307,7 @@ function Body({ detail, refresh }: { detail: MandateDetail; refresh: () => void 
   return (
     <div className="space-y-8">
       <Header detail={detail} canAct={canAct} onAction={setAction} />
+      <ExplorerNote />
 
       {capacity ? (
         <Card as="section" aria-labelledby="capacity-heading">
@@ -319,6 +322,7 @@ function Body({ detail, refresh }: { detail: MandateDetail; refresh: () => void 
             <div className="space-y-2">
               <p className="text-2xl font-semibold" data-testid="max-spend">
                 {formatAmount(capacity.maxSpendNow, decimals)}
+                {unit}
               </p>
               <p className="text-sm text-muted">
                 Limited by:{' '}
@@ -338,12 +342,16 @@ function Body({ detail, refresh }: { detail: MandateDetail; refresh: () => void 
               SPL allowance left:{' '}
               <span className="font-mono">
                 {formatAmount(detail.view.delegation.delegatedAmount, decimals)}
+                {unit}
               </span>
               {detail.view.balance !== null ? (
                 <>
                   {' '}
                   · source balance{' '}
-                  <span className="font-mono">{formatAmount(detail.view.balance, decimals)}</span>
+                  <span className="font-mono">
+                    {formatAmount(detail.view.balance, decimals)}
+                    {unit}
+                  </span>
                 </>
               ) : null}
             </p>
@@ -373,6 +381,7 @@ function Body({ detail, refresh }: { detail: MandateDetail; refresh: () => void 
           policy={policy}
           registry={client.registry}
           decimalsFor={detail.decimalsFor}
+          unitFor={detail.unitFor}
           disabled={!canAct}
           {...(canAct
             ? {

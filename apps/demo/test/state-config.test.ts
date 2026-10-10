@@ -65,6 +65,20 @@ function sampleState(): DemoState {
 }
 
 describe('parseDemoState', () => {
+  it('accepts a state file without simulatorDusd and round-trips one with it', () => {
+    const old = sampleState()
+    expect(parseDemoState(JSON.parse(JSON.stringify(old))).tokenAccounts.simulatorDusd).toBe(
+      undefined,
+    )
+    const withSim = {
+      ...old,
+      tokenAccounts: { ...old.tokenAccounts, simulatorDusd: old.tokenAccounts.recipientDusd },
+    }
+    expect(parseDemoState(JSON.parse(JSON.stringify(withSim)))).toEqual(withSim)
+    const bad = { ...withSim, tokenAccounts: { ...withSim.tokenAccounts, simulatorDusd: 'nope' } }
+    expect(() => parseDemoState(bad)).toThrow(/simulatorDusd/)
+  })
+
   it('round-trips through JSON', () => {
     const s = sampleState()
     expect(parseDemoState(JSON.parse(JSON.stringify(s)))).toEqual(s)

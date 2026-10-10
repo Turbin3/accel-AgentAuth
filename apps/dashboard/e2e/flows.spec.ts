@@ -78,7 +78,7 @@ test.describe.serial('owner journey', () => {
     await expect(instruction).toHaveCount(1)
     await expect(instruction).toContainText('Transfer (checked)')
     await expect(instruction).toContainText('hard (relay)')
-    await expect(page.getByTestId('max-spend')).toHaveText('5')
+    await expect(page.getByTestId('max-spend')).toHaveText('5 DUSD')
     // Creating the mandate is on chain history: the feed shows it.
     await expect(page.getByTestId('activity-row').first()).toBeVisible()
     await expect(

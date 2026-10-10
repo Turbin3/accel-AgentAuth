@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useConfig } from '@/lib/config-context'
 import { toDisplayError } from '@/lib/tx-runner'
 import type { AsyncState } from '@/lib/use-async'
 import { Button, ErrorBox, Skeleton } from './ui'
@@ -17,6 +18,7 @@ export function AsyncBoundary<T>({
   children: (data: T) => ReactNode
   what: string
 }) {
+  const { rpcUrl } = useConfig()
   if (state.loading) {
     return (
       <div aria-busy="true" aria-label={`Loading ${what}`}>
@@ -27,7 +29,7 @@ export function AsyncBoundary<T>({
   if (state.error !== undefined && state.data === undefined) {
     return (
       <div className="space-y-3">
-        <ErrorBox error={toDisplayError(state.error)} title={`Could not load ${what}`} />
+        <ErrorBox error={toDisplayError(state.error, rpcUrl)} title={`Could not load ${what}`} />
         <Button onClick={state.refresh}>Retry</Button>
       </div>
     )

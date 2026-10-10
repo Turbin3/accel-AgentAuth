@@ -104,7 +104,7 @@ export function explorerUrl(
   kind: 'tx' | 'address',
   value: string,
 ): string {
-  const base = `https://explorer.solana.com/${kind}/${value}`
+  const base = `https://explorer.solana.com/${kind}/${encodeURIComponent(value)}`
   if (config.cluster === 'devnet') return `${base}?cluster=devnet`
   return `${base}?cluster=custom&customUrl=${encodeURIComponent(config.rpcUrl)}`
 }

@@ -17,7 +17,7 @@ Solana authenticates keys; it does not say what a delegated key is allowed to do
 
 ## What is real today
 
-Status as of 2026-10-11. "Tests" are results of commands run on that day (see [Measured](#measured)); counts for suites I did not run are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+Status as of 2026-10-11. "Tests" are results of commands run on that day (see [Measured](#measured)); the full tables are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 | Piece | Path | Status | Tests run for this README |
 |---|---|---|---|
@@ -46,6 +46,32 @@ Test totals come from `pnpm -r test` (exit 0) and `cargo test --workspace` (708 
 
 Everything that depends on a program calling `verify` is **advisory**. Read [docs/SPEC.md](docs/SPEC.md) section 8 and 9 before relying on it.
 
+## Try it in 30 seconds (no Solana tooling, no validator, no keys)
+
+Node 24 and pnpm 10 are enough. The CLI's catalog and linter are offline:
+
+```sh
+pnpm install
+pnpm --filter "@agentauth-sol/cli..." build              # the CLI and what it depends on
+alias agentauth="node $PWD/packages/cli/dist/index.js"
+agentauth registry show spl-token                       # verified catalog: instruction names, 8-byte discriminators, risk classes
+agentauth lint packages/cli/test/fixtures/plan-bad.json # static analysis of a mandate plan; exit code 1
+```
+
+`lint` reads a mandate plan and flags what should never reach an agent: unlimited budgets, `approve` and `set_authority` permissions (authority changes, default-deny in the registry), a swap without a price floor, the agent key in the owner role. Excerpt of the real output:
+
+```
+  error  AA001  permissions[0].spendLimit  the lifetime limit is unlimited (0)
+  error  AA003  permissions[0].instructions[1]  approve is authority_change and is default-deny in the registry
+  error  AA007  relay.swap  a swap is allowed without a price floor (relay.swap.floorOut / floorIn)
+  error  AA008  owner  the owner and the agent are the same key
+  warn   AA005  relay.recipients  the relay recipient allowlist is empty (every relay transfer is refused until recipients are set)
+  ...
+5 error(s), 3 warning(s), 1 info
+```
+
+It is meant for CI (`--json`, `--max-expiry`, `--fail-on`); the rule table is in [packages/cli/README.md](packages/cli/README.md). It is static analysis of intent, not a proof of safety.
+
 ## Quickstart (about 5 minutes on a warm cache)
 
 Prerequisites: Rust via rustup (`export PATH="$HOME/.cargo/bin:$PATH"`, Homebrew's cargo breaks `cargo build-sbf`), Solana CLI 3.x with platform tools, Node 24, pnpm 10. Everything runs on a local validator and spends nothing.
@@ -60,7 +86,7 @@ pnpm --filter @agentauth-sol/demo scenario --fast      # the scripted beat seque
 pnpm --filter @agentauth-sol/cli build                 # then the CLI tour below
 ```
 
-I ran every step except `pnpm install` (dependencies were already installed on this machine). On 2026-10-11 `scripts/build-all.sh` took 88 s (warm cargo cache), `localnet.sh start` 41 s, `bootstrap` 36 s and `scenario --fast` 33 s. Expected end of the scenario output:
+Every step except `pnpm install` was run on 2026-10-11 (dependencies were already installed on that machine). `scripts/build-all.sh` took 88 s (warm cargo cache), `localnet.sh start` 41 s, `bootstrap` 36 s and `scenario --fast` 33 s. Expected end of the scenario output:
 
 ```
   phase             attempted  blocked  allowed  funds lost to the attacker
@@ -72,7 +98,7 @@ scenario: PASSED (34 transactions, every outcome as expected)
 
 Without `--fast` each beat pauses 1.2 s for a recording. The localnet relay is the `test-amm` build, which allowlists the mock AMM; **never deploy it** (`deploy/agent_auth_relay.so` is the one to ship).
 
-### CLI tour (what I ran, with real output)
+### CLI tour (real output from a run on 2026-10-11)
 
 ```sh
 alias agentauth="node $PWD/packages/cli/dist/index.js"
@@ -118,7 +144,17 @@ Copied from the run of `scenario --fast` and from [docs/DEMO.md](docs/DEMO.md), 
 | 7.2 | swap at a price pushed by a scripted searcher | BLOCKED `mock_amm 7001 ExceededSlippage` |
 | 8.1, 8.3 | one-transaction unwind (377 B), then the agent pays again | unwind succeeds; payment BLOCKED `relay 101 InvalidPolicy` |
 
-Final scoreboard of that run: mandate agent attempted 22, blocked 17, allowed 5, funds lost to the attacker 0. The agent can still pay its pinned payee up to the budget: that is the blast radius, not a bug. The `attacks` runner (54 scripted attacks with balance and delegation checks after each) takes about 3 minutes; its results are in [docs/DEMO.md](docs/DEMO.md), and I did not re-run it for this README.
+Final scoreboard of that run: mandate agent attempted 22, blocked 17, allowed 5, funds lost to the attacker 0. The agent can still pay its pinned payee up to the budget: that is the blast radius, not a bug. The `attacks` runner (54 scripted attacks with balance and delegation checks after each) takes about 3 minutes; its results are in [docs/DEMO.md](docs/DEMO.md).
+
+## The dashboard ("Mandate Studio")
+
+A Next.js app on the SDK: a wizard that previews the mandate in plain English before anything is signed, a mandate page with per-instruction revoke, pause and one-click unwind, an activity feed that shows blocked attempts with the decoded reason, and a scripted "try to break it" simulator. It reads the chain through the SDK and has no database. Localnet or devnet only; with the dev signer on it says so on every page.
+
+| Mandate page (light) | Simulator (dark) |
+|---|---|
+| ![Mandate page](docs/assets/screens/04-mandate-detail-light.png) | ![Simulator](docs/assets/screens/05-simulator-dark.png) |
+
+Run it: `pnpm --filter @agentauth-sol/dashboard dev` after the quickstart below (see [apps/dashboard/README.md](apps/dashboard/README.md)). Screenshots are from a local validator with mock funds.
 
 ## The core program in one page
 
@@ -155,7 +191,7 @@ Trust note, in plain words: **`verify` checks caller-reported values. It is advi
 
 ## Measured
 
-Only numbers I produced with a command on 2026-10-11 (LiteSVM unless stated, not mainnet); [docs/BENCHMARKS.md](docs/BENCHMARKS.md) holds the full tables and the metrics refreshed from the final build.
+Only numbers produced by a command on 2026-10-11 (LiteSVM unless stated, not mainnet); [docs/BENCHMARKS.md](docs/BENCHMARKS.md) holds the full tables and the metrics refreshed from the final build.
 
 | Measurement | Value | Command |
 |---|---|---|

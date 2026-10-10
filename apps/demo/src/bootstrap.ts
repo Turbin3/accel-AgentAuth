@@ -65,6 +65,7 @@ const SOL_TARGETS: Readonly<Record<WalletRole, bigint>> = {
 
 const AMOUNTS = {
   ownerDusd: parseUnits('1000', DECIMALS),
+  simulatorDusd: parseUnits('1000', DECIMALS),
   hotDusd: parseUnits('50', DECIMALS),
   harnessDusd: parseUnits('1000', DECIMALS),
   poolDusd: parseUnits('10000', DECIMALS),
@@ -203,10 +204,11 @@ async function ensureAttackerAccountB(
   harness: KeyPairSigner,
   account: KeyPairSigner,
   mint: Address,
-  attacker: Address,
-): Promise<void> {
+  tokenOwner: Address,
+  label = 'attacker control account',
+): Promise<boolean> {
   const [exists] = await accountsExist(chain, [account.address])
-  if (exists) return
+  if (exists) return false
   const rent = await chain.rpc.getMinimumBalanceForRentExemption(TOKEN_ACCOUNT_SIZE).send()
   await chain.send(
     [
@@ -217,11 +219,12 @@ async function ensureAttackerAccountB(
         space: TOKEN_ACCOUNT_SIZE,
         owner: TOKEN_PROGRAM_ID,
       }),
-      initializeAccount3Ix({ account: account.address, mint, owner: attacker }),
+      initializeAccount3Ix({ account: account.address, mint, owner: tokenOwner }),
     ],
     harness,
   )
-  log(`  accounts attacker control account ${account.address}`)
+  log(`  accounts ${label} ${account.address}`)
+  return true
 }
 
 async function balanceOf(chain: DemoChain, account: Address): Promise<bigint> {
@@ -356,9 +359,16 @@ async function main(): Promise<void> {
   const wallets = Object.fromEntries(
     await Promise.all(WALLET_ROLES.map(async (r) => [r, await loadSigner(r)] as const)),
   ) as DemoSigners
-  const [dusdMint, doutMint, pool, ammConfig, observation, attackerB] = (await Promise.all(
-    OBJECT_KEYS.map((k) => loadSigner(k)),
-  )) as [KeyPairSigner, KeyPairSigner, KeyPairSigner, KeyPairSigner, KeyPairSigner, KeyPairSigner]
+  const [dusdMint, doutMint, pool, ammConfig, observation, attackerB, simulatorAcct] =
+    (await Promise.all(OBJECT_KEYS.map((k) => loadSigner(k)))) as [
+      KeyPairSigner,
+      KeyPairSigner,
+      KeyPairSigner,
+      KeyPairSigner,
+      KeyPairSigner,
+      KeyPairSigner,
+      KeyPairSigner,
+    ]
 
   // 2. SOL
   await topUpSol(chain, wallets)
@@ -390,6 +400,14 @@ async function main(): Promise<void> {
     dusdMint.address,
     wallets.attacker.address,
   )
+  const simulatorFresh = await ensureAttackerAccountB(
+    chain,
+    wallets.harness,
+    simulatorAcct,
+    dusdMint.address,
+    wallets.owner.address,
+    'dashboard simulator account (owner DUSD #2)',
+  )
 
   // 5. balances (only for accounts created now, or everything with --refill)
   const dusd = dusdMint.address
@@ -400,6 +418,13 @@ async function main(): Promise<void> {
     account: specs.ownerDusd.ata,
     target: AMOUNTS.ownerDusd,
     fresh: fresh.has(specs.ownerDusd.ata),
+  })
+  await stock(chain, wallets.harness, {
+    name: 'simulator DUSD',
+    mint: dusd,
+    account: simulatorAcct.address,
+    target: AMOUNTS.simulatorDusd,
+    fresh: simulatorFresh,
   })
   await stock(chain, wallets.harness, {
     name: 'hot DUSD',
@@ -470,6 +495,7 @@ async function main(): Promise<void> {
       recipientDusd: specs.recipientDusd.ata,
       attackerDusd: specs.attackerDusd.ata,
       attackerDusdB: attackerB.address,
+      simulatorDusd: simulatorAcct.address,
       attackerDout: specs.attackerDout.ata,
       hotDusd: specs.hotDusd.ata,
       harnessDusd: specs.harnessDusd.ata,

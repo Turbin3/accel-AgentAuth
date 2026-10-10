@@ -25,6 +25,7 @@ test.describe.serial('simulator', () => {
     await page.goto('/simulator')
     await expect(page.getByText('This attacker is a script')).toBeVisible()
     await expect(page.getByText('scripted attack').first()).toBeVisible()
+    await expect(page.getByText('The simulator uses its own token account')).toBeVisible()
   })
 
   test('every attack is stopped by a program and decoded', async ({ page }) => {

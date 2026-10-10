@@ -28,7 +28,30 @@ export interface DisplayError {
   readonly code?: string
 }
 
-export function toDisplayError(error: unknown): DisplayError {
+/** True for a failed `fetch` (validator down, wrong URL, blocked by the browser), at any depth of `cause`. */
+export function isNetworkFailure(error: unknown): boolean {
+  let e: unknown = error
+  for (let depth = 0; depth < 5 && e instanceof Error; depth++) {
+    if (
+      (e.name === 'TypeError' && /fetch|network|load failed/i.test(e.message)) ||
+      /ECONNREFUSED|ENOTFOUND|Failed to fetch|NetworkError|fetch failed/i.test(e.message)
+    ) {
+      return true
+    }
+    e = e.cause
+  }
+  return false
+}
+
+/** Decoded error for the UI. With `rpcUrl`, a failed fetch becomes a plain "cannot reach the RPC" message. */
+export function toDisplayError(error: unknown, rpcUrl?: string): DisplayError {
+  if (rpcUrl !== undefined && isNetworkFailure(error)) {
+    return {
+      title: `Cannot reach the RPC at ${rpcUrl}`,
+      detail: 'The request to the RPC endpoint failed before any answer came back.',
+      hint: 'Check that the validator (or RPC provider) is running and reachable from this browser, then retry.',
+    }
+  }
   if (error instanceof AgentAuthError) {
     return {
       title: `${error.program}: ${error.name}`,

@@ -64,6 +64,9 @@ export function MandateCard({
             used={first.spendTotal}
             limit={first.spendLimit}
             decimals={detail.decimalsFor(first.program)}
+            {...(detail.unitFor(first.program)
+              ? { unit: detail.unitFor(first.program) as string }
+              : {})}
           />
         ) : (
           <p className="text-sm text-muted">No permissions are set on this mandate.</p>

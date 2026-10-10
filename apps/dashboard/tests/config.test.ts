@@ -85,6 +85,14 @@ describe('helpers', () => {
     expect(isLoopbackUrl('not a url')).toBe(false)
   })
 
+  it('url-encodes the explorer target and the custom RPC', () => {
+    expect(
+      explorerUrl({ cluster: 'localnet', rpcUrl: 'http://127.0.0.1:8899/?a=b&c' }, 'tx', 'S/I G'),
+    ).toBe(
+      'https://explorer.solana.com/tx/S%2FI%20G?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8899%2F%3Fa%3Db%26c',
+    )
+  })
+
   it('builds explorer links per cluster', () => {
     expect(explorerUrl({ cluster: 'devnet', rpcUrl: 'x' }, 'tx', 'SIG')).toBe(
       'https://explorer.solana.com/tx/SIG?cluster=devnet',

@@ -137,13 +137,16 @@ export interface SimulatorState {
   readonly available: boolean
   readonly reason: string | null
   readonly problems: readonly string[]
+  /** True when the validator did not answer (the state file exists). */
+  readonly unreachable: boolean
+  readonly rpcUrl: string | null
   readonly mandate: Address | null
   readonly owner: Address | null
   readonly agent: Address | null
   readonly mandateExists: boolean
   readonly ready: boolean
   readonly balances: {
-    readonly ownerDusd: string
+    readonly simulatorDusd: string
     readonly aliceDusd: string
     readonly attackerDusd: string
     readonly attackerDout: string
@@ -171,6 +174,22 @@ interface Ctx {
   readonly env: DemoEnv
   readonly client: Client
   readonly signers: DemoSigners
+}
+
+/**
+ * The simulator's own DUSD account (owned by the demo owner). SPL allows one delegate per token
+ * account, so the simulator must never share `ownerDusd` with a mandate the user created.
+ */
+function simulatorAccountMissing(): string {
+  return 'This demo environment has no simulator token account yet: run `pnpm --filter @agentauth-sol/demo bootstrap` again (it only adds the account).'
+}
+
+export function simulatorAccount(env: DemoEnv): Address {
+  const account = env.tokenAccounts.simulatorDusd
+  if (!account) {
+    throw new Error(simulatorAccountMissing())
+  }
+  return account
 }
 
 async function context(): Promise<Ctx> {
@@ -212,7 +231,7 @@ async function readState(ctx: Ctx) {
   ).address
   const m = await client.fetchMandate(mandate)
   const p = await client.fetchPolicy(mandate)
-  const source = await fetchRawAccount(client.rpc, env.tokenAccounts.ownerDusd)
+  const source = await fetchRawAccount(client.rpc, simulatorAccount(env))
   const sourceView = source && source.data.length >= 165 ? decodeTokenAccount(source.data) : null
   return { mandate, m, p, sourceView }
 }
@@ -251,14 +270,14 @@ export async function ensureMandate(ctx: Ctx, force = false): Promise<AttackStep
     })
     steps.push(...(await sendPlan(ctx, unwind, 'Reset')))
   }
-  const swap = demoSwapConfig(env)
+  const swap = { ...demoSwapConfig(env), inAccount: simulatorAccount(env) }
   const plan = await client.plan.onboarding({
     owner: signers.owner.address,
     agent: env.wallets.agent,
     expiry: expiresIn('24h'),
     token: {
       mint: env.mints.dusd.address,
-      source: env.tokenAccounts.ownerDusd,
+      source: simulatorAccount(env),
       delegateCap: SIM_LIMITS.delegation,
     },
     permissions: [
@@ -290,6 +309,8 @@ export async function readSimulatorState(): Promise<SimulatorState> {
     available: false,
     reason: status.reason ?? (status.problems.length ? status.problems.join('; ') : null),
     problems: status.problems,
+    unreachable: status.unreachable,
+    rpcUrl: status.env?.rpcUrl ?? null,
     mandate: null,
     owner: null,
     agent: null,
@@ -299,6 +320,9 @@ export async function readSimulatorState(): Promise<SimulatorState> {
     attacks: ATTACKS,
   }
   if (!status.env || !status.available) return none
+  if (!status.env.tokenAccounts.simulatorDusd) {
+    return { ...none, reason: simulatorAccountMissing() }
+  }
   const ctx = await context()
   const { mandate, m, p, sourceView } = await readState(ctx)
   const balanceOf = async (a: Address) => {
@@ -315,13 +339,15 @@ export async function readSimulatorState(): Promise<SimulatorState> {
     available: true,
     reason: null,
     problems: [],
+    unreachable: false,
+    rpcUrl: ctx.env.rpcUrl,
     mandate,
     owner: ctx.env.wallets.owner,
     agent: ctx.env.wallets.agent,
     mandateExists: m !== null,
     ready: m !== null && p !== null && delegationOk(p, sourceView),
     balances: {
-      ownerDusd: (sourceView?.amount ?? 0n).toString(),
+      simulatorDusd: (sourceView?.amount ?? 0n).toString(),
       aliceDusd: alice.toString(),
       attackerDusd: attackerDusd.toString(),
       attackerDout: attackerDout.toString(),
@@ -391,7 +417,7 @@ export async function runAttack(id: AttackId): Promise<AttackResult> {
       cu = 1_000_000
       break
     case 'set-authority':
-      ixs = [setAuthorityIx(t.ownerDusd, signers.agent.address, env.wallets.attacker)]
+      ixs = [setAuthorityIx(simulatorAccount(env), signers.agent.address, env.wallets.attacker)]
       break
     case 'wrong-program':
       ixs = [

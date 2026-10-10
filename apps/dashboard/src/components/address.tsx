@@ -104,3 +104,16 @@ export function SignatureLink({ signature }: { signature: string }) {
     </span>
   )
 }
+
+/** One line near the first explorer link: the custom-cluster explorer reads the local RPC from your browser. */
+export function ExplorerNote() {
+  const config = useConfig()
+  if (config.cluster !== 'localnet') return null
+  return (
+    <p className="text-xs text-muted" data-testid="explorer-note">
+      Explorer links open explorer.solana.com with your local RPC as a custom cluster. They work in
+      Chrome and Firefox when {config.rpcUrl} is reachable from your browser; Chrome asks to allow
+      local network access, and the explorer shows &quot;Fetch Failed&quot; if you refuse.
+    </p>
+  )
+}

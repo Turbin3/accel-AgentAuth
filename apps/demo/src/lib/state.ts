@@ -42,6 +42,12 @@ export interface DemoState {
     readonly hotDusd: Address
     readonly harnessDusd: Address
     readonly harnessDout: Address
+    /**
+     * A second DUSD account owned by the owner (a plain keypair account), used only by the dashboard
+     * simulator so its mandates never replace the SPL delegate of `ownerDusd`. Absent in state files
+     * written before it existed: run bootstrap again.
+     */
+    readonly simulatorDusd?: Address
   }
   /** The mock-AMM pool (Raydium CP-Swap ABI, constant product, mode NORMAL). Test/demo only. */
   readonly pool: {
@@ -151,9 +157,14 @@ export function parseDemoState(json: unknown): DemoState {
       WALLET_ROLES.map((r) => [r, addr(wallets[r], `wallets.${r}`)]),
     ) as Record<WalletRole, Address>,
     mints: { dusd: mint(mints['dusd'], 'mints.dusd'), dout: mint(mints['dout'], 'mints.dout') },
-    tokenAccounts: Object.fromEntries(
-      TOKEN_ACCOUNT_KEYS.map((k) => [k, addr(tokenAccounts[k], `tokenAccounts.${k}`)]),
-    ) as DemoState['tokenAccounts'],
+    tokenAccounts: {
+      ...(Object.fromEntries(
+        TOKEN_ACCOUNT_KEYS.map((k) => [k, addr(tokenAccounts[k], `tokenAccounts.${k}`)]),
+      ) as Omit<DemoState['tokenAccounts'], 'simulatorDusd'>),
+      ...(tokenAccounts['simulatorDusd'] === undefined
+        ? {}
+        : { simulatorDusd: addr(tokenAccounts['simulatorDusd'], 'tokenAccounts.simulatorDusd') }),
+    },
     pool: {
       ...(Object.fromEntries(POOL_ADDRESS_KEYS.map((k) => [k, addr(pool[k], `pool.${k}`)])) as Pick<
         DemoState['pool'],

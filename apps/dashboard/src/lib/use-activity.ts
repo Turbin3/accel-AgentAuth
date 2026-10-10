@@ -29,6 +29,8 @@ export function useActivity(client: Client, mandate: Address, intervalMs = 5000)
         policy,
         limit: PAGE,
         cache: cache.current,
+        foldVerify: true,
+        stopAtCreation: true,
         abortSignal: signal,
       })
       return { items: page.items, nextBefore: page.nextBefore, policy }
@@ -49,6 +51,8 @@ export function useActivity(client: Client, mandate: Address, intervalMs = 5000)
         limit: PAGE,
         before: last.signature,
         cache: cache.current,
+        foldVerify: true,
+        stopAtCreation: true,
       })
       setOlder((o) => [...o, ...page.items])
       if (page.nextBefore === null || page.items.length === 0) setExhausted(true)

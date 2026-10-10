@@ -28,6 +28,7 @@ export const OBJECT_KEYS = [
   'amm-config',
   'observation',
   'attacker-dusd-b',
+  'simulator-dusd',
 ] as const
 export type ObjectKey = (typeof OBJECT_KEYS)[number]
 

@@ -7,7 +7,7 @@ import { useClient } from '@/lib/chain'
 import { useConfig } from '@/lib/config-context'
 import { loadMandateDetail } from '@/lib/mandate-data'
 import { useAsync } from '@/lib/use-async'
-import { AddressText, SignatureLink } from './address'
+import { AddressText, ExplorerNote, SignatureLink } from './address'
 import { AsyncBoundary } from './async-boundary'
 import { MandateCard } from './mandate-card'
 import { Button, Card, Chip, EmptyState, Notice, Skeleton } from './ui'
@@ -25,11 +25,13 @@ interface SimState {
   readonly available: boolean
   readonly reason: string | null
   readonly problems: readonly string[]
+  readonly unreachable: boolean
+  readonly rpcUrl: string | null
   readonly mandate: Address | null
   readonly mandateExists: boolean
   readonly ready: boolean
   readonly balances: {
-    readonly ownerDusd: string
+    readonly simulatorDusd: string
     readonly aliceDusd: string
     readonly attackerDusd: string
     readonly attackerDout: string
@@ -121,8 +123,9 @@ function ResultCard({ result }: { result: AttackResult }) {
         <p className="mt-3 text-sm">
           Transaction <SignatureLink signature={result.signature} />{' '}
           <span className="text-xs text-muted">
-            (landed with preflight skipped, so the failure is recorded on chain and a failed
-            transaction still pays its fee)
+            {result.outcome === 'allowed'
+              ? '(sent with preflight skipped, like every attempt here)'
+              : '(landed with preflight skipped, so the failure is recorded on chain and a failed transaction still pays its fee)'}
           </span>
         </p>
       ) : null}
@@ -161,7 +164,7 @@ function Balances({ state }: { state: SimState }) {
     ['Attacker (DUSD)', formatAmount(BigInt(b.attackerDusd), d)],
     ['Attacker (DOUT)', formatAmount(BigInt(b.attackerDout), d)],
     ['Alice, the allowed recipient (DUSD)', formatAmount(BigInt(b.aliceDusd), d)],
-    ['Owner source account (DUSD)', formatAmount(BigInt(b.ownerDusd), d)],
+    ['Simulator account (DUSD)', formatAmount(BigInt(b.simulatorDusd), d)],
     ['SPL allowance left for the relay', formatAmount(BigInt(b.delegatedAmount), d)],
   ]
   return (
@@ -270,13 +273,22 @@ export function Simulator() {
       >
         {(s) =>
           !s.available ? (
-            <EmptyState title="The demo environment is not ready">
-              <p>{s.reason ?? s.problems.join('; ')}</p>
-              <p className="mt-2">
-                Run <code>pnpm --filter @agentauth-sol/demo bootstrap</code> against the local
-                validator and reload.
-              </p>
-            </EmptyState>
+            s.unreachable ? (
+              <EmptyState title={`Cannot reach the RPC at ${s.rpcUrl ?? config.rpcUrl}`}>
+                <p>
+                  The local validator is not answering. Start it with{' '}
+                  <code>scripts/localnet.sh start</code> and reload.
+                </p>
+              </EmptyState>
+            ) : (
+              <EmptyState title="The demo environment is not ready">
+                <p>{s.reason ?? s.problems.join('; ')}</p>
+                <p className="mt-2">
+                  Run <code>pnpm --filter @agentauth-sol/demo bootstrap</code> against the local
+                  validator and reload.
+                </p>
+              </EmptyState>
+            )
           ) : (
             <>
               <section aria-labelledby="demo-mandate-heading" className="space-y-3">
@@ -318,6 +330,13 @@ export function Simulator() {
                   </p>
                 ) : null}
               </section>
+
+              <Notice tone="neutral" title="The simulator uses its own token account">
+                An SPL token account has one delegate, so the simulator draws on a separate DUSD
+                account of the demo owner (the &quot;Simulator account&quot; below). Resetting or
+                unwinding the demo mandate here never touches the delegation of a mandate you
+                created in the wizard.
+              </Notice>
 
               <Balances state={s} />
 
@@ -375,6 +394,7 @@ export function Simulator() {
         <h2 id="results-heading" className="text-lg font-semibold">
           Results
         </h2>
+        <ExplorerNote />
         {results.length === 0 ? (
           <p className="text-sm text-muted">
             Run an attack to see the decoded on-chain answer here.

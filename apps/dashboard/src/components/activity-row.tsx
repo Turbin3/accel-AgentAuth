@@ -33,11 +33,14 @@ export function kindLabel(kind: string): string {
 export function ActivityRow({
   item,
   decimals,
+  symbol,
   labels,
   nowSeconds,
 }: {
   item: ActivityItem
   decimals: number | null
+  /** Token symbol shown after the amount (optional). */
+  symbol?: string | null
   labels: Readonly<Record<string, string>>
   nowSeconds: number
 }) {
@@ -75,6 +78,7 @@ export function ActivityRow({
         {item.amount !== undefined ? (
           <p>
             Amount <span className="font-mono">{formatAmount(item.amount, decimals)}</span>
+            {symbol ? ` ${symbol}` : ''}
             {item.recipient ? (
               <>
                 {' '}
