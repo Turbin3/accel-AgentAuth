@@ -21,3 +21,6 @@ coverage
 .idea/
 # logs
 *.log
+
+# private founder notes (strategy, funding, interview prep) - never publish
+founder/
