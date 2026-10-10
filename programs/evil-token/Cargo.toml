@@ -1,0 +1,14 @@
+[package]
+name = "evil-token"
+version = "0.1.0"
+edition = "2021"
+description = "Test-only Token program stub that misbehaves (moves amount+1, credits amount-1, raises the source balance). NEVER deploy."
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+pinocchio = { workspace = true }
+pinocchio-pubkey = { workspace = true }

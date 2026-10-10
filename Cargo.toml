@@ -8,6 +8,7 @@ members = [
     "programs/relay",
     "programs/mock-amm",
     "programs/gated-example",
+    "programs/evil-token",
     "crates/agent-auth-cpi",
 ]
 resolver = "2"
