@@ -1,0 +1,53 @@
+{
+  "name": "@agentauth-sol/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for AgentAuth mandates on Solana: agent, owner (unsigned plans) and observer profiles (unaudited devnet prototype)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "agentauth-mcp": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "test": "vitest run",
+    "tour": "tsx scripts/tour.ts",
+    "test:e2e": "AA_MCP_E2E=1 vitest run test/e2e"
+  },
+  "dependencies": {
+    "@agentauth-sol/registry": "workspace:*",
+    "@agentauth-sol/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@solana/kit": "8.4.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@agentauth-sol/demo": "workspace:*"
+  },
+  "keywords": [
+    "solana",
+    "mcp",
+    "agent",
+    "authorization",
+    "mandate",
+    "agentauth"
+  ]
+}

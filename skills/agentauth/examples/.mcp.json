@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "agentauth": {
+      "command": "node",
+      "args": [
+        "/ABSOLUTE/PATH/TO/accel-AgentAuth-main/packages/mcp/dist/bin.js",
+        "--profile", "agent",
+        "--cluster", "devnet",
+        "--owner", "<OWNER_WALLET_ADDRESS>"
+      ],
+      "env": {
+        "AGENTAUTH_AGENT_KEYPAIR": "${HOME}/.config/agentauth/agent.json"
+      }
+    }
+  }
+}
