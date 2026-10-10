@@ -1,0 +1,21 @@
+# Test-only stub: an SBF program that returns Ok for every instruction and touches nothing.
+# Used by the relay tests as "a program that always returns Ok" (TR-13: fake AgentAuth,
+# TR-14: fake Token program). It is NOT a workspace member and has no dependencies.
+# Rebuild with ./build.sh (needs the Solana platform tools); the resulting always_ok.so is
+# committed next to this file so the tests do not need the toolchain to run.
+[package]
+name = "always-ok"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[workspace]
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+lto = true
+codegen-units = 1

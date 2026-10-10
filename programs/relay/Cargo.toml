@@ -10,8 +10,12 @@ publish = false
 crate-type = ["cdylib", "lib"]
 
 [features]
+# `devnet` (default): the AMM allowlist is the Raydium CPMM devnet program.
+# Building with `--no-default-features` gives the mainnet-style allowlist.
 default = ["devnet"]
 devnet = []
+# Adds the mock AMM program id to the AMM allowlist. Test/demo builds only:
+# it must never be enabled by default and never in a build meant for mainnet.
 test-amm = []
 
 [dependencies]
@@ -22,6 +26,8 @@ pinocchio-pubkey = { workspace = true }
 [dev-dependencies]
 agent-auth = { path = "../.." }
 litesvm = { workspace = true }
+serde_json = "1"
+sha2 = "0.10"
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
 solana-keypair = { workspace = true }
@@ -30,3 +36,6 @@ solana-pubkey = { workspace = true }
 solana-sdk-ids = { workspace = true }
 solana-signer = { workspace = true }
 solana-transaction = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))', 'cfg(target_feature, values("static-syscalls"))'] }
