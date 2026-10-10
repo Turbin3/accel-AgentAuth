@@ -186,7 +186,7 @@ function envelope(input: EnvelopeInput): Record<string, JsonValue> {
   else {
     out['error'] = input.error ?? null
     out['exitCode'] = input.exitCode ?? 1
-    if (input.data !== undefined && input.data !== null) out['data'] = input.data
+    out['data'] = input.data ?? null
   }
   return out
 }

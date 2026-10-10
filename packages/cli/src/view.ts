@@ -11,7 +11,7 @@ import {
 import type { Ctx } from './env'
 import type { Out } from './output'
 import { mintMeta, type MintMeta, type Target } from './resolve'
-import { formatAmount, relativeTime, shortAddress } from './units'
+import { formatAmount, relativeTime, shortAddress, tidyText } from './units'
 
 /** Print an explanation: warnings first, then what the agent can and cannot do and what is hard. */
 export function printExplanation(
@@ -24,7 +24,7 @@ export function printExplanation(
   const warnings = all.filter((w) => !all.some((other) => other !== w && other.startsWith(w)))
   if (warnings.length > 0) {
     out.say(out.warn(out.bold('Warnings')))
-    for (const w of warnings) out.say(`  ${out.warn('!')} ${w}`)
+    for (const w of warnings) out.say(`  ${out.warn('!')} ${tidyText(w)}`)
     out.say()
   }
   out.say(out.bold(ex.headline))

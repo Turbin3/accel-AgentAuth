@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import { isAddress, type Address } from '@solana/kit'
+import * as registry from '@agentauth-sol/registry'
 import {
+  GATED_ACTION_DISC,
   SWAP_BASE_INPUT_DISC,
   TOKEN_PROGRAM_ID,
   TRANSFER_CHECKED_DISC,
@@ -54,6 +56,7 @@ async function planResult(
   ctx: Context,
   plan: Plan,
   urgent: boolean,
+  resolved?: { readonly note: string; readonly detail: Record<string, unknown> },
 ): Promise<ReturnType<typeof ok>> {
   const owner = ownerOf(ctx)
   const { value: blockhash } = await ctx.withTimeout(
@@ -77,7 +80,8 @@ async function planResult(
     }
   }
   return ok({
-    summary: tidy(plan.summary, 1500),
+    summary: tidy(resolved ? `${plan.summary} ${resolved.note}` : plan.summary, 1500),
+    ...(resolved ? { resolved: resolved.detail } : {}),
     warnings: plan.warnings.map((w) => tidy(w, 400)).slice(0, 15),
     transactions: steps.map((s, i) => ({
       step: i,
@@ -314,19 +318,78 @@ const planResume = defineTool({
   },
 })
 
+const BASE58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+const HEX16 = /^[0-9a-fA-F]{16}$/
+const BUILTIN_INSTRUCTIONS: Record<string, Record<string, string>> = {
+  'mock-amm': { swap_base_input: SWAP_BASE_INPUT_DISC },
+  'gated-example': { gated_action: GATED_ACTION_DISC },
+}
+
+/** A program given as a base58 id, a registry slug (`spl-token`) or an AgentAuth program name. */
+export function resolveProgramInput(
+  ctx: Context,
+  input: string,
+): { id: Address; slug: string | undefined; name: string } {
+  if (isAddress(input) && BASE58.test(input)) {
+    const known = registry.getProgramById(input, registryCluster(ctx))
+    return { id: input, slug: known?.slug, name: known?.name ?? input }
+  }
+  const ids = ctx.client.programIds
+  const own: Record<string, string> = {
+    'agent-auth': ids.agentAuth,
+    relay: ids.relay,
+    'mock-amm': ids.mockAmm,
+    'gated-example': ids.gatedExample,
+  }
+  const ownId = own[input]
+  if (ownId !== undefined) return { id: ownId as Address, slug: input, name: input }
+  const entry = registry.getProgramBySlug(input)
+  const id = entry?.programIds[registryCluster(ctx)] ?? entry?.programIds.devnet
+  if (!entry || id === undefined || !isAddress(id))
+    throw new Error(
+      `unknown program "${tidy(input, 64)}": pass a base58 program id or a registry slug such as "spl-token"`,
+    )
+  return { id, slug: entry.slug, name: entry.name }
+}
+
+function registryCluster(ctx: Context): registry.Cluster {
+  return ctx.config.cluster === 'mainnet-beta' ? 'mainnet-beta' : 'devnet'
+}
+
+/** An instruction given as a 16-hex disc8 or a registry/built-in instruction name. */
+export function resolveInstructionInput(
+  program: { id: Address; slug: string | undefined },
+  input: string,
+) {
+  if (HEX16.test(input)) return input.toLowerCase()
+  const disc8 =
+    (program.slug === undefined ? undefined : BUILTIN_INSTRUCTIONS[program.slug]?.[input]) ??
+    registry.instructionByName(program.id, input)?.disc8
+  if (disc8 === undefined)
+    throw new Error(
+      `unknown instruction "${tidy(input, 64)}" for ${program.slug ?? program.id}: pass a registry instruction name or 16 hex characters`,
+    )
+  return disc8.toLowerCase()
+}
+
 const planRevokePermission = defineTool({
   name: 'owner_plan_revoke_permission',
   title: 'Plan a permission revoke (unsigned)',
   description: `Builds an unsigned transaction that removes one program permission from the mandate. With keep_instructions it re-adds the slot with only those instruction discriminators and the remaining budget. After a plain removal the agent gets AgentAuth error 6 for that program. ${DATA_NOTE}`,
   input: strict({
     agent: agentField,
-    program: addressField('The program whose permission is removed'),
+    program: z
+      .string()
+      .regex(/^[A-Za-z0-9_.-]{2,64}$/, 'a base58 program id or a registry slug such as "spl-token"')
+      .describe('The program whose permission is removed: a base58 id or a registry slug'),
     keep_instructions: z
-      .array(z.string().regex(/^[0-9a-fA-F]{16}$/))
+      .array(z.string().regex(/^[A-Za-z0-9_]{1,64}$/, 'an instruction name or 16 hex characters'))
       .min(1)
       .max(8)
       .optional()
-      .describe('Instruction discriminators (16 hex characters) to keep'),
+      .describe(
+        'Instructions to keep: registry names (transfer_checked) or 16-hex-character disc8',
+      ),
   }),
   annotations: {
     readOnlyHint: true,
@@ -336,18 +399,36 @@ const planRevokePermission = defineTool({
   },
   profiles: ['owner'],
   async handler(a, ctx) {
+    let program: ReturnType<typeof resolveProgramInput>
+    let keep: { input: string; disc8: string }[] | undefined
+    try {
+      program = resolveProgramInput(ctx, a.program)
+      keep = a.keep_instructions?.map((input) => ({
+        input,
+        disc8: resolveInstructionInput(program, input),
+      }))
+    } catch (e) {
+      return fail('INVALID_INPUT', e instanceof Error ? e.message : 'invalid input')
+    }
     const plan = await ctx.withTimeout(
       ctx.client.plan.revokePermission({
         owner: ctx.ownerSigner ?? ownerOf(ctx),
         agent: resolveAgent(ctx, a.agent),
-        program: a.program as Address,
-        ...(a.keep_instructions
-          ? { replaceWith: { discriminators: a.keep_instructions.map((d) => d.toLowerCase()) } }
-          : {}),
+        program: program.id,
+        ...(keep ? { replaceWith: { discriminators: keep.map((k) => k.disc8) } } : {}),
       }),
       'building the plan',
     )
-    return planResult(ctx, plan, true)
+    const note = `Resolved: program ${a.program} = ${program.id}${
+      keep ? `; keep ${keep.map((k) => `${k.input} = ${k.disc8}`).join(', ')}` : ''
+    }.`
+    return planResult(ctx, plan, true, {
+      note,
+      detail: {
+        program: { input: a.program, id: program.id, name: program.name },
+        ...(keep ? { keep_instructions: keep } : {}),
+      },
+    })
   },
 })
 

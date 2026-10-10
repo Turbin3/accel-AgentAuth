@@ -68,18 +68,18 @@ Secret key material is never printed; keypair files are read only to sign.
 | Command | What it does |
 |---|---|
 | `doctor` | Environment, RPC, program availability, keypairs and balances. Read-only. |
-| `registry list \| show <program> \| decode <program> <hex> \| presets \| preset <name>` | The verified catalog: instructions with canonical `disc8`, risk class, default-deny flag, decoded amounts, presets with their honest limits. Read-only. |
+| `registry list \| show <program> \| decode <program> <hex...> \| presets \| preset <name>` | The verified catalog: instructions with canonical `disc8`, risk class, default-deny flag, decoded amounts, presets with their honest limits. Read-only. `decode` takes the program and the instruction data as hex; several hex arguments are joined and `0x` prefixes are ignored. |
 | `mandate create` | Preview (warnings first) then send the planned transactions in order; prints signatures and explorer links. `--preset`, `--mint`, `--source`, `--recipient` (repeatable), `--per-call`, `--budget`, `--delegate`, `--expiry 7d\|ISO\|unix`, `--swap-pool demo\|file.json`, `--allow-unlimited`, `--dry-run`. Limits are never guessed: both `--per-call` and `--budget` are required. |
 | `mandate show \| explain [agent-or-mandate]` | Status, limits spent, relay policy, live SPL delegation and capacity (`show`); the plain-English narrative with HARD/ADVISORY labels (`explain`). |
 | `mandate list --owner <addr>` | The mandates an owner created. |
 | `mandate pause \| resume [--scope relay\|mandate\|both]` | Reversible kill switch (relay `set_paused` and/or core `set_active`). |
 | `mandate revoke` | The one-transaction unwind (SPL `Revoke`, `revoke_mandate`, `close_policy`) with a size check against the 1232-byte limit. |
-| `permission add \| update \| remove <program> [instructions...]` | Edit a mandate live. Instruction names come from the registry; default-deny instructions need `--allow-default-deny`. `remove` with instruction names takes only those away (the next call fails with `agent_auth:7`); without names it removes the slot (`agent_auth:6`). |
+| `permission add \| update \| remove <program> [instructions...]` | Edit a mandate live. Instruction names come from the registry; default-deny instructions need `--allow-default-deny`. `remove` with instruction names takes only those away: the next call to one of them fails with `agent_auth:7` DiscriminatorNotAllowed, unless none would remain, in which case the whole slot goes and it fails with `agent_auth:6` ProgramNotAllowed (the preview predicts which, from the live permission). Without names it removes the slot (`agent_auth:6`). |
 | `relay status` | The policy, delegation, balance and what the agent can move right now. |
 | `relay pay --to <token account> --amount "25 DUSD"` | Agent-signed hard-enforced payment. Pre-flights with the SDK mirror (exit 2 on denial), then sends. `--no-preflight` skips both the local check and the RPC preflight so the attempt lands on chain and is recorded (a failed attempt still pays the fee). |
 | `relay swap --amount-in "5 DUSD" [--min-out ...]` | Swap through the one pinned pool; the relay enforces `max(min-out, floor)`. Not MEV protection. |
 | `check --program <p> --instruction <i> --amount <n>` | Pre-flight only: would the mandate authorise this call now? Advisory; sends nothing. |
-| `activity [agent-or-mandate] [--follow]` | Table of time, kind, outcome (`ok` or `BLOCKED relay:104 RecipientNotAllowed`), amount and signature. The `verify` call nested in a relay action is folded into the relay row (`--all` shows it). |
+| `activity [agent-or-mandate] [--address <mandate>] [--follow]` | `--address` reads the history of a mandate that no longer exists (after `mandate revoke`). Table of time, kind, outcome (`ok` or `BLOCKED relay:104 RecipientNotAllowed`), amount and signature. The `verify` call nested in a relay action is folded into the relay row (`--all` shows it). |
 | `lint <plan.json\|-\|preset>` | Static analysis for CI, below. |
 | `version` | The CLI version. |
 

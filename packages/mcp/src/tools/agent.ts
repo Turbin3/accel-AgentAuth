@@ -174,12 +174,44 @@ async function sendAsAgent(
   }
 }
 
+/**
+ * Relay 105 covers several account-state problems. When the payment is larger than the SPL
+ * allowance (or the source balance) that is left, say so instead of blaming the owner's setup.
+ */
+async function transferHint(
+  ctx: Context,
+  mandate: Address,
+  err: AgentAuthError,
+  amount: bigint,
+  decimals: number,
+): Promise<Record<string, unknown>> {
+  if (err.program !== 'relay' || err.code !== 105) return {}
+  try {
+    const view = await ctx.withTimeout(ctx.client.inspect(mandate), 'reading the allowance')
+    const left = view.delegation
+    if (left && left.delegate !== null && amount > left.delegatedAmount) {
+      return {
+        hint: `amount is larger than the SPL allowance left (${formatUnits(left.delegatedAmount, decimals)}). The owner would have to delegate more to the relay for this payment.`,
+      }
+    }
+    if (view.balance !== null && amount > view.balance) {
+      return {
+        hint: `amount is larger than the source account balance (${formatUnits(view.balance, decimals)}).`,
+      }
+    }
+  } catch {
+    // keep the generic hint
+  }
+  return {}
+}
+
 function settle(
   ctx: Context,
   key: string,
   fingerprint: string,
   outcome: Outcome,
   success: Record<string, unknown>,
+  denialExtra: Record<string, unknown> = {},
 ): ReturnType<typeof ok> {
   if (outcome.kind === 'unknown') {
     ctx.idempotency.markSent(fingerprint, ctx.now())
@@ -197,7 +229,7 @@ function settle(
   }
   if (outcome.kind === 'rejected') {
     ctx.idempotency.release(key)
-    return denial(outcome.error, 'rpc_preflight')
+    return denial(outcome.error, 'rpc_preflight', denialExtra)
   }
   const { res } = outcome
   if (res.ok) {
@@ -207,7 +239,7 @@ function settle(
     return ok(body)
   }
   ctx.idempotency.release(key)
-  if (res.error) return denial(res.error, 'onchain', { signature: res.signature })
+  if (res.error) return denial(res.error, 'onchain', { signature: res.signature, ...denialExtra })
   return fail('RPC_ERROR', 'The transaction failed without a decodable program error.', {
     signature: res.signature,
   })
@@ -397,7 +429,7 @@ const pay = defineTool({
   profiles: ['agent'],
   async handler(a, ctx) {
     const { owner, agent } = agentIdentity(ctx)
-    const { policy } = await loadPolicy(ctx, owner, agent.address)
+    const { mandate, policy } = await loadPolicy(ctx, owner, agent.address)
     if (!policy) return fail('NOT_AVAILABLE', NO_POLICY)
     const decimals = await ctx.decimalsOf(policy.budgetMint)
     let amount: bigint
@@ -433,8 +465,10 @@ const pay = defineTool({
       )
       if (!pre.ok && !ctx.config.landDenied) {
         ctx.idempotency.release(a.idempotency_key)
-        return denial(preflightFailureToError(pre), 'preflight', {
+        const err = preflightFailureToError(pre)
+        return denial(err, 'preflight', {
           attempted: { recipient: recipientLabel(ctx, policy, destination), amount: a.amount },
+          ...(await transferHint(ctx, mandate, err, amount, decimals)),
         })
       }
       const ix = await relayTransferIx({
@@ -446,16 +480,30 @@ const pay = defineTool({
         agentAuthProgram: ctx.client.programIds.agentAuth,
       })
       const outcome = await sendAsAgent(ctx, ix)
-      return settle(ctx, a.idempotency_key, fingerprint, outcome, {
-        paid: {
-          amount: a.amount,
-          token_mint: policy.budgetMint,
-          recipient: recipientLabel(ctx, policy, destination),
-          recipient_token_account: destination,
+      const failed =
+        outcome.kind === 'rejected'
+          ? outcome.error
+          : outcome.kind === 'sent'
+            ? outcome.res.error
+            : undefined
+      const hint = failed ? await transferHint(ctx, mandate, failed, amount, decimals) : {}
+      return settle(
+        ctx,
+        a.idempotency_key,
+        fingerprint,
+        outcome,
+        {
+          paid: {
+            amount: a.amount,
+            token_mint: policy.budgetMint,
+            recipient: recipientLabel(ctx, policy, destination),
+            recipient_token_account: destination,
+          },
+          enforcement: 'hard (relay)',
+          next: 'Call agentauth_status to see the remaining budget.',
         },
-        enforcement: 'hard (relay)',
-        next: 'Call agentauth_status to see the remaining budget.',
-      })
+        hint,
+      )
     } catch (e) {
       ctx.idempotency.release(a.idempotency_key)
       throw e

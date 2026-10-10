@@ -3,14 +3,14 @@
 
 $ agentauth doctor
 ok    node                       v24.10.0
-ok    cluster                    localnet (http://127.0.0.1:8909), demo environment found
-ok    rpc                        reachable, slot 81
+ok    cluster                    localnet (http://127.0.0.1:8919), demo environment found
+ok    rpc                        reachable, slot 105
 ok    program agent_auth         deployed (AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if)
 ok    program agent_auth_relay   deployed (33VpeDjreoanKn8Qa5HLLF247W1ctwgMnixg36yhqkN6)
 ok    program mock_amm           deployed (6QhMSWnMsDQKBPswWHpYdtXEDLyRzv3S5BnDBH2M2vLw)
 ok    program gated_example      deployed (CoXCzcw7MfX6N7kPQJYhJNdGetovatuPq6xo39pHBQLZ)
-ok    owner                      12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA (demo key), 100 SOL
-ok    agent                      7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i (demo key), 0.05 SOL
+ok    owner                      GY9ZtShHcfuN5omoq5vnhfG5kfeEghcss6PemykGxP6A (demo key), 99.99887444 SOL
+ok    agent                      2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es (demo key), 0.05 SOL
 ok    demo DUSD                  owner holds 1000 DUSD
 ok    demo DOUT                  owner holds 0 DOUT
 
@@ -77,7 +77,7 @@ Allows
   spl-token.transfer_checked  0c00000000000000, value_out
 
 Risk
-  Worst case is the agent spending the lifetime limit to an attacker-chosen recipient if no recipient allowlist is set. With the relay allowlist the worst case is spending the limit to allowlisted recipients.
+  The relay always enforces a recipient allowlist, and an empty allowlist refuses every transfer (relay error 104 RecipientNotAllowed). Worst case is the agent spending the lifetime limit to the allowlisted recipients, so list only token accounts you trust. Calls that bypass the relay are only advisory.
 
 Not allowed (15, for example)
   spl-token.transfer  [not allowlisted, value_out] Moves tokens from an owner- or delegate-controlled account to a destination account chosen by the caller.
@@ -134,8 +134,8 @@ error lint failed: 6 error(s), 3 warning(s)
 # 3. Create the mandate from a preset (preview with warnings, then send)
 
 $ agentauth mandate create --preset payments-usdc --per-call 5 DUSD --budget 20 DUSD --recipient @recipientDusd --swap-pool demo --swap-per-call 5 --swap-budget 10 --delegate 50 DUSD --allow-override --simulate
-Preview: mandate 6Pydct…QKREsm on localnet
-owner 12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA  agent 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+Preview: mandate D73sPb…KSLwtE on localnet
+owner GY9ZtShHcfuN5omoq5vnhfG5kfeEghcss6PemykGxP6A  agent 2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es
 
 Warnings
   ! AgentAuth is an unaudited prototype built for devnet. Do not put funds you cannot lose behind it.
@@ -144,15 +144,15 @@ Warnings
   ! Until the final step (init_policy) lands, the relay fails closed with InvalidPolicy (101); the agent can do nothing through it.
   ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
   ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
-  ! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+  ! The SPL delegation (50, 50000000 raw units) is larger than the remaining mandate budget (20, 20000000 raw units): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
   ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
 
-Agent 7Qsx…FK9i acts for owner 12f2…aMoA with 2 permissions (active); expires 2026-10-17T20:42:37.000Z (in 7 days). A relay policy hard-enforces transfers and one pinned swap.
-status  active   expires 2026-10-17T20:42:37.000Z (in 7 days)
+Agent 2z7e…v7es acts for owner GY9Z…xP6A with 2 permissions (active); expires 2026-10-17T22:28:34.000Z (in 7 days). A relay policy hard-enforces transfers and one pinned swap.
+status  active   expires 2026-10-17T22:28:34.000Z (in 7 days)
 
 The agent can
-  + Pay token 2Yd1…GouC from the owner's account 4cKN…MHvm to 1 allowlisted token account (EFuE…ciCd) through the relay (hard-enforced)
-  + Swap 2Yd1…GouC for BiPr…mD5P on the ONE pinned pool BaSN…SZf4 at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
+  + Pay token 81LN…opdx from the owner's account Fh8e…qz78 to 1 allowlisted token account (3qNt…Wb2R) through the relay (hard-enforced)
+  + Swap 81LN…opdx for 36K3…D7t9 on the ONE pinned pool Ekvm…ZAoC at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
 
 The agent cannot
   - Call any program or instruction not listed in a permission (verify returns ProgramNotAllowed or DiscriminatorNotAllowed, if the program calls verify).
@@ -169,21 +169,21 @@ Enforcement
   HARD      Transfer (checked) on SPL Token (Toke…Q5DA) (only via relay transfer, to allowlisted token accounts)
   HARD      Swap (exact input) on Mock AMM (test only) (6QhM…2vLw) (only via relay swap, on the pinned pool)
 
-Transactions (2, signed by the owner 12f2…aMoA)
+Transactions (2, signed by the owner GY9Z…xP6A)
   1. Create mandate, grant permissions, delegate: 532 B
   2. Activate relay policy: 1072 B, after step 1
-  Onboard agent 7Qsx…FK9i for owner 12f2…aMoA: create mandate (expires 2026-10-17T20:42:37.000Z), 2 permissions, delegate 50000000 raw units of 2Yd1…GouC to the relay authority, allowlist 1 recipient token account, one pinned swap pool. 2 transactions, unsigned.; each must stay under 1232 bytes
+  Onboard agent 2z7e…v7es for owner GY9Z…xP6A: create mandate (expires 2026-10-17T22:28:34.000Z), 2 permissions, delegate 50000000 raw units of 81LN…opdx to the relay authority, allowlist 1 recipient token account, one pinned swap pool. 2 transactions; each must stay under 1232 bytes
 
 AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay transfer and the pinned swap; everything else is advisory.
 
-  ok step 1/2 Create mandate, grant permissions, delegate: simulated, 6981 compute units
+  ok step 1/2 Create mandate, grant permissions, delegate: simulated, 8481 compute units
   - step 2/2 Activate relay policy: not simulated (needs step 1 to land first)
 Simulation only: nothing was sent (--simulate).
 [exit 0]
 
 $ agentauth mandate create --preset payments-usdc --per-call 5 DUSD --budget 20 DUSD --recipient @recipientDusd --swap-pool demo --swap-per-call 5 --swap-budget 10 --delegate 50 DUSD --allow-override --yes
-Preview: mandate 6Pydct…QKREsm on localnet
-owner 12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA  agent 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+Preview: mandate D73sPb…KSLwtE on localnet
+owner GY9ZtShHcfuN5omoq5vnhfG5kfeEghcss6PemykGxP6A  agent 2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es
 
 Warnings
   ! AgentAuth is an unaudited prototype built for devnet. Do not put funds you cannot lose behind it.
@@ -192,15 +192,15 @@ Warnings
   ! Until the final step (init_policy) lands, the relay fails closed with InvalidPolicy (101); the agent can do nothing through it.
   ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
   ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
-  ! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+  ! The SPL delegation (50, 50000000 raw units) is larger than the remaining mandate budget (20, 20000000 raw units): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
   ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
 
-Agent 7Qsx…FK9i acts for owner 12f2…aMoA with 2 permissions (active); expires 2026-10-17T20:42:37.000Z (in 7 days). A relay policy hard-enforces transfers and one pinned swap.
-status  active   expires 2026-10-17T20:42:37.000Z (in 7 days)
+Agent 2z7e…v7es acts for owner GY9Z…xP6A with 2 permissions (active); expires 2026-10-17T22:28:34.000Z (in 7 days). A relay policy hard-enforces transfers and one pinned swap.
+status  active   expires 2026-10-17T22:28:34.000Z (in 7 days)
 
 The agent can
-  + Pay token 2Yd1…GouC from the owner's account 4cKN…MHvm to 1 allowlisted token account (EFuE…ciCd) through the relay (hard-enforced)
-  + Swap 2Yd1…GouC for BiPr…mD5P on the ONE pinned pool BaSN…SZf4 at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
+  + Pay token 81LN…opdx from the owner's account Fh8e…qz78 to 1 allowlisted token account (3qNt…Wb2R) through the relay (hard-enforced)
+  + Swap 81LN…opdx for 36K3…D7t9 on the ONE pinned pool Ekvm…ZAoC at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
 
 The agent cannot
   - Call any program or instruction not listed in a permission (verify returns ProgramNotAllowed or DiscriminatorNotAllowed, if the program calls verify).
@@ -217,29 +217,29 @@ Enforcement
   HARD      Transfer (checked) on SPL Token (Toke…Q5DA) (only via relay transfer, to allowlisted token accounts)
   HARD      Swap (exact input) on Mock AMM (test only) (6QhM…2vLw) (only via relay swap, on the pinned pool)
 
-Transactions (2, signed by the owner 12f2…aMoA)
+Transactions (2, signed by the owner GY9Z…xP6A)
   1. Create mandate, grant permissions, delegate: 532 B
   2. Activate relay policy: 1072 B, after step 1
-  Onboard agent 7Qsx…FK9i for owner 12f2…aMoA: create mandate (expires 2026-10-17T20:42:37.000Z), 2 permissions, delegate 50000000 raw units of 2Yd1…GouC to the relay authority, allowlist 1 recipient token account, one pinned swap pool. 2 transactions, unsigned.; each must stay under 1232 bytes
+  Onboard agent 2z7e…v7es for owner GY9Z…xP6A: create mandate (expires 2026-10-17T22:28:34.000Z), 2 permissions, delegate 50000000 raw units of 81LN…opdx to the relay authority, allowlist 1 recipient token account, one pinned swap pool. 2 transactions; each must stay under 1232 bytes
 
 AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay transfer and the pinned swap; everything else is advisory.
 
-  ok step 1/2 Create mandate, grant permissions, delegate  63AChKLsAfuthKqrpaB1fqQJUv9rUj3RtD6ADaWuTQ6aVdbz9nikSWULQZQ6hCtmdEunyJt39eWeUQYCwTsmLA6o
-     https://explorer.solana.com/tx/63AChKLsAfuthKqrpaB1fqQJUv9rUj3RtD6ADaWuTQ6aVdbz9nikSWULQZQ6hCtmdEunyJt39eWeUQYCwTsmLA6o?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
-  ok step 2/2 Activate relay policy  41sKp4Uv49YhAmuekUM6YVFVhykdpx1s4rtQ7q4MoCAmWRh5BNpz7B2wFhf61hoATHW8tNWHvYkaCPvSoTtNaXJb
-     https://explorer.solana.com/tx/41sKp4Uv49YhAmuekUM6YVFVhykdpx1s4rtQ7q4MoCAmWRh5BNpz7B2wFhf61hoATHW8tNWHvYkaCPvSoTtNaXJb?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  ok step 1/2 Create mandate, grant permissions, delegate  3ndU8eFjhrtDaYhXjW89uC2GHrFPuWCeYK9KACFxsJEqpsj1P7NrEaE9qWtpSBkVskbffEwzKTQLdoM513ZAeWEq
+     https://explorer.solana.com/tx/3ndU8eFjhrtDaYhXjW89uC2GHrFPuWCeYK9KACFxsJEqpsj1P7NrEaE9qWtpSBkVskbffEwzKTQLdoM513ZAeWEq?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
+  ok step 2/2 Activate relay policy  4f4psYQv9mBDN8d3rLCagSn9QcZhA2T6SREoc4A9MAB4nwTRgHMHVznuwQyio1sdwb3MQhLhaHEuLVGkgnjCjgZA
+     https://explorer.solana.com/tx/4f4psYQv9mBDN8d3rLCagSn9QcZhA2T6SREoc4A9MAB4nwTRgHMHVznuwQyio1sdwb3MQhLhaHEuLVGkgnjCjgZA?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 
-Mandate created. 6PydctnTUoNk19JAPtGJNo2FoUdjeSQjN2Usy2QKREsm
+Mandate created. D73sPbWfP3QaoqurakbCHQpwoU8uwX28TcfKNFKSLwtE
 Next:
-  agentauth mandate show 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+  agentauth mandate show 2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es
   agentauth relay pay --to <recipient token account> --amount "1"
 [exit 0]
 
 $ agentauth mandate show
-Mandate 6PydctnTUoNk19JAPtGJNo2FoUdjeSQjN2Usy2QKREsm   active · expires in 6d 23h
-owner   12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA
-agent   7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
-expiry  2026-10-17T20:42:37.000Z
+Mandate D73sPbWfP3QaoqurakbCHQpwoU8uwX28TcfKNFKSLwtE   active · expires in 6d 23h
+owner   GY9ZtShHcfuN5omoq5vnhfG5kfeEghcss6PemykGxP6A
+agent   2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es
+expiry  2026-10-17T22:28:34.000Z
 
 Permissions
 PROGRAM               INSTRUCTIONS      SPENT / BUDGET    PER-CALL  CALLS
@@ -249,34 +249,34 @@ Mock AMM (test only)  swap_base_input   0 DUSD / 10 DUSD  5 DUSD    0
 Relay (hard enforcement for the relay transfer and the pinned swap)
   paused          no
   top-level only  yes
-  source account  4cKNk9ezTAckJyHUoE4N7WDxzkLrhVosRzkz8FEtMHvm  balance 1000 DUSD
+  source account  Fh8eiKaJLGDvQThycMNmLnj5XrfvCSVxhmvShmorqz78  balance 1000 DUSD
   SPL delegation  50 DUSD to the relay authority
-  recipients      EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
-  swap            pool BaSNQ6VbQEEcfKPkMRwqQPkZ9nZYc9HJtqXu4Bp6SZf4 via 6QhM…2vLw, floor 95/100 (raw), output to C4NB…rhKE
+  recipients      3qNt8eoLnhqF6iYbW96PZUW6Crf6RxWPJCrkHe6NWb2R
+  swap            pool EkvmZCrjFnz24eq5wQRxEkPKmUjb3rEtuSP9RoxnZAoC via 6QhM…2vLw, floor 95/100 (raw), output to DEtv…YXkZ
 
 Right now the agent can move at most 5 DUSD in one call (limited by per_call_limit).
 
 ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
 ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
-! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+! The SPL delegation (50, 50000000 raw units) is larger than the remaining mandate budget (20, 20000000 raw units): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
 ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
 
-Plain English: agentauth mandate explain 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
+Plain English: agentauth mandate explain 2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es
 [exit 0]
 
 $ agentauth mandate explain
 Warnings
   ! Recipients are token accounts, not wallets: the relay pins the account, not its owner. Whoever controls an allowlisted account's owner field can redirect future payments.
   ! The swap floor price is static: it can go stale as the market moves, and sandwiching inside the floor is possible. It is not MEV protection.
-  ! The SPL delegation (50 (50000000 raw units)) is larger than the remaining mandate budget (20 (20000000 raw units)): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
+  ! The SPL delegation (50, 50000000 raw units) is larger than the remaining mandate budget (20, 20000000 raw units): the mandate stops the agent first, but the delegation stays open beyond the budget you intended.
   ! Spend counters are per target program and unit-less: every mint and decimal of the same program shares one raw-unit counter. Only the relay pins a single mint; elsewhere use one mandate per asset.
 
-Agent 7Qsx…FK9i acts for owner 12f2…aMoA with 2 permissions (active); expires 2026-10-17T20:42:37.000Z (in 6 days 23 hours). A relay policy hard-enforces transfers and one pinned swap.
-status  active   expires 2026-10-17T20:42:37.000Z (in 6 days 23 hours)
+Agent 2z7e…v7es acts for owner GY9Z…xP6A with 2 permissions (active); expires 2026-10-17T22:28:34.000Z (in 6 days 23 hours). A relay policy hard-enforces transfers and one pinned swap.
+status  active   expires 2026-10-17T22:28:34.000Z (in 6 days 23 hours)
 
 The agent can
-  + Pay token 2Yd1…GouC from the owner's account 4cKN…MHvm to 1 allowlisted token account (EFuE…ciCd) through the relay (hard-enforced)
-  + Swap 2Yd1…GouC for BiPr…mD5P on the ONE pinned pool BaSN…SZf4 at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
+  + Pay token 81LN…opdx from the owner's account Fh8e…qz78 to 1 allowlisted token account (3qNt…Wb2R) through the relay (hard-enforced)
+  + Swap 81LN…opdx for 36K3…D7t9 on the ONE pinned pool Ekvm…ZAoC at no worse than 95/100 (out per in, raw units), output forced into the owner's own account, deadline at most 150 slots ahead (hard-enforced by the relay; the floor is a static price guard, not MEV protection)
 
 The agent cannot
   - Call any program or instruction not listed in a permission (verify returns ProgramNotAllowed or DiscriminatorNotAllowed, if the program calls verify).
@@ -302,10 +302,10 @@ AgentAuth is an unaudited prototype. Hard enforcement exists only for the relay 
 # 4. Normal work: a payment through the relay (hard-enforced), signed by the AGENT key
 
 $ agentauth relay pay --to @recipientDusd --amount 3 DUSD
-Paid 3 DUSD to EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+Paid 3 DUSD to 3qNt8eoLnhqF6iYbW96PZUW6Crf6RxWPJCrkHe6NWb2R
   relay -> AgentAuth.verify -> Token.TransferChecked (hard-enforced)
-  61FEp2iLXgh6Vbc4U2ENLgdVCbAyij9Ga18FdLG3xrcJUsSTZXp2tMrFe4MJe2JGDv2p84ggK2ceG6xvSmaT75Hh
-  https://explorer.solana.com/tx/61FEp2iLXgh6Vbc4U2ENLgdVCbAyij9Ga18FdLG3xrcJUsSTZXp2tMrFe4MJe2JGDv2p84ggK2ceG6xvSmaT75Hh?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  2epxhCMbXDun234TfgutA3QgSx48AmX8SZEU382PfC4rFTmuyKPMDdKwM9G5wDTKCReMpZPdVZ2WCFVfUHoa9XQC
+  https://explorer.solana.com/tx/2epxhCMbXDun234TfgutA3QgSx48AmX8SZEU382PfC4rFTmuyKPMDdKwM9G5wDTKCReMpZPdVZ2WCFVfUHoa9XQC?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 [exit 0]
 
 $ agentauth check --program spl-token --instruction transfer_checked --amount 3
@@ -317,7 +317,7 @@ allowed by the mandate: SPL Token.transfer_checked, amount 3
 # 5. Blocked: a wrong recipient (the pre-flight stops it; --no-preflight lands it so the chain records it)
 
 $ agentauth relay pay --to @attackerDusd --amount 40 DUSD
-error pre-flight: the relay would refuse 40 DUSD to 8wZgQFEK479BNpXDAC7jN7r26QX6yhwEUoGZTA9wFn2D
+error pre-flight: the relay would refuse 40 DUSD to 36UJPgzWRDcmtkW68cqVUDqVMQxYfKGopdqZqB4mxLFm
   program error  relay:104 RecipientNotAllowed
   why            The destination token account is not on the policy allowlist (or equals the source).
   fix            Only the allowlisted token accounts can be paid. The owner must close and re-init the policy to change them.
@@ -329,14 +329,14 @@ error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
   program error  relay:104 RecipientNotAllowed
   why            The destination token account is not on the policy allowlist (or equals the source).
   fix            Only the allowlisted token accounts can be paid. The owner must close and re-init the policy to change them.
-  hint           Explorer: https://explorer.solana.com/tx/6345tSNnoSA1TwrHFWJcwCQmvgXAsNubgNi8GpbUKD3DRockjHESNTWpHinoJVoa8T5ZrivL4JCY2XLCkEVA6ogi?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  hint           Explorer: https://explorer.solana.com/tx/nv2UQkfBMa7ErQu1EVSXpdqtu5SsPZaH67DYB6vNutoaiCAwvBWSnqoQSXSjby7ZQiBNgQAwEdtS1n26NqSCEUG?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 [exit 3]
 
 
 # 6. Blocked: over the per-call cap to the allowed recipient
 
 $ agentauth relay pay --to @recipientDusd --amount 40 DUSD
-error pre-flight: the relay would refuse 40 DUSD to EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+error pre-flight: the relay would refuse 40 DUSD to 3qNt8eoLnhqF6iYbW96PZUW6Crf6RxWPJCrkHe6NWb2R
   program error  agent_auth:8 PerTxExceeded
   why            The amount is larger than the permission's per-call limit.
   fix            Retry with a smaller amount. The limit is per verify call, not per transaction.
@@ -348,27 +348,27 @@ error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
   program error  agent_auth:8 PerTxExceeded
   why            The amount is larger than the permission's per-call limit.
   fix            Retry with a smaller amount. The limit is per verify call, not per transaction.
-  hint           Explorer: https://explorer.solana.com/tx/3AUpeiUSTwMv7yRmRciT5ASM4QFhNCFoTFHXw9ALiXrHFwnMiGP5CNHjgqZJ3vNQbmoHYqbQZJX7C43Lr2hqxW3h?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  hint           Explorer: https://explorer.solana.com/tx/BHFfuwWYcytiNvKYUurbgNQToeaN4z3zTnGbJ9mqR3qyKHeemkuzjdhTknxyxBkTs4EtTeiCvkn5vXPzRmrfGuh?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 [exit 3]
 
 
 # 7. Live per-program revoke: remove the Token permission, the swap keeps working
 
 $ agentauth permission remove spl-token --yes
-Revoke the permission for Toke…Q5DA on mandate 6Pyd…REsm, unsigned.
+Revoke the permission for Toke…Q5DA on mandate D73s…LwtE
   ! remove_permission deletes the WHOLE slot (all discriminators). Re-adding it later resets spend_total and call_count.
   Revoke permission: Owner-signed core edit.
     236 B of 1232 (worst case with a priority fee 290 B): fits in one transaction
-The agent will fail with ProgramNotAllowed (AgentAuth 6) for this program from the next call on.
+No instruction of this program remains in the permission, so the whole permission is removed and the next call fails with ProgramNotAllowed (agent_auth 6).
 
-  ok step 1/1 Revoke permission  4XFUNkj4WChBXB8PxQc5uef8i9UaACJhhoxaeT1nxKMAce1z1EN7nFhvS3v6NareE3Ltpk2JDDXTCwceYVcTxapf
-     https://explorer.solana.com/tx/4XFUNkj4WChBXB8PxQc5uef8i9UaACJhhoxaeT1nxKMAce1z1EN7nFhvS3v6NareE3Ltpk2JDDXTCwceYVcTxapf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  ok step 1/1 Revoke permission  2mehscNLCT5xFiPxTqFiH2WNaSuBYNG67GaCNg5WZvoQJomA4MeZ3Vt58C5WEeVYvpcwPoBptBNEmvZTuPcx8T38
+     https://explorer.solana.com/tx/2mehscNLCT5xFiPxTqFiH2WNaSuBYNG67GaCNg5WZvoQJomA4MeZ3Vt58C5WEeVYvpcwPoBptBNEmvZTuPcx8T38?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 
 Done.
 [exit 0]
 
 $ agentauth relay pay --to @recipientDusd --amount 1 DUSD
-error pre-flight: the relay would refuse 1 DUSD to EFuEopKSytbtxbjtQ5KkiekBC8FAg5ZUjaAXtWFYciCd
+error pre-flight: the relay would refuse 1 DUSD to 3qNt8eoLnhqF6iYbW96PZUW6Crf6RxWPJCrkHe6NWb2R
   program error  agent_auth:6 ProgramNotAllowed
   why            The mandate has no permission slot for that program id.
   fix            The owner can add one with add_permission. If a slot was just removed with remove_permission, this is the expected result.
@@ -380,52 +380,52 @@ error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
   program error  agent_auth:6 ProgramNotAllowed
   why            The mandate has no permission slot for that program id.
   fix            The owner can add one with add_permission. If a slot was just removed with remove_permission, this is the expected result.
-  hint           Explorer: https://explorer.solana.com/tx/45PWdQrUqJqcLT8PSRj1HYttQj92k21wXHT8MW9ed3RxcShYucUcAtbr8tTkmmjzRRKtRdTqNAfuqRWbEbBr2pE1?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  hint           Explorer: https://explorer.solana.com/tx/5oidHndZtHexgbqMvxRW67ypjRrmZzu6fbhjqxTUMZaqGiecyopQ2ogyKApp1P57G11yCF7pH1XerUqsfZ5sNZox?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 [exit 3]
 
 $ agentauth relay swap --amount-in 5 DUSD
 Swapped 5 DUSD for 4.997501 DOUT, output to the owner's own account
   Price floor is a static guard on the pinned pool, not MEV protection.
-  29cS2w2cwtvqGG9BBE2VNvjpGNbzo5pkWixzWtaMora9WvUDU8aKdgSwxmAbSXCb1W6rxTSRhRPWxDWsLVSSxcbd
-  https://explorer.solana.com/tx/29cS2w2cwtvqGG9BBE2VNvjpGNbzo5pkWixzWtaMora9WvUDU8aKdgSwxmAbSXCb1W6rxTSRhRPWxDWsLVSSxcbd?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  5JYAn1wqsYqVpj2q4hTyk16SX6ACWyRHsyLN3jKDoeRgshYSFvqa7WPDhRLu7T6C61Bxcfnmk7nsyWp4nG3fQU8n
+  https://explorer.solana.com/tx/5JYAn1wqsYqVpj2q4hTyk16SX6ACWyRHsyLN3jKDoeRgshYSFvqa7WPDhRLu7T6C61Bxcfnmk7nsyWp4nG3fQU8n?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 [exit 0]
 
 
 # 8. What happened: the activity feed shows ok rows and BLOCKED attempts with the decoded reason
 
 $ agentauth activity --limit 20
-TIME    KIND                  OUTCOME                                 AMOUNT   SIGNATURE
-2m ago  relay swap            ok                                      5 DUSD   29cS2w…SSxcbd
-2m ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1 DUSD   45PWdQ…Br2pE1
-2m ago  remove permission     ok                                      -        4XFUNk…cTxapf
-2m ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40 DUSD  3AUpei…hqxW3h
-2m ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40 DUSD  6345tS…VA6ogi
-2m ago  relay pay             ok                                      3 DUSD   61FEp2…aT75Hh
-2m ago  relay policy created  ok                                      -        41sKp4…tNaXJb
-2m ago  mandate created       ok                                      -        63AChK…smLA6o
-2m ago  add permission        ok                                      -        63AChK…smLA6o
-2m ago  add permission        ok                                      -        63AChK…smLA6o
+TIME     KIND                  OUTCOME                                 AMOUNT   SIGNATURE
+17s ago  relay swap            ok                                      5 DUSD   5JYAn1…3fQU8n
+19s ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1 DUSD   5oidHn…5sNZox
+22s ago  remove permission     ok                                      -        2mehsc…cx8T38
+24s ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40 DUSD  BHFfuw…mrfGuh
+27s ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40 DUSD  nv2UQk…qSCEUG
+32s ago  relay pay             ok                                      3 DUSD   2epxhC…oa9XQC
+35s ago  relay policy created  ok                                      -        4f4psY…jCjgZA
+36s ago  mandate created       ok                                      -        3ndU8e…ZAeWEq
+36s ago  add permission        ok                                      -        3ndU8e…ZAeWEq
+36s ago  add permission        ok                                      -        3ndU8e…ZAeWEq
 [exit 0]
 
 $ agentauth activity --limit 20
-TIME    KIND                  OUTCOME                                 AMOUNT   SIGNATURE
-2m ago  relay swap            ok                                      5 DUSD   29cS2w…SSxcbd
-2m ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1 DUSD   45PWdQ…Br2pE1
-2m ago  remove permission     ok                                      -        4XFUNk…cTxapf
-2m ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40 DUSD  3AUpei…hqxW3h
-2m ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40 DUSD  6345tS…VA6ogi
-2m ago  relay pay             ok                                      3 DUSD   61FEp2…aT75Hh
-2m ago  relay policy created  ok                                      -        41sKp4…tNaXJb
-2m ago  mandate created       ok                                      -        63AChK…smLA6o
-2m ago  add permission        ok                                      -        63AChK…smLA6o
-2m ago  add permission        ok                                      -        63AChK…smLA6o
+TIME     KIND                  OUTCOME                                 AMOUNT   SIGNATURE
+18s ago  relay swap            ok                                      5 DUSD   5JYAn1…3fQU8n
+20s ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1 DUSD   5oidHn…5sNZox
+23s ago  remove permission     ok                                      -        2mehsc…cx8T38
+25s ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40 DUSD  BHFfuw…mrfGuh
+28s ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40 DUSD  nv2UQk…qSCEUG
+33s ago  relay pay             ok                                      3 DUSD   2epxhC…oa9XQC
+36s ago  relay policy created  ok                                      -        4f4psY…jCjgZA
+37s ago  mandate created       ok                                      -        3ndU8e…ZAeWEq
+37s ago  add permission        ok                                      -        3ndU8e…ZAeWEq
+37s ago  add permission        ok                                      -        3ndU8e…ZAeWEq
 [exit 0]
 
 
 # 9. One-transaction unwind, then the agent tries again
 
 $ agentauth mandate revoke --yes
-Unwind mandate 6Pyd…REsm: 1 delegation revoke, revoke_mandate, close_policy in 1 transaction, unsigned.
+Unwind mandate D73s…LwtE: 1 delegation revoke, revoke_mandate, close_policy in 1 transaction
   ! Revoking stops future agent actions only; it does not undo transfers that already happened.
   ! Send with a priority fee if you need this to land quickly during congestion (setComputeUnitPriceIx).
   ! revoke_mandate destroys the counters. Re-creating a mandate for the same agent gives the same address but a new generation.
@@ -433,8 +433,8 @@ Unwind mandate 6Pyd…REsm: 1 delegation revoke, revoke_mandate, close_policy in
     377 B of 1232 (worst case with a priority fee 431 B): fits in one transaction
 Revoking does not undo transfers that already happened.
 
-  ok step 1/1 Unwind: revoke delegation, mandate and policy  2VQFyv4TF1mt5f783ofgtphERQ5GCAa2yBfj2m2pc6JLtZGMz2j63RTYebBG2JvYtLk5qpqrbf9NZdpJdUU7VuiM
-     https://explorer.solana.com/tx/2VQFyv4TF1mt5f783ofgtphERQ5GCAa2yBfj2m2pc6JLtZGMz2j63RTYebBG2JvYtLk5qpqrbf9NZdpJdUU7VuiM?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  ok step 1/1 Unwind: revoke delegation, mandate and policy  fJAefqqXnL8RRDjyrFn8KqW9EhtGHVZWEegSQ9bmzsotDMebXE8NJYtD4TLjt6Jae3s13e9SnpADz1DAH2SM44U
+     https://explorer.solana.com/tx/fJAefqqXnL8RRDjyrFn8KqW9EhtGHVZWEegSQ9bmzsotDMebXE8NJYtD4TLjt6Jae3s13e9SnpADz1DAH2SM44U?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 
 Done.
 [exit 0]
@@ -452,13 +452,30 @@ error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
   program error  relay:101 InvalidPolicy
   why            The policy account is missing or malformed (owner program, length, discriminator, version or flags).
   fix            No relay policy exists for this mandate (or it was closed). The owner must run init_policy; until then the relay fails closed.
-  hint           Explorer: https://explorer.solana.com/tx/4CKe8kCN8ktexuZvG8arH2yzdyPYdts5RWfuMwZRC8TP1xyHWVxwiHUB2onLHEMfiPxQSQHQ3KFJy1PJiPGSX7Vy?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8909
+  hint           Explorer: https://explorer.solana.com/tx/3nUZ3pwd6pSgPBtCxJgsVAgrUm5expY3UdKzfqGh4kRGEfxK8CXaad4QR5Q3rjvmdNwQ7r53bryDr8FCk5AVMkun?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8919
 [exit 3]
 
 $ agentauth mandate show
-error no mandate exists for owner 12f2Z6SmjdZh6in6Z6vND5uDsngKQK7VreKMMyKyaMoA and agent 7QsxKPzzZKpErX368N7bK9fswifapxSybw8hSpKSFK9i
-  hint           Create one with `agentauth mandate create` (or check --owner / --agent).
+error no mandate exists for owner GY9ZtShHcfuN5omoq5vnhfG5kfeEghcss6PemykGxP6A and agent 2z7ecJuowAQUrDoHFGCPna3pB6fNejWtbarCtC19v7es
+  hint           Create one with `agentauth mandate create` (or check --owner / --agent). If it was unwound, its history is still readable: `agentauth activity --address D73sPbWfP3QaoqurakbCHQpwoU8uwX28TcfKNFKSLwtE`.
 [exit 1]
+
+$ agentauth activity --address D73sPbWfP3QaoqurakbCHQpwoU8uwX28TcfKNFKSLwtE --limit 50
+No mandate account at this address (closed or never created): showing its history.
+TIME     KIND                  OUTCOME                                 AMOUNT          SIGNATURE
+15s ago  relay pay             BLOCKED relay:101 InvalidPolicy         1000000 (raw)   3nUZ3p…AVMkun
+20s ago  mandate revoked       ok                                      -               fJAefq…2SM44U
+26s ago  relay swap            ok                                      5000000 (raw)   5JYAn1…3fQU8n
+28s ago  relay pay             BLOCKED agent_auth:6 ProgramNotAllowed  1000000 (raw)   5oidHn…5sNZox
+31s ago  remove permission     ok                                      -               2mehsc…cx8T38
+33s ago  relay pay             BLOCKED agent_auth:8 PerTxExceeded      40000000 (raw)  BHFfuw…mrfGuh
+36s ago  relay pay             BLOCKED relay:104 RecipientNotAllowed   40000000 (raw)  nv2UQk…qSCEUG
+41s ago  relay pay             ok                                      3000000 (raw)   2epxhC…oa9XQC
+44s ago  relay policy created  ok                                      -               4f4psY…jCjgZA
+45s ago  mandate created       ok                                      -               3ndU8e…ZAeWEq
+45s ago  add permission        ok                                      -               3ndU8e…ZAeWEq
+45s ago  add permission        ok                                      -               3ndU8e…ZAeWEq
+[exit 0]
 
 
 # 10. Machine-readable output

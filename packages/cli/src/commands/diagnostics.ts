@@ -38,7 +38,7 @@ export function registerDiagnostics(program: Command, run: Runner): void {
 
         let reachable = false
         try {
-          const slot = await client.rpc.getSlot().send()
+          const slot = await client.rpc.getSlot({ commitment: 'confirmed' }).send()
           reachable = true
           add('rpc', 'ok', `reachable, slot ${slot}`)
         } catch (error) {
@@ -59,7 +59,7 @@ export function registerDiagnostics(program: Command, run: Runner): void {
             ['gated_example', client.programIds.gatedExample, ctx.cluster === 'localnet'],
           ]
           for (const [name, id, required] of programs) {
-            const raw = await fetchRawAccount(client.rpc, id)
+            const raw = await fetchRawAccount(client.rpc, id, { commitment: 'confirmed' })
             if (raw?.executable === true) add(`program ${name}`, 'ok', `deployed (${id})`)
             else
               add(
@@ -74,7 +74,7 @@ export function registerDiagnostics(program: Command, run: Runner): void {
             source: string,
           ): Promise<void> => {
             if (who === undefined) return
-            const raw = await fetchRawAccount(client.rpc, who)
+            const raw = await fetchRawAccount(client.rpc, who, { commitment: 'confirmed' })
             const sol = formatUnits(raw?.lamports ?? 0n, 9)
             add(
               label,
@@ -110,7 +110,9 @@ export function registerDiagnostics(program: Command, run: Runner): void {
                   ? ctx.demo.state.tokenAccounts['ownerDusd']
                   : ctx.demo.state.tokenAccounts['ownerDout']
               if (holder === undefined) continue
-              const raw = await fetchRawAccount(client.rpc, ctx.address(holder))
+              const raw = await fetchRawAccount(client.rpc, ctx.address(holder), {
+                commitment: 'confirmed',
+              })
               const amount =
                 raw && raw.data.length >= 165 ? decodeTokenAccount(raw.data).amount : 0n
               add(

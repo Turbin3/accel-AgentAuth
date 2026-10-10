@@ -32,3 +32,20 @@ for (const f of files) {
     }
   })
 }
+
+test('no preset text calls the relay recipient allowlist optional or conditional', () => {
+  // The relay ALWAYS enforces the allowlist; an empty allowlist refuses every transfer (relay 104).
+  const bad = [
+    /without (it|an allowlist|a recipient allowlist)[^.]*(any address|anyone|any recipient)/i,
+    /(only fires|only applies|only enforced|only checked) when (an|the) allowlist/i,
+    /allowlist (is|was) (optional|not set)/i,
+    /if no (recipient )?allowlist is set/i,
+    /allowlist exists/i,
+  ]
+  for (const f of files) {
+    const text = readFileSync(dir + f, 'utf8')
+    for (const re of bad) assert.ok(!re.test(text), `${f}: text contradicts the relay (allowlist is always enforced): ${re}`)
+  }
+  const payments = JSON.parse(readFileSync(dir + 'payments-usdc.json', 'utf8'))
+  assert.match(payments.risk_summary, /empty allowlist refuses every transfer/)
+})

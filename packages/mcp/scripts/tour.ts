@@ -44,7 +44,7 @@ if ((await client.fetchMandate(mandate)) === null) {
     token: {
       mint: env.mints.dusd.address,
       source: env.tokenAccounts.ownerDusd,
-      delegateCap: parseUnits('10', 6),
+      delegateCap: parseUnits('50', 6), // larger than the mandate budget, so AgentAuth is the binding cap
     },
     permissions: [
       {
@@ -65,7 +65,7 @@ if ((await client.fetchMandate(mandate)) === null) {
   })
   for (const step of plan.steps) await chain.send(step.instructions, owner)
   process.stdout.write(
-    'Mandate created: 5 DUSD per payment, 10 DUSD in total, one allowed recipient (Alice), swap on the mock pool.\n',
+    'Mandate created: 5 DUSD per payment, 10 DUSD in total, one allowed recipient (Alice), swap on the mock pool. SPL allowance for the relay: 50 DUSD.\n',
   )
 } else {
   process.stdout.write('The demo agent already has a mandate on this ledger; nothing to do.\n')

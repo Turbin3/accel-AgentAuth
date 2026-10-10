@@ -229,6 +229,14 @@ export function registerPermission(program: Command, run: Runner): void {
         if (!target.mandate?.permissions.some((p) => p.program === prog.id)) {
           throw usageError(`${prog.name} has no permission slot on this mandate`)
         }
+        const slot = target.mandate.permissions.find((p) => p.program === prog.id)
+        const removed = names.map((n) => resolveInstruction(prog, n, ctx.client).disc8)
+        // Predict from the LIVE permission: the slot goes when no instruction would remain.
+        const remaining =
+          slot === undefined
+            ? 0
+            : slot.discriminatorsHex.filter((d) => !removed.includes(d.toLowerCase())).length
+        const wholeSlot = names.length === 0 || remaining === 0
         const plan =
           names.length === 0
             ? await ctx.client.plan.revokePermission({
@@ -240,16 +248,16 @@ export function registerPermission(program: Command, run: Runner): void {
                 owner,
                 agent: target.agent,
                 program: programAddress,
-                discriminators: names.map((n) => resolveInstruction(prog, n, ctx.client).disc8),
+                discriminators: removed,
               })
         await finishOwnerPlan(
           ctx,
           'permission remove',
           plan,
           owner,
-          names.length === 0
-            ? 'The agent will fail with ProgramNotAllowed (AgentAuth 6) for this program from the next call on.'
-            : 'The agent will fail with DiscriminatorNotAllowed (AgentAuth 7) for the removed instructions.',
+          wholeSlot
+            ? 'No instruction of this program remains in the permission, so the whole permission is removed and the next call fails with ProgramNotAllowed (agent_auth 6).'
+            : 'The agent loses the right to call the removed instructions; its other instructions and the remaining budget are kept. The next call to a removed instruction fails with DiscriminatorNotAllowed (agent_auth 7).',
         )
       }),
     )

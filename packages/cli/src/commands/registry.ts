@@ -86,21 +86,38 @@ export function registerRegistry(program: Command, run: Runner): void {
   reg
     .command('decode')
     .argument('<program>', 'registry slug or program id')
-    .argument('<hex>', 'instruction data as hex')
+    .argument(
+      '<hex...>',
+      'instruction data as hex (several arguments are joined, 0x prefixes and spaces ignored)',
+    )
     .description('decode raw instruction data into name, canonical disc8, risk and amount')
     .action((...a) =>
       run('registry decode', a, async (ctx, _o, args) => {
         const p = resolveProgram(args[0] as string, ctx.client, ctx.cluster)
         let result: ReturnType<typeof registry.decodeInstruction>
         try {
-          result = registry.decodeInstruction(p.id, (args[1] as string).replace(/^0x/, ''))
+          result = registry.decodeInstruction(
+            p.id,
+            args
+              .slice(1)
+              .flat()
+              .map((h) => String(h).replace(/^0x/i, ''))
+              .join(''),
+          )
         } catch (error) {
           throw usageError(
             `cannot decode: ${error instanceof Error ? error.message : String(error)}`,
             'Give the instruction data as an even number of hex digits.',
           )
         }
-        const amount = registry.parseAmount(p.id, (args[1] as string).replace(/^0x/, ''))
+        const amount = registry.parseAmount(
+          p.id,
+          args
+            .slice(1)
+            .flat()
+            .map((h) => String(h).replace(/^0x/i, ''))
+            .join(''),
+        )
         ctx.out.keyValues(
           [
             ['program', `${p.name} (${p.id})`],

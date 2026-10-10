@@ -130,3 +130,16 @@ export function shortAddress(address: string, keep = 4): string {
     ? address
     : `${address.slice(0, keep)}…${address.slice(-keep)}`
 }
+
+/** "(50 (50000000 raw units))" reads badly: fold a nested raw-units note into one pair of parentheses. */
+export function tidyText(text: string): string {
+  return text.replace(/\(([^()]*?) \((\d+ raw units)\)\)/g, '($1, $2)')
+}
+
+/**
+ * A plan summary as one clause. The SDK ends summaries with ", unsigned." / " unsigned."; that is
+ * stale once the plan is sent and breaks any sentence built from it.
+ */
+export function summaryText(summary: string): string {
+  return summary.replace(/,? unsigned\.?$/, '').replace(/\.$/, '')
+}

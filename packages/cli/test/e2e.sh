@@ -136,6 +136,10 @@ run 0 'fits in one transaction' mandate revoke --yes
 run 2 'relay:101 InvalidPolicy' relay pay --to @recipientDusd --amount "1 DUSD"
 run 3 'relay:101 InvalidPolicy' relay pay --to @recipientDusd --amount "1 DUSD" --no-preflight --source @ownerDusd --mint @dusd
 run 1 'no mandate exists' mandate show
+# the audit trail of the unwound mandate stays readable (the hint of the failure names its address)
+CLOSED_MANDATE="$("${AA[@]}" --no-color mandate show 2>&1 | sed -n 's/.*activity --address \([1-9A-HJ-NP-Za-km-z]*\).*/\1/p' | head -n 1 || true)"
+[ -n "$CLOSED_MANDATE" ] || { echo "no mandate address in the hint" >&2; fail; }
+run 0 'mandate revoked' activity --address "$CLOSED_MANDATE" --limit 50
 
 say "10. Machine-readable output"
 run 0 '"schema":"agentauth-cli/1"' --json registry decode spl-token 0c40420f000000000006

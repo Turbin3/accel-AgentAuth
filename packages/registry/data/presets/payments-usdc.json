@@ -4,7 +4,7 @@
   "title": "USDC payments",
   "description": "Lets an agent pay USDC to approved recipients with SPL Token transfer_checked and nothing else.",
   "audience": "Teams letting an agent pay invoices, subscriptions or API fees in USDC.",
-  "risk_summary": "Worst case is the agent spending the lifetime limit to an attacker-chosen recipient if no recipient allowlist is set. With the relay allowlist the worst case is spending the limit to allowlisted recipients.",
+  "risk_summary": "The relay always enforces a recipient allowlist, and an empty allowlist refuses every transfer (relay error 104 RecipientNotAllowed). Worst case is the agent spending the lifetime limit to the allowlisted recipients, so list only token accounts you trust. Calls that bypass the relay are only advisory.",
   "permissions": [
     {
       "program": "spl-token",
@@ -107,7 +107,7 @@
     ],
     "relay": true,
     "warnings": [
-      "Set the relay recipient allowlist to the exact destination owners; without it the agent can pay any address (relay error RecipientNotAllowed only fires when an allowlist exists).",
+      "Set the relay recipient allowlist to the exact destination token accounts. The relay always enforces it and an empty allowlist refuses every transfer (relay error 104 RecipientNotAllowed), so payments only work for the recipients you list.",
       "USDC has an issuer freeze authority; a frozen source account makes every payment fail.",
       "Use the mint from mints.json for the right cluster: mainnet USDC and Circle devnet USDC are different addresses."
     ]

@@ -11,7 +11,7 @@
       "instructions": [
         "transfer_checked"
       ],
-      "notes": "Amount at raw data offset 1 (u64). Pair with the relay recipient allowlist.",
+      "notes": "Amount at raw data offset 1 (u64). The relay always enforces its recipient allowlist; an empty allowlist refuses every transfer (relay error 104), so list the recipients you trust.",
       "suggested": {
         "perTxLimit": {
           "human": "1,000 USDC",

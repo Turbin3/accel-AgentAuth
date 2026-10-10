@@ -74,7 +74,8 @@ Paste the printed config into `.mcp.json`, restart Claude Code, then ask:
 
 1. *"What is my AgentAuth status?"* shows `active`, 5 per payment, 10 in total, `recipient-1`, hard versus advisory.
 2. *"Pay recipient-1 2.5."* lands one relay transfer and returns the signature.
-3. *"Pay 40 to the attacker account printed by the tour."* returns `denied: true, relay 104 RecipientNotAllowed`. The model must stop and report; it must not try another route. (The attacker is a **scripted** demo account, not an AI.)
+3. *"Pay recipient-1 40."* returns `denied: true, agent_auth 8` (over the 5 per-payment limit). The tour delegates 50 to the relay, more than the 10 mandate budget, so AgentAuth is the binding cap. Had the delegation been smaller than the amount, the relay would answer `relay 105` with the hint "amount is larger than the SPL allowance left (<n>)".
+4. *"Pay 40 to the attacker account printed by the tour."* returns `denied: true, relay 104 RecipientNotAllowed`. The model must stop and report; it must not try another route. (The attacker is a **scripted** demo account, not an AI.)
 
 Stop the validator with `scripts/localnet.sh stop`. The same server also runs without a model: see `test/e2e`.
 

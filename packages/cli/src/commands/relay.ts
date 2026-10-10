@@ -266,7 +266,7 @@ export function registerRelay(program: Command, run: Runner): void {
           )
           const policy = target.policy
           if (policy === null) {
-            const slotNow = await ctx.client.rpc.getSlot().send()
+            const slotNow = await ctx.client.rpc.getSlot({ commitment: 'confirmed' }).send()
             const pre = await ctx.client.preflightSwap({
               owner: target.owner,
               agent: agent.address,
@@ -299,7 +299,7 @@ export function registerRelay(program: Command, run: Runner): void {
           const slots = Number(o.deadlineSlots)
           if (!Number.isInteger(slots) || slots < 1)
             throw usageError('--deadline-slots must be a positive integer')
-          const slot = await ctx.client.rpc.getSlot().send()
+          const slot = await ctx.client.rpc.getSlot({ commitment: 'confirmed' }).send()
           const deadlineSlot = BigInt(slot) + BigInt(slots)
           const preflight = o.preflight !== false
           if (preflight) {

@@ -43,7 +43,14 @@ import {
   type MintMeta,
 } from '../resolve'
 import type { Runner } from '../runner'
-import { parseExpiryFlag, parseHumanAmount, parseLimitFlag, shortAddress } from '../units'
+import {
+  parseExpiryFlag,
+  parseHumanAmount,
+  parseLimitFlag,
+  shortAddress,
+  summaryText,
+  tidyText,
+} from '../units'
 import {
   loadView,
   printCapacity,
@@ -117,7 +124,7 @@ async function checkTokenAccount(
   field: string,
   expect: { mint: Address; owner?: Address },
 ): Promise<string | null> {
-  const raw = await fetchRawAccount(ctx.client.rpc, address)
+  const raw = await fetchRawAccount(ctx.client.rpc, address, { commitment: 'confirmed' })
   if (raw === null) return `${field} ${address} does not exist yet`
   if (raw.data.length < 165) {
     throw usageError(
@@ -522,7 +529,9 @@ async function createMandate(ctx: Ctx, o: CreateOpts): Promise<void> {
     ),
   )
   for (const line of describeSteps(plan)) out.say(`  ${line}`)
-  out.say(`  ${out.dim(`${plan.summary}; each must stay under ${MAX_TRANSACTION_SIZE} bytes`)}`)
+  out.say(
+    `  ${out.dim(`${summaryText(plan.summary)}; each must stay under ${MAX_TRANSACTION_SIZE} bytes`)}`,
+  )
   out.say()
   out.say(out.dim(UNAUDITED))
 
@@ -659,7 +668,7 @@ export function registerMandate(program: Command, run: Runner): void {
             printCapacity(ctx, view.capacity, loaded.budget)
             if (view.explanation && view.explanation.warnings.length > 0) {
               out.say()
-              for (const w of view.explanation.warnings) out.say(`${out.warn('!')} ${w}`)
+              for (const w of view.explanation.warnings) out.say(`${out.warn('!')} ${tidyText(w)}`)
             }
             out.say()
             out.say(out.dim(`Plain English: agentauth mandate explain ${target.agent}`))
@@ -778,8 +787,8 @@ export async function finishOwnerPlan(
   caution?: string,
 ): Promise<void> {
   const { out } = ctx
-  out.say(out.bold(plan.summary))
-  for (const w of plan.warnings) out.say(`  ${out.warn('!')} ${w}`)
+  out.say(out.bold(summaryText(plan.summary)))
+  for (const w of plan.warnings) out.say(`  ${out.warn('!')} ${tidyText(w)}`)
   for (const s of plan.steps) {
     out.say(`  ${s.label}: ${s.description}`)
     out.say(

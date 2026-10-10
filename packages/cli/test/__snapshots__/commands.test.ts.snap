@@ -78,6 +78,7 @@ exports[`relay pay > exit 2 with the decoded relay 104 when the pre-flight denie
 {
   "cluster": "devnet",
   "command": "relay pay",
+  "data": null,
   "error": {
     "hint": "Nothing was sent. The pre-flight mirrors the programs' checks against live chain data; --no-preflight lands the attempt anyway (a failed attempt still pays the fee).",
     "kind": "denied",

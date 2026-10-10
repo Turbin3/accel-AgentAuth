@@ -322,17 +322,17 @@
         },
         "program": {
           "type": "string",
-          "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$",
-          "description": "The program whose permission is removed"
+          "pattern": "^[A-Za-z0-9_.-]{2,64}$",
+          "description": "The program whose permission is removed: a base58 id or a registry slug"
         },
         "keep_instructions": {
-          "description": "Instruction discriminators (16 hex characters) to keep",
+          "description": "Instructions to keep: registry names (transfer_checked) or 16-hex-character disc8",
           "minItems": 1,
           "maxItems": 8,
           "type": "array",
           "items": {
             "type": "string",
-            "pattern": "^[0-9a-fA-F]{16}$"
+            "pattern": "^[A-Za-z0-9_]{1,64}$"
           }
         }
       },

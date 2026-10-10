@@ -6,11 +6,23 @@ import {
   errorFromCode,
   type ActivityItem,
   type Client,
+  createClient,
   type Plan,
 } from '@agentauth-sol/sdk'
 import { runCli } from '../src/app'
 import { VERSION } from '../src/version'
-import { AGENT, ATTACKER, MANDATE, NOW, OWNER, RECIPIENT, SOURCE, mkClient } from './fixtures'
+import {
+  AGENT,
+  ATTACKER,
+  MANDATE,
+  NOW,
+  OWNER,
+  RECIPIENT,
+  SOURCE,
+  fakeRpc,
+  mandate as fixtureMandate,
+  mkClient,
+} from './fixtures'
 import { fakeSigner, harness } from './helpers'
 
 const AGENT_KEYPAIR = '/keys/agent.json'
@@ -474,5 +486,128 @@ describe('registry and misc', () => {
   it('AgentAuthError import is the SDK class used for decoding', () => {
     expect(errorFromCode('relay', 104)).toBeInstanceOf(AgentAuthError)
     expect(MANDATE.length).toBeGreaterThan(30)
+  })
+})
+
+describe('polish', () => {
+  const emptyPlan = {
+    summary: 'Revoke something on mandate abc, unsigned.',
+    warnings: [],
+    steps: [],
+  } as unknown as Plan
+  const base = (over: Partial<ActivityItem>): ActivityItem => ({
+    signature: 'sig1',
+    slot: 10n,
+    blockTime: NOW - 30n,
+    kind: 'relay_pause',
+    ok: true,
+    instructionIndex: 0,
+    ...over,
+  })
+
+  it('permission remove predicts 6 when the slot empties and 7 otherwise, from the live permission', async () => {
+    const plan = {
+      revokeDiscriminator: async () => emptyPlan,
+      revokePermission: async () => emptyPlan,
+    }
+    const run = async (names: string[]) => {
+      const h = setup(mkClient({ plan }))
+      const code = await runCli(
+        [...common, '--no-color', '--simulate', 'permission', 'remove', 'spl-token', ...names],
+        h.deps,
+      )
+      expect(h.captured.stderr).toBe('')
+      expect(code).toBe(0)
+      return h.captured.stdout
+    }
+    // the fixture permission holds only transfer_checked (0c00...)
+    const only = await run(['transfer_checked'])
+    expect(only).toContain('ProgramNotAllowed (agent_auth 6)')
+    expect(only).not.toContain('DiscriminatorNotAllowed')
+    const two = {
+      ...fixtureMandate,
+      permissions: fixtureMandate.permissions.map((p) => ({
+        ...p,
+        discriminators: [...p.discriminators, Uint8Array.from([3, 0, 0, 0, 0, 0, 0, 0])],
+        discriminatorsHex: [...p.discriminatorsHex, '0300000000000000'],
+      })),
+    }
+    const more = mkClient({
+      plan,
+      fetchMandateFor: async () => ({ address: MANDATE, mandate: two }),
+    })
+    const h = setup(more)
+    expect(
+      await runCli(
+        [
+          ...common,
+          '--no-color',
+          '--simulate',
+          'permission',
+          'remove',
+          'spl-token',
+          'transfer_checked',
+        ],
+        h.deps,
+      ),
+    ).toBe(0)
+    expect(h.captured.stdout).toContain('DiscriminatorNotAllowed (agent_auth 7)')
+  })
+
+  it('activity labels pause versus resume from the decoded event, and reads a closed mandate with --address', async () => {
+    const rows = [
+      base({ signature: 'a', event: { type: 'PausedChanged', mandate: MANDATE, paused: false } }),
+      base({ signature: 'b', event: { type: 'PausedChanged', mandate: MANDATE, paused: true } }),
+      base({ signature: 'c', kind: 'set_active' }),
+      base({ signature: 'c', event: { type: 'PausedChanged', mandate: MANDATE, paused: true } }),
+    ]
+    const activity = vi.fn(async (_opts: unknown) => rows)
+    const closed = mkClient({
+      activity,
+      fetchMandate: async () => null,
+      fetchPolicy: async () => null,
+    })
+    const h = setup(closed, { now: () => Number(NOW) * 1000 })
+    expect(await runCli([...common, '--no-color', 'activity', '--address', MANDATE], h.deps)).toBe(
+      0,
+    )
+    const out = h.captured.stdout
+    expect(out).toMatch(/relay resume\s+ok/)
+    expect(out).toMatch(/relay pause\s+ok/)
+    expect(out).toMatch(/mandate pause\s+ok/)
+    expect(activity.mock.calls[0]?.[0]).toMatchObject({ mandate: MANDATE })
+  })
+
+  it('--json failure envelopes carry data: null, and registry decode joins hex arguments', async () => {
+    const h = setup(mkClient())
+    expect(
+      await runCli([...common, '--json', 'registry', 'decode', 'spl-token', 'zz'], h.deps),
+    ).toBe(1)
+    expect(parse(h.captured.stdout.trim().split('\n')[0] ?? '{}')).toHaveProperty('data', null)
+    const a = harness({ createClient: () => mkClient() })
+    const b = harness({ createClient: () => mkClient() })
+    await runCli(['--json', 'registry', 'decode', 'spl-token', '0c40420f00', '0000000006'], a.deps)
+    await runCli(['--json', 'registry', 'decode', 'spl-token', '0x0c40420f000000000006'], b.deps)
+    expect(parse(a.captured.stdout).data).toEqual(parse(b.captured.stdout).data)
+  })
+
+  it('doctor reads accounts at the confirmed commitment, like the bootstrap', async () => {
+    const seen: unknown[] = []
+    const rpc = fakeRpc()
+    const spy = {
+      ...rpc,
+      getAccountInfo: (address: string, cfg?: { commitment?: string }) => {
+        seen.push(cfg?.commitment)
+        return rpc.getAccountInfo(address)
+      },
+    }
+    const client = createClient({
+      cluster: 'devnet',
+      rpc: spy as unknown as NonNullable<Parameters<typeof createClient>[0]>['rpc'],
+    })
+    const h = setup(client)
+    await runCli([...common, '--no-color', 'doctor'], h.deps)
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every((c) => c === 'confirmed')).toBe(true)
   })
 })

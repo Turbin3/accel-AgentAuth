@@ -1,5 +1,5 @@
 import type { Command } from 'commander'
-import { activityToJson, type ActivityItem } from '@agentauth-sol/sdk'
+import { activityToJson, relayPolicyPda, type ActivityItem } from '@agentauth-sol/sdk'
 import { usageError } from '../errors'
 import type { Ctx } from '../env'
 import { resolveTarget, budgetMint, type MintMeta, type Target } from '../resolve'
@@ -13,6 +13,7 @@ interface ActivityOpts {
   follow?: boolean
   fullSignature?: boolean
   all?: boolean
+  address?: string
 }
 
 function outcome(ctx: Ctx, item: ActivityItem): string {
@@ -32,7 +33,27 @@ function amountText(ctx: Ctx, item: ActivityItem, budget: MintMeta | undefined):
     : `${item.amount} (raw)`
 }
 
-function row(ctx: Ctx, item: ActivityItem, budget: MintMeta | undefined, full: boolean): string[] {
+/**
+ * Pause and resume are the same instruction with a different flag byte. The label comes from the
+ * decoded `PausedChanged` event (relay) or from the relay row of the same transaction (core
+ * `set_active`), never from the instruction kind alone. A failed transaction carries no event.
+ */
+function pauseLabel(item: ActivityItem, siblings: readonly ActivityItem[]): string {
+  const base = item.kind === 'relay_pause' ? 'relay' : 'mandate'
+  const event =
+    item.event ??
+    siblings.find((s) => s.signature === item.signature && s.event?.type === 'PausedChanged')?.event
+  if (event?.type !== 'PausedChanged') return `${base} pause or resume`
+  return event.paused ? `${base} pause` : `${base} resume`
+}
+
+function row(
+  ctx: Ctx,
+  item: ActivityItem,
+  budget: MintMeta | undefined,
+  full: boolean,
+  all: readonly ActivityItem[] = [],
+): string[] {
   const when =
     item.blockTime === null
       ? `slot ${item.slot}`
@@ -40,7 +61,9 @@ function row(ctx: Ctx, item: ActivityItem, budget: MintMeta | undefined, full: b
   const kind =
     item.discriminatorName && item.kind === 'verify'
       ? `verify ${item.discriminatorName}`
-      : (KIND_LABEL[item.kind] ?? item.kind.replaceAll('_', ' '))
+      : item.kind === 'relay_pause' || item.kind === 'set_active'
+        ? pauseLabel(item, all)
+        : (KIND_LABEL[item.kind] ?? item.kind.replaceAll('_', ' '))
   return [
     when,
     kind,
@@ -56,7 +79,6 @@ const KIND_LABEL: Record<string, string> = {
   relay_transfer: 'relay pay',
   relay_swap: 'relay swap',
   relay_init: 'relay policy created',
-  relay_pause: 'relay pause',
   relay_close: 'relay policy closed',
 }
 
@@ -71,6 +93,28 @@ function collapse(items: ActivityItem[], all: boolean): ActivityItem[] {
   return items.filter((i) => !(i.kind === 'verify' && relayed.has(i.signature)))
 }
 
+/** A mandate address taken as given: it may be closed, in which case only the chain history is left. */
+async function closedTarget(ctx: Ctx, input: string): Promise<Target> {
+  const mandateAddress = ctx.address(input, '--address')
+  const mandate = await ctx.client.fetchMandate(mandateAddress)
+  const policy = mandate === null ? null : await ctx.client.fetchPolicy(mandateAddress)
+  const policyAddress = (await relayPolicyPda(mandateAddress, ctx.client.programIds.relay)).address
+  if (mandate === null)
+    ctx.out.note(
+      ctx.out.dim(
+        'No mandate account at this address (closed or never created): showing its history.',
+      ),
+    )
+  return {
+    mandateAddress,
+    policyAddress,
+    owner: mandate?.owner ?? mandateAddress,
+    agent: mandate?.agent ?? mandateAddress,
+    mandate,
+    policy,
+  }
+}
+
 const HEADER = ['TIME', 'KIND', 'OUTCOME', 'AMOUNT', 'SIGNATURE']
 
 export function registerActivity(program: Command, run: Runner): void {
@@ -82,6 +126,10 @@ export function registerActivity(program: Command, run: Runner): void {
     )
     .option('--owner <address>', "the mandate's owner when you give an agent address")
     .option('--agent <address>', 'the agent')
+    .option(
+      '--address <mandate>',
+      'a mandate address, also one that no longer exists (the audit trail of an unwound mandate)',
+    )
     .option('--limit <n>', 'how many rows', '20')
     .option('--follow', 'keep polling and print new rows (Ctrl-C to stop)')
     .option('--full-signature', 'print whole signatures')
@@ -94,7 +142,10 @@ export function registerActivity(program: Command, run: Runner): void {
         const limit = Number(o.limit)
         if (!Number.isInteger(limit) || limit < 1 || limit > 200)
           throw usageError('--limit must be 1..200')
-        const target: Target = await resolveTarget(ctx, args[0], o)
+        const target: Target =
+          o.address === undefined
+            ? await resolveTarget(ctx, args[0], o)
+            : await closedTarget(ctx, o.address)
         const budget = await budgetMint(ctx, target.policy)
         const fetchRows = (until?: string): Promise<ActivityItem[]> =>
           ctx.client.activity({
@@ -109,7 +160,7 @@ export function registerActivity(program: Command, run: Runner): void {
         else
           ctx.out.table(
             HEADER,
-            collapse(items, o.all === true).map((i) => row(ctx, i, budget, full)),
+            collapse(items, o.all === true).map((i) => row(ctx, i, budget, full, items)),
           )
         if (o.follow !== true) {
           ctx.out.emit('activity', ctx.cluster, {
@@ -134,7 +185,7 @@ export function registerActivity(program: Command, run: Runner): void {
           if (fresh.length === 0) continue
           newest = fresh[0]?.signature ?? newest
           for (const item of collapse([...fresh].reverse(), o.all === true)) {
-            ctx.out.say(row(ctx, item, budget, full).join('  '))
+            ctx.out.say(row(ctx, item, budget, full, fresh).join('  '))
           }
           ctx.out.emitLine('activity', ctx.cluster, {
             mandate: target.mandateAddress,

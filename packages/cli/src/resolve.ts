@@ -95,7 +95,7 @@ export async function resolveTarget(
   if (mandate === null && opts.requireMandate) {
     throw usageError(
       `no mandate exists for owner ${owner} and agent ${agent}`,
-      'Create one with `agentauth mandate create` (or check --owner / --agent).',
+      `Create one with \`agentauth mandate create\` (or check --owner / --agent). If it was unwound, its history is still readable: \`agentauth activity --address ${mandateAddress}\`.`,
     )
   }
   const policy = mandate === null ? null : await client.fetchPolicy(mandateAddress)

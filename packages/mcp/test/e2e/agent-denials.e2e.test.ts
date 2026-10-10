@@ -161,3 +161,28 @@ describe.skipIf(!requireE2e()).each([
     expect(String(status.body['note'])).toMatch(/Nothing is authorised/)
   })
 })
+
+describe.skipIf(!requireE2e())('relay 105 when the amount exceeds the SPL allowance left', () => {
+  let fx: Fixture
+  let s: Session
+  beforeAll(async () => {
+    // per-call and lifetime limits are large, the SPL allowance (3) is the binding cap
+    fx = await createFixture({ perCall: '10', lifetime: '40', delegateCap: '3' })
+    s = await agentSession(fx, { landDenied: false })
+  })
+  afterAll(async () => {
+    await s.close()
+    fx.cleanup()
+  })
+
+  it('says the amount is larger than the allowance left, not that the owner revoked it', async () => {
+    const r = await call(s.client, 'agentauth_pay', {
+      recipient: 'recipient-1',
+      amount: '4',
+      idempotency_key: 'allowance-0001',
+    })
+    expect(r.isError).toBe(true)
+    expect(r.body).toMatchObject({ denied: true, program: 'relay', code: 105 })
+    expect(String(r.body['hint'])).toMatch(/amount is larger than the SPL allowance left \(3\)/)
+  })
+})

@@ -147,9 +147,12 @@ describe.skipIf(!requireE2e())(
 
       // 6. per-instruction revoke: the Token permission goes, AgentAuth 6 for pay, swap still allowed
       const revoke = await call(owner.client, 'owner_plan_revoke_permission', {
-        program: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+        program: 'spl-token', // a registry slug is resolved server-side
       })
       expect(revoke.isError).toBe(false)
+      expect(revoke.body['resolved']).toMatchObject({
+        program: { input: 'spl-token', id: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' },
+      })
       await signAll(revoke.body)
       const six = await call(agent.client, 'agentauth_pay', {
         recipient: 'recipient-1',
