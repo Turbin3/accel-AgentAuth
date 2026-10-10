@@ -130,13 +130,53 @@ dependencies = [
  "pinocchio",
  "pinocchio-pubkey",
  "pinocchio-system",
+ "serde_json",
  "solana-account",
+ "solana-clock",
  "solana-commitment-config",
  "solana-instruction",
  "solana-keypair",
  "solana-message",
  "solana-pubkey 3.0.0",
  "solana-rpc-client",
+ "solana-sdk-ids",
+ "solana-signer",
+ "solana-transaction",
+]
+
+[[package]]
+name = "agent-auth-cpi"
+version = "0.1.0"
+dependencies = [
+ "litesvm",
+ "pinocchio",
+ "solana-account",
+ "solana-clock",
+ "solana-instruction",
+ "solana-keypair",
+ "solana-message",
+ "solana-pubkey 3.0.0",
+ "solana-sdk-ids",
+ "solana-signer",
+ "solana-transaction",
+]
+
+[[package]]
+name = "agent-auth-relay"
+version = "0.1.0"
+dependencies = [
+ "agent-auth",
+ "litesvm",
+ "pinocchio",
+ "pinocchio-pubkey",
+ "pinocchio-system",
+ "serde_json",
+ "sha2 0.10.9",
+ "solana-account",
+ "solana-instruction",
+ "solana-keypair",
+ "solana-message",
+ "solana-pubkey 3.0.0",
  "solana-sdk-ids",
  "solana-signer",
  "solana-transaction",
@@ -1144,6 +1184,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "evil-token"
+version = "0.1.0"
+dependencies = [
+ "pinocchio",
+ "pinocchio-pubkey",
+]
+
+[[package]]
 name = "feature-probe"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1321,6 +1369,24 @@ dependencies = [
  "memchr",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "gated-example"
+version = "0.1.0"
+dependencies = [
+ "agent-auth",
+ "litesvm",
+ "pinocchio",
+ "pinocchio-pubkey",
+ "solana-account",
+ "solana-instruction",
+ "solana-keypair",
+ "solana-message",
+ "solana-pubkey 3.0.0",
+ "solana-sdk-ids",
+ "solana-signer",
+ "solana-transaction",
 ]
 
 [[package]]
@@ -1990,6 +2056,26 @@ dependencies = [
  "libc",
  "wasi 0.11.1+wasi-snapshot-preview1",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "mock-amm"
+version = "0.1.0"
+dependencies = [
+ "agave-feature-set",
+ "agent-auth",
+ "litesvm",
+ "pinocchio",
+ "pinocchio-pubkey",
+ "sha2 0.10.9",
+ "solana-account",
+ "solana-instruction",
+ "solana-keypair",
+ "solana-message",
+ "solana-pubkey 3.0.0",
+ "solana-sdk-ids",
+ "solana-signer",
+ "solana-transaction",
 ]
 
 [[package]]
