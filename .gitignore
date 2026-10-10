@@ -24,3 +24,7 @@ coverage
 
 # private founder notes (strategy, funding, interview prep) - never publish
 founder/
+
+# local demo environment: keypairs + state (never commit)
+.demo/
+.demo-*/

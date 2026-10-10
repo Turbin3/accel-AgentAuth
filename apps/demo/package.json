@@ -1,0 +1,26 @@
+{
+  "name": "@agentauth-sol/demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgentAuth local demo environment: bootstrap, shared helpers, scripted attack runner (unaudited devnet prototype; localnet only)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/lib/index.ts",
+  "types": "./src/lib/index.ts",
+  "exports": {
+    ".": "./src/lib/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "bootstrap": "tsx src/bootstrap.ts",
+    "smoke": "tsx src/smoke.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" vitest.config.ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" vitest.config.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentauth-sol/sdk": "workspace:*",
+    "@solana/kit": "8.4.0"
+  }
+}
