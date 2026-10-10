@@ -1,0 +1,61 @@
+{
+  "name": "@agentauth-sol/guard",
+  "version": "0.1.0",
+  "description": "Cooperative client-side guard for AgentAuth mandates: Kit signer wrapper, AI SDK tool approval, x402 hook (NOT enforcement; unaudited devnet prototype)",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "examples"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"examples/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"examples/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "test": "vitest run",
+    "test:e2e": "AA_GUARD_E2E=1 vitest run test/e2e.localnet.test.ts",
+    "prepack": "pnpm build"
+  },
+  "keywords": [
+    "solana",
+    "agent",
+    "authorization",
+    "mandate",
+    "guard",
+    "agentauth"
+  ],
+  "repository": {
+    "type": "git",
+    "directory": "packages/guard"
+  },
+  "dependencies": {
+    "@agentauth-sol/registry": "workspace:*",
+    "@agentauth-sol/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@agentauth-sol/demo": "workspace:*",
+    "@solana/kit": "8.4.0",
+    "@x402/core": "2.28.0",
+    "@x402/fetch": "2.28.0",
+    "@x402/svm": "2.28.0",
+    "ai": "7.0.137",
+    "zod": "4.6.5"
+  }
+}
