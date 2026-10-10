@@ -1,0 +1,54 @@
+{
+  "name": "@agentauth-sol/sdk",
+  "version": "0.2.0",
+  "description": "TypeScript SDK for AgentAuth: on-chain mandates for AI agents on Solana (unaudited devnet prototype)",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "API.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && prettier --check \"src/**/*.ts\" \"test/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" tsup.config.ts vitest.config.ts",
+    "test": "vitest run",
+    "prepack": "pnpm build"
+  },
+  "peerDependencies": {
+    "@solana/kit": "^8.4.0"
+  },
+  "devDependencies": {
+    "@solana/kit": "8.4.0"
+  },
+  "keywords": [
+    "solana",
+    "agent",
+    "authorization",
+    "mandate",
+    "ai-agents",
+    "agentauth"
+  ],
+  "repository": {
+    "type": "git",
+    "directory": "packages/sdk"
+  }
+}
