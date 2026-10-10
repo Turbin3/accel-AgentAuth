@@ -71,6 +71,7 @@ fn mandate_data(
     data
 }
 
+#[allow(clippy::too_many_arguments)]
 fn seed_mandate(
     svm: &mut LiteSVM,
     mandate: Pubkey,

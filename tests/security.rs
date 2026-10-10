@@ -90,7 +90,11 @@ fn sec_reinit_rejects() {
     let err = send(
         &mut svm,
         &[&owner],
-        &[create_mandate_ix(&owner.pubkey(), &agent.pubkey(), i64::MAX)],
+        &[create_mandate_ix(
+            &owner.pubkey(),
+            &agent.pubkey(),
+            i64::MAX,
+        )],
     )
     .unwrap_err();
     let err_text = format!("{:?}", err.err);

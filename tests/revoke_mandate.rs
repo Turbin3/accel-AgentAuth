@@ -82,7 +82,14 @@ fn revoke_then_verify_fails() {
     .unwrap();
 
     // verify must now fail — account data is zeroed (discriminator = 0 ≠ 1)
-    let ix = verify_ix(&mandate, &owner.pubkey(), &agent.pubkey(), &target, &DISC, 0);
+    let ix = verify_ix(
+        &mandate,
+        &owner.pubkey(),
+        &agent.pubkey(),
+        &target,
+        &DISC,
+        0,
+    );
     let err = send(&mut svm, &[&owner, &agent], &[ix]).unwrap_err();
     let err_text = format!("{:?}", err.err);
 

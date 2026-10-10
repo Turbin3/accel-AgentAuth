@@ -59,11 +59,9 @@ mod tests {
         let amount = 100u64;
         let new_total = perm.spend_total() + amount;
         let new_count = perm.call_count() + 1;
-        drop(perm);
         let mut perm_mut = mandate.permission_mut(idx);
         perm_mut.set_spend_total(new_total);
         perm_mut.set_call_count(new_count);
-        drop(perm_mut);
 
         assert_eq!(mandate.permission(idx).spend_total(), 100);
         assert_eq!(mandate.permission(idx).call_count(), 1);

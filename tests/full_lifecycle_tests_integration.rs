@@ -68,7 +68,11 @@ fn full_lifecycle() {
     send(
         &mut svm,
         &[&owner],
-        &[remove_permission_ix(&owner.pubkey(), &agent.pubkey(), &target)],
+        &[remove_permission_ix(
+            &owner.pubkey(),
+            &agent.pubkey(),
+            &target,
+        )],
     )
     .expect("step 5 (remove_permission) must succeed");
 

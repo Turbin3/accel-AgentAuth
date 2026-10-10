@@ -1,6 +1,3 @@
-use crate::constants::MANDATE_DISCRIMINATOR;
-use crate::error::MandateError;
-use crate::state::Mandate;
 use pinocchio::{
     account_info::AccountInfo,
     program_error::ProgramError,
@@ -9,115 +6,87 @@ use pinocchio::{
     ProgramResult,
 };
 
-// TODO(P2): the hot path. Check active + not expired, match program + discriminator,
-// enforce per-tx and total spend limits, then bump counters. ~49-byte ABI.
+use super::{open_mandate, require_active, take_pubkey, take_u64};
+use crate::error::MandateError;
+
+/// Check a reported action against the mandate and record it. The hot path.
+///
+/// Accounts: `[mandate (writable), owner, agent (signer)]`.
+/// Data (after the tag, exactly 48 bytes): `target_program_id[32] |
+/// discriminator[8] | amount u64`.
+///
+/// `verify` is **advisory** on its own: it checks the values the caller
+/// reports, not what the caller then does, and any program can call it. It
+/// only constrains an agent when an integrator derives the program id,
+/// discriminator and amount from the action it is about to perform and makes
+/// the action conditional on this call (the AgentAuth relay does). Integrators
+/// must also pin this program's id and check `mandate.owner` against the
+/// authority they protect: anyone can create a mandate naming any agent.
+///
+/// Limits of 0 mean **unlimited**. On a limited permission `spend_total +
+/// amount` that overflows `u64` is simply over the limit (`SpendLimitExceeded`).
+/// On an unlimited permission `spend_total` and `call_count` saturate, so one
+/// call with a huge amount can never wedge the mandate.
 pub fn verify(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
-    // Parse Instruction data
-    if data.len() != 48 {
+    let (target_program, rest) = take_pubkey(data)?;
+    let (disc, rest) = rest
+        .split_first_chunk::<8>()
+        .ok_or(MandateError::InvalidInstructionData)?;
+    let (amount, rest) = take_u64(rest)?;
+    if !rest.is_empty() {
         return Err(MandateError::InvalidInstructionData.into());
     }
 
-    let target_program_id: &[u8; 32] = data[0..32].try_into().unwrap();
-    let target_ix_disc: &[u8; 8] = data[32..40].try_into().unwrap();
-    let amount = u64::from_le_bytes(data[40..48].try_into().unwrap());
-
-    // Parse accounts
-    if accounts.len() < 3 {
+    let [mandate_account, owner, agent, ..] = accounts else {
         return Err(ProgramError::NotEnoughAccountKeys);
+    };
+    if !mandate_account.is_owned_by(program_id) {
+        return Err(MandateError::AccountOwnerMismatch.into());
     }
-    let mandate_account = &accounts[0];
-    let owner_account = &accounts[1];
-    let agent_account = &accounts[2];
-
-    //validate accounts
-    if mandate_account.owner() != program_id {
-        return Err(ProgramError::InvalidAccountData);
-    }
-
-    let mut mandate_acc_data = mandate_account
-        .try_borrow_mut_data()
-        .map_err(|_| ProgramError::AccountBorrowFailed)?;
-
     if !mandate_account.is_writable() {
         return Err(ProgramError::InvalidAccountData);
     }
 
-    let mut mandate = Mandate::from_bytes(&mut mandate_acc_data)?;
-
-    if mandate.discriminator() != MANDATE_DISCRIMINATOR {
-        return Err(MandateError::InvalidAccountType.into());
-    };
-
-    // check if mandate is active
-    if !mandate.is_active() {
-        return Err(MandateError::NotActive.into());
-    };
-
-    //check expiry
-    let current_time = Clock::get()?.unix_timestamp;
-    if current_time > mandate.expiry() {
+    let mut account_data = mandate_account.try_borrow_mut_data()?;
+    let mut mandate = open_mandate(&mut account_data)?;
+    require_active(&mandate)?;
+    if mandate.is_expired(Clock::get()?.unix_timestamp) {
         return Err(MandateError::Expired.into());
-    };
-
-    //check if owner owns mandate
-    if owner_account.key() != mandate.owner() {
+    }
+    if owner.key().as_ref() != mandate.owner() {
         return Err(MandateError::NotOwner.into());
-    };
-
-    // check if agent in mandate
-    if agent_account.key() != mandate.agent() {
+    }
+    if agent.key().as_ref() != mandate.agent() {
         return Err(MandateError::UnknownAgent.into());
     }
-
-    //check if agent is signer
-    if !agent_account.is_signer() {
+    if !agent.is_signer() {
         return Err(MandateError::InvalidSigner.into());
     }
 
-    let permission_index = mandate
-        .find_permission(target_program_id)
+    let index = mandate
+        .find_permission(target_program)
         .ok_or(MandateError::ProgramNotAllowed)?;
-
-    {
-        //permission checks
-        let permission = mandate.permission(permission_index);
-
-        if !permission.allows(&target_ix_disc) {
-            return Err(MandateError::DiscriminatorNotAllowed.into());
-        };
-
-        let per_tx_limit = permission.per_tx_limit();
-        if per_tx_limit != 0 && amount > per_tx_limit {
-            return Err(MandateError::PerTxExceeded.into());
-        }
-
-        let spend_limit = permission.spend_limit();
-        if spend_limit != 0 {
-            let projected = permission
-                .spend_total()
-                .checked_add(amount)
-                .ok_or(MandateError::ArithmeticOverflow)?;
-            if projected > spend_limit {
-                return Err(MandateError::SpendLimitExceeded.into());
-            }
+    let permission = mandate.permission(index);
+    if !permission.allows(disc) {
+        return Err(MandateError::DiscriminatorNotAllowed.into());
+    }
+    let per_tx_limit = permission.per_tx_limit();
+    if per_tx_limit != 0 && amount > per_tx_limit {
+        return Err(MandateError::PerTxExceeded.into());
+    }
+    let spend_limit = permission.spend_limit();
+    let spend_total = if spend_limit == 0 {
+        permission.spend_total().saturating_add(amount)
+    } else {
+        match permission.spend_total().checked_add(amount) {
+            Some(total) if total <= spend_limit => total,
+            _ => return Err(MandateError::SpendLimitExceeded.into()),
         }
     };
+    let call_count = permission.call_count().saturating_add(1);
 
-    {
-        // updating permission base on previous action
-        let perm_read = mandate.permission(permission_index);
-        let total_spent = perm_read
-            .spend_total()
-            .checked_add(amount)
-            .ok_or(MandateError::ArithmeticOverflow)?;
-        let permission_call_count = perm_read
-            .call_count()
-            .checked_add(1)
-            .ok_or(MandateError::ArithmeticOverflow)?;
-        let mut permission = mandate.permission_mut(permission_index);
-        permission.set_spend_total(total_spent);
-        permission.set_call_count(permission_call_count);
-    };
-
+    let mut permission = mandate.permission_mut(index);
+    permission.set_spend_total(spend_total);
+    permission.set_call_count(call_count);
     Ok(())
 }

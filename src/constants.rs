@@ -12,8 +12,12 @@
 //   65  expiry          i64
 //   73  active          u8
 //   77  permissions_len u16
-//   (74..77 and 79..88 are padding / reserved)
-
+//   79  version         u8   (== CURRENT_VERSION, written by create_mandate)
+//   80  bump            u8   (PDA bump, written by create_mandate)
+//   (74..77 and 81..88 are padding / reserved, always zero)
+//
+// Accounts created by the v0.1 binary have version == 0 and bump == 0 (the
+// bytes were reserved padding): handlers treat version 0 as "no stored bump".
 pub const ACCOUNT_SIZE: usize = 2136;
 pub const HEADER_SIZE: usize = 88;
 pub const PERMISSION_SIZE: usize = 128;
@@ -32,6 +36,11 @@ pub const OFF_AGENT: usize = 33;
 pub const OFF_EXPIRY: usize = 65;
 pub const OFF_ACTIVE: usize = 73;
 pub const OFF_PERM_LEN: usize = 77;
+pub const OFF_VERSION: usize = 79;
+pub const OFF_BUMP: usize = 80;
+
+// value written to OFF_VERSION by this release
+pub const CURRENT_VERSION: u8 = 1;
 
 // permission field offsets, relative to the slot base (HEADER_SIZE + i * PERMISSION_SIZE)
 pub const P_PROGRAM_ID: usize = 0;

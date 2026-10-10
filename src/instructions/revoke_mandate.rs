@@ -1,99 +1,74 @@
-use crate::{
-    constants::{MANDATE_DISCRIMINATOR, MANDATE_SEED},
-    error::MandateError,
-    ACCOUNT_SIZE, OFF_AGENT, OFF_DISC, OFF_OWNER,
-};
 use pinocchio::{
     account_info::AccountInfo,
-    program_error::ProgramError,
-    pubkey::Pubkey,
+    pubkey::{create_program_address, find_program_address, Pubkey},
     ProgramResult,
 };
 
-pub fn revoke_mandate(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    _data: &[u8],
-) -> ProgramResult {
-    // ── account parsing ────────────────────────────────────────────────────
-    if accounts.len() < 2 {
+use super::{authorize_owner_accounts, expect_end, open_mandate, require_owner};
+use crate::constants::MANDATE_SEED;
+use crate::error::MandateError;
+
+/// Close the mandate for good: the owner gets every lamport back, the data is
+/// zeroed and shrunk to 0 bytes and the account is assigned back to the System
+/// Program. Nothing program-owned survives, so the address is an ordinary
+/// system account afterwards: it can be re-funded (even in the same
+/// transaction) and `create_mandate` can adopt it again.
+///
+/// Accounts: `[owner (signer, writable), mandate (writable)]` (a trailing
+/// System Program account is accepted and ignored).
+/// Data (after the tag): none.
+///
+/// Revocation is permanent for *this* mandate and its counters. Nothing stops
+/// the owner from creating a new mandate at the same address afterwards: it
+/// starts from zero. Integrators that need to tell generations apart should
+/// bind to the stored `expiry`/`bump`, not to the address alone. A paused
+/// mandate can still be revoked.
+pub fn revoke_mandate(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
+    let [owner, mandate_account, ..] = accounts else {
         return Err(MandateError::InvalidInstructionData.into());
-    }
-    let owner_account = &accounts[0];
-    let mandate_pda = &accounts[1];
+    };
+    expect_end(data)?;
+    authorize_owner_accounts(program_id, owner, mandate_account)?;
 
-    // Owner must sign — no unsigned kill-switches.
-    if !owner_account.is_signer() {
-        return Err(MandateError::InvalidSigner.into());
-    }
+    {
+        let mut account_data = mandate_account.try_borrow_mut_data()?;
+        let mandate = open_mandate(&mut account_data)?;
+        require_owner(&mandate, owner)?;
 
-    // Mandate must be owned by this program — prevents operating on foreign accounts.
-    if mandate_pda.owner() != program_id {
-        return Err(MandateError::AccountOwnerMismatch.into());
-    }
-
-    // Mandate must be declared writable by the caller.
-    if !mandate_pda.is_writable() {
-        return Err(ProgramError::InvalidAccountData);
-    }
-
-    // ── read fields needed for validation before zeroing ───────────────────
-    let (stored_owner, stored_agent) = {
-        let data = mandate_pda
-            .try_borrow_mut_data()
-            .map_err(|_| ProgramError::AccountBorrowFailed)?;
-
-        if data.len() != ACCOUNT_SIZE {
-            return Err(MandateError::InvalidInstructionData.into());
-        }
-
-        // Must be an initialised mandate (discriminator == 1).
-        if data[OFF_DISC] != MANDATE_DISCRIMINATOR {
+        // The address must be the canonical PDA of (owner, agent). With a
+        // stored bump that is one cheap syscall; mandates made by the v0.1
+        // binary (version 0) carry no bump and fall back to the search.
+        let bump = if mandate.version() >= 1 {
+            mandate.bump()
+        } else {
+            find_program_address(
+                &[MANDATE_SEED, owner.key().as_ref(), mandate.agent()],
+                program_id,
+            )
+            .1
+        };
+        let derived = create_program_address(
+            &[MANDATE_SEED, owner.key().as_ref(), mandate.agent(), &[bump]],
+            program_id,
+        )
+        .map_err(|_| MandateError::InvalidAccountType)?;
+        if mandate_account.key() != &derived {
             return Err(MandateError::InvalidAccountType.into());
         }
 
-        let mut o = [0u8; 32];
-        let mut a = [0u8; 32];
-        o.copy_from_slice(&data[OFF_OWNER..OFF_OWNER + 32]);
-        a.copy_from_slice(&data[OFF_AGENT..OFF_AGENT + 32]);
-        (o, a)
-    }; // data borrow dropped
-
-    // Signer must be the owner recorded inside the mandate.
-    if owner_account.key().as_ref() != &stored_owner {
-        return Err(MandateError::NotOwner.into());
+        // Wipe the header and counters before the account goes away.
+        account_data.fill(0);
     }
 
-    // Re-derive the PDA — prevents passing an arbitrary account whose stored
-    // owner field was crafted to match.
-    let (expected_pda, _) = pinocchio::pubkey::find_program_address(
-        &[MANDATE_SEED, owner_account.key().as_ref(), &stored_agent],
-        program_id,
-    );
-    if expected_pda != *mandate_pda.key() {
-        return Err(ProgramError::InvalidAccountData);
-    }
-
-    // ── close: transfer lamports directly and zero data ───────────────────
-    let rent_lamports = mandate_pda.lamports();
     {
-        let mut owner_lamps = owner_account.try_borrow_mut_lamports()?;
-        *owner_lamps = owner_lamps
-            .checked_add(rent_lamports)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
-    }
-    {
-        let mut pda_lamps = mandate_pda.try_borrow_mut_lamports()?;
-        *pda_lamps = 0;
+        let mut owner_lamports = owner.try_borrow_mut_lamports()?;
+        let mut mandate_lamports = mandate_account.try_borrow_mut_lamports()?;
+        *owner_lamports = owner_lamports
+            .checked_add(*mandate_lamports)
+            .ok_or(MandateError::ArithmeticOverflow)?;
+        *mandate_lamports = 0;
     }
 
-    // Zero every byte — no lingering readable state.
-    {
-        let mut data = mandate_pda
-            .try_borrow_mut_data()
-            .map_err(|_| ProgramError::AccountBorrowFailed)?;
-        data.fill(0);
-    }
-
-    Ok(())
+    // Length 0, System owner: a plain empty account, nothing left to adopt.
+    mandate_account.close()
 }

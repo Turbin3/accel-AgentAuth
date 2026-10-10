@@ -1,4 +1,6 @@
 #![cfg_attr(target_os = "solana", no_std)]
+// The only `unsafe` is what the pinocchio entrypoint macros expand to (`mod entry`).
+#![deny(unsafe_code)]
 
 mod constants;
 mod error;
@@ -20,6 +22,7 @@ pinocchio_pubkey::declare_id!("AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if");
 // allocator and panic handler by hand instead of the all-in-one `entrypoint!`
 // (which expects std to supply the panic handler).
 #[cfg(target_os = "solana")]
+#[allow(unsafe_code)]
 mod entry {
     pinocchio::program_entrypoint!(crate::process_instruction);
     pinocchio::default_allocator!();
@@ -43,5 +46,9 @@ pub fn process_instruction(
         }
         Instruction::Verify => instructions::verify(program_id, accounts, data),
         Instruction::RevokeMandate => instructions::revoke_mandate(program_id, accounts, data),
+        Instruction::SetActive => instructions::set_active(program_id, accounts, data),
+        Instruction::UpdatePermission => {
+            instructions::update_permission(program_id, accounts, data)
+        }
     }
 }

@@ -31,19 +31,33 @@ fn offsets_match_spec() {
 
     // permission 0 sits right after the header
     let p0 = HEADER_SIZE;
-    assert_eq!(&bytes[p0 + P_PROGRAM_ID..p0 + P_PROGRAM_ID + 32], &[0xAAu8; 32]);
     assert_eq!(
-        u64::from_le_bytes(bytes[p0 + P_SPEND_LIMIT..p0 + P_SPEND_LIMIT + 8].try_into().unwrap()),
+        &bytes[p0 + P_PROGRAM_ID..p0 + P_PROGRAM_ID + 32],
+        &[0xAAu8; 32]
+    );
+    assert_eq!(
+        u64::from_le_bytes(
+            bytes[p0 + P_SPEND_LIMIT..p0 + P_SPEND_LIMIT + 8]
+                .try_into()
+                .unwrap()
+        ),
         1_000_000
     );
     assert_eq!(
-        u64::from_le_bytes(bytes[p0 + P_PER_TX_LIMIT..p0 + P_PER_TX_LIMIT + 8].try_into().unwrap()),
+        u64::from_le_bytes(
+            bytes[p0 + P_PER_TX_LIMIT..p0 + P_PER_TX_LIMIT + 8]
+                .try_into()
+                .unwrap()
+        ),
         50_000
     );
 
     // permission 1 is exactly one stride later
     let p1 = HEADER_SIZE + PERMISSION_SIZE;
-    assert_eq!(&bytes[p1 + P_PROGRAM_ID..p1 + P_PROGRAM_ID + 32], &[0xBBu8; 32]);
+    assert_eq!(
+        &bytes[p1 + P_PROGRAM_ID..p1 + P_PROGRAM_ID + 32],
+        &[0xBBu8; 32]
+    );
 
     // and it matches the committed golden blob byte-for-byte
     assert_matches_golden(&bytes);

@@ -1,3 +1,4 @@
+use crate::state::Mandate;
 use agent_auth::*;
 use litesvm::LiteSVM;
 use solana_instruction::{AccountMeta, Instruction};
@@ -6,7 +7,6 @@ use solana_message::Message;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;
 use solana_transaction::Transaction;
-use crate::{state::Mandate};
 
 fn program_id() -> Pubkey {
     "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if"
@@ -33,7 +33,6 @@ fn mandate_pda(owner: &Pubkey, agent: &Pubkey) -> (Pubkey, u8) {
     )
 }
 
-
 struct MandateSetup {
     svm: LiteSVM,
     payer: Keypair,
@@ -41,19 +40,14 @@ struct MandateSetup {
     mandate: Pubkey,
 }
 
-
 fn setup_create_mandate(duration_days: u8) -> MandateSetup {
-
     let (mut svm, payer) = setup();
 
     let agent = Keypair::new();
 
-
     let (mandate, _bump) = mandate_pda(&payer.pubkey(), &agent.pubkey());
 
-
     let expiry_timestamp: u64 = duration_days as u64 * 86400;
-
 
     let ix = Instruction {
         program_id: program_id(),
@@ -61,20 +55,20 @@ fn setup_create_mandate(duration_days: u8) -> MandateSetup {
             AccountMeta::new(payer.pubkey(), true),
             AccountMeta::new(agent.pubkey(), true),
             AccountMeta::new(mandate, false),
-            AccountMeta::new_readonly(solana_pubkey::Pubkey::default(), false), 
-
+            AccountMeta::new_readonly(solana_pubkey::Pubkey::default(), false),
         ],
-        data: [
-            vec![0u8],
-            expiry_timestamp.to_le_bytes().to_vec(),
-        ]
-        .concat(),
+        data: [vec![0u8], expiry_timestamp.to_le_bytes().to_vec()].concat(),
     };
 
-
     let blockhash = svm.latest_blockhash();
-    let tx = Transaction::new(&[&payer, &agent], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
-    let meta = svm.send_transaction(tx).expect("Create Mandate instruction failed");
+    let tx = Transaction::new(
+        &[&payer, &agent],
+        Message::new(&[ix], Some(&payer.pubkey())),
+        blockhash,
+    );
+    let meta = svm
+        .send_transaction(tx)
+        .expect("Create Mandate instruction failed");
     println!("Create Mandate CU: {}", meta.compute_units_consumed);
 
     MandateSetup {
@@ -83,12 +77,7 @@ fn setup_create_mandate(duration_days: u8) -> MandateSetup {
         agent,
         mandate,
     }
-
 }
-
-
-
-
 
 fn add_permission(
     md: MandateSetup,
@@ -96,9 +85,7 @@ fn add_permission(
     spend_limit: u64,
     per_tx_limit: u64,
     discriminators: &[[u8; 8]],
-
-    ) -> MandateSetup {
-
+) -> MandateSetup {
     let MandateSetup {
         mut svm,
         payer,
@@ -130,10 +117,15 @@ fn add_permission(
         data,
     };
 
-
     let blockhash = svm.latest_blockhash();
-    let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
-    let meta = svm.send_transaction(tx).expect("Add permissions instruction failed");
+    let tx = Transaction::new(
+        &[&payer],
+        Message::new(&[ix], Some(&payer.pubkey())),
+        blockhash,
+    );
+    let meta = svm
+        .send_transaction(tx)
+        .expect("Add permissions instruction failed");
     println!("Add permissions CU: {}", meta.compute_units_consumed);
 
     MandateSetup {
@@ -142,26 +134,15 @@ fn add_permission(
         agent,
         mandate,
     }
-
 }
 
-
-
-
-
-
-fn remove_permission(
-    md: MandateSetup,
-    target_program: Pubkey
-    ) -> MandateSetup {
-
-        let MandateSetup {
-            mut svm,
-            payer,
-            agent,
-            mandate,
-        } = md;
-
+fn remove_permission(md: MandateSetup, target_program: Pubkey) -> MandateSetup {
+    let MandateSetup {
+        mut svm,
+        payer,
+        agent,
+        mandate,
+    } = md;
 
     let ix = Instruction {
         program_id: program_id(),
@@ -169,17 +150,18 @@ fn remove_permission(
             AccountMeta::new(payer.pubkey(), true),
             AccountMeta::new(mandate, false),
         ],
-        data: [
-            vec![2u8],
-            target_program.to_bytes().to_vec(),
-        ]
-        .concat(),
+        data: [vec![2u8], target_program.to_bytes().to_vec()].concat(),
     };
 
-
     let blockhash = svm.latest_blockhash();
-    let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
-    let meta = svm.send_transaction(tx).expect("Add permissions instruction failed");
+    let tx = Transaction::new(
+        &[&payer],
+        Message::new(&[ix], Some(&payer.pubkey())),
+        blockhash,
+    );
+    let meta = svm
+        .send_transaction(tx)
+        .expect("Add permissions instruction failed");
     println!("Remove permissions CU: {}", meta.compute_units_consumed);
 
     MandateSetup {
@@ -188,10 +170,7 @@ fn remove_permission(
         agent,
         mandate,
     }
-
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -202,9 +181,9 @@ mod tests {
         let setup = setup_create_mandate(30);
 
         let mut account = setup.svm.get_account(&setup.mandate).unwrap();
-        
+
         assert_eq!(account.owner, program_id());
-        assert!(account.data.len() > 0);
+        assert!(!account.data.is_empty());
 
         let mandate = Mandate::from_bytes(&mut account.data).unwrap();
 
@@ -217,7 +196,6 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_permission() {
-
         let setup = setup_create_mandate(30);
         let target_program = Pubkey::new_unique();
 
@@ -234,12 +212,10 @@ mod tests {
             &discriminators,
         );
 
-
         let mut account = setup.svm.get_account(&setup.mandate).unwrap();
         let mandate = Mandate::from_bytes(&mut account.data).unwrap();
 
         assert_eq!(mandate.permissions_len(), 1);
-
 
         let setup = remove_permission(setup, target_program);
 
@@ -250,9 +226,6 @@ mod tests {
         assert_eq!(mandate.permissions_len(), 0);
     }
 
-
-
-
     // fail tests below:
 
     #[test]
@@ -262,7 +235,12 @@ mod tests {
         let target_program = Pubkey::new_unique();
         let discriminators = [[1, 2, 3, 4, 5, 6, 7, 8]];
 
-        let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
+        let MandateSetup {
+            mut svm,
+            payer,
+            agent: _,
+            mandate,
+        } = setup;
 
         let disc_len = discriminators.len() as u8;
 
@@ -291,14 +269,17 @@ mod tests {
         let blockhash = svm.latest_blockhash();
 
         let tx = Transaction::new(
-            &[&payer], 
-            Message::new(&[ix], Some(&payer.pubkey())), 
-            blockhash
+            &[&payer],
+            Message::new(&[ix], Some(&payer.pubkey())),
+            blockhash,
         );
-        
+
         let res = svm.send_transaction(tx);
 
-        assert!(res.is_err(), "Adding permission with read-only mandate must fail");
+        assert!(
+            res.is_err(),
+            "Adding permission with read-only mandate must fail"
+        );
     }
 
     #[test]
@@ -308,15 +289,14 @@ mod tests {
         let target_program = Pubkey::new_unique();
         let discriminators = [[1, 2, 3, 4, 5, 6, 7, 8]];
 
-        let setup = add_permission(
-            setup,
-            target_program,
-            1_000_000,
-            100_000,
-            &discriminators,
-        );
+        let setup = add_permission(setup, target_program, 1_000_000, 100_000, &discriminators);
 
-        let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
+        let MandateSetup {
+            mut svm,
+            payer,
+            agent: _,
+            mandate,
+        } = setup;
 
         let ix = Instruction {
             program_id: program_id(),
@@ -324,19 +304,22 @@ mod tests {
                 AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new_readonly(mandate, false),
             ],
-            data: [
-                vec![2u8],
-                target_program.to_bytes().to_vec(),
-            ]
-            .concat(),
+            data: [vec![2u8], target_program.to_bytes().to_vec()].concat(),
         };
 
         let blockhash = svm.latest_blockhash();
-        let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
-        
+        let tx = Transaction::new(
+            &[&payer],
+            Message::new(&[ix], Some(&payer.pubkey())),
+            blockhash,
+        );
+
         let res = svm.send_transaction(tx);
 
-        assert!(res.is_err(), "Attempting to remove a permission with read-only mandate must fail");
+        assert!(
+            res.is_err(),
+            "Attempting to remove a permission with read-only mandate must fail"
+        );
     }
 
     #[test]
@@ -352,48 +335,42 @@ mod tests {
                 AccountMeta::new(setup.payer.pubkey(), true),
                 AccountMeta::new(setup.agent.pubkey(), true),
                 AccountMeta::new(setup.mandate, false),
-                AccountMeta::new_readonly(solana_pubkey::Pubkey::default(), false), 
+                AccountMeta::new_readonly(solana_pubkey::Pubkey::default(), false),
             ],
 
-            data: [
-                vec![0u8],
-                expiry_timestamp.to_le_bytes().to_vec(),
-            ]
-            .concat(),
+            data: [vec![0u8], expiry_timestamp.to_le_bytes().to_vec()].concat(),
         };
 
         let blockhash = setup.svm.latest_blockhash();
 
         let tx = Transaction::new(
-
-            &[&setup.payer, &setup.agent], 
-            Message::new(&[ix], Some(&setup.payer.pubkey())), 
-            blockhash
+            &[&setup.payer, &setup.agent],
+            Message::new(&[ix], Some(&setup.payer.pubkey())),
+            blockhash,
         );
-        
+
         let res = setup.svm.send_transaction(tx);
-        
-        assert!(res.is_err(), "Double-initialization should be blocked by the discriminator check");
-    
+
+        assert!(
+            res.is_err(),
+            "Double-initialization should be blocked by the discriminator check"
+        );
     }
-
-
-
 
     #[test]
     fn test_add_permission_unauthorized() {
-
         let mut setup = setup_create_mandate(30);
 
         let malicious_signer = Keypair::new();
-        setup.svm.airdrop(&malicious_signer.pubkey(), 1_000_000_000).unwrap();
+        setup
+            .svm
+            .airdrop(&malicious_signer.pubkey(), 1_000_000_000)
+            .unwrap();
 
         let target_program = Pubkey::new_unique();
         let discriminators = [[1, 2, 3, 4, 5, 6, 7, 8]];
 
-
         let ix = Instruction {
-
             program_id: program_id(),
             accounts: vec![
                 AccountMeta::new(malicious_signer.pubkey(), true),
@@ -411,24 +388,21 @@ mod tests {
             .concat(),
         };
 
-
         let blockhash = setup.svm.latest_blockhash();
 
         let tx = Transaction::new(
-            &[&malicious_signer], 
-            Message::new(&[ix], Some(&malicious_signer.pubkey())), 
-            blockhash
+            &[&malicious_signer],
+            Message::new(&[ix], Some(&malicious_signer.pubkey())),
+            blockhash,
         );
-        
+
         let res = setup.svm.send_transaction(tx);
 
-        assert!(res.is_err(), "Adding permission with a different owner must fail");
-
+        assert!(
+            res.is_err(),
+            "Adding permission with a different owner must fail"
+        );
     }
-
-
-
-
 
     #[test]
     fn test_add_duplicate_permission() {
@@ -438,15 +412,14 @@ mod tests {
 
         let discriminators = [[1, 2, 3, 4, 5, 6, 7, 8]];
 
-        let setup = add_permission(
-            setup,
-            target_program,
-            1_000_000,
-            100_000,
-            &discriminators,
-        );
+        let setup = add_permission(setup, target_program, 1_000_000, 100_000, &discriminators);
 
-        let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
+        let MandateSetup {
+            mut svm,
+            payer,
+            agent: _,
+            mandate,
+        } = setup;
 
         let ix = Instruction {
             program_id: program_id(),
@@ -467,45 +440,52 @@ mod tests {
 
         let blockhash = svm.latest_blockhash();
 
-        let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
-        
+        let tx = Transaction::new(
+            &[&payer],
+            Message::new(&[ix], Some(&payer.pubkey())),
+            blockhash,
+        );
+
         let res = svm.send_transaction(tx);
-        assert!(res.is_err(), "Duplicate target permission should return InvalidInstructionData");
+        assert!(
+            res.is_err(),
+            "Duplicate target permission should return DuplicatePermission (21)"
+        );
     }
-
-
-
-
 
     #[test]
     fn test_remove_non_permission() {
-
         let setup = setup_create_mandate(30);
         let target_program = Pubkey::new_unique();
 
-        let MandateSetup { mut svm, payer, agent: _, mandate } = setup;
+        let MandateSetup {
+            mut svm,
+            payer,
+            agent: _,
+            mandate,
+        } = setup;
 
         let ix = Instruction {
-
             program_id: program_id(),
             accounts: vec![
                 AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new(mandate, false),
             ],
-            data: [
-                vec![2u8],
-                target_program.to_bytes().to_vec(),
-            ]
-            .concat(),
+            data: [vec![2u8], target_program.to_bytes().to_vec()].concat(),
         };
 
         let blockhash = svm.latest_blockhash();
-        let tx = Transaction::new(&[&payer], Message::new(&[ix], Some(&payer.pubkey())), blockhash);
-        
+        let tx = Transaction::new(
+            &[&payer],
+            Message::new(&[ix], Some(&payer.pubkey())),
+            blockhash,
+        );
+
         let res = svm.send_transaction(tx);
 
-        assert!(res.is_err(), "Attempting to remove a non-existent permission must fail");
+        assert!(
+            res.is_err(),
+            "Attempting to remove a non-existent permission must fail"
+        );
     }
-
-
 }
