@@ -1,0 +1,1346 @@
+{
+  "spec": "agentauth-idl/1",
+  "name": "agent_auth_relay",
+  "version": "0.1.0",
+  "docs": "Machine-readable interface of the AgentAuth Relay. Source of truth for SDK/CLI/MCP/dashboard/test agents. Companion to RELAY-SPEC.md (RELAY-SPEC.md wins on any prose/IDL conflict; file a bug against the IDL).",
+  "generatedBy": "design/tools/gen_artifacts.py",
+  "addresses": {
+    "agent_auth": {
+      "devnet": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if",
+      "mainnet": null
+    },
+    "agent_auth_relay": {
+      "devnet": "33VpeDjreoanKn8Qa5HLLF247W1ctwgMnixg36yhqkN6",
+      "mainnet": null,
+      "note": "throwaway test/devnet key, see design/keys/; regenerate for any real deployment"
+    },
+    "mock_amm": {
+      "devnet": "6QhMSWnMsDQKBPswWHpYdtXEDLyRzv3S5BnDBH2M2vLw",
+      "mainnet": null,
+      "note": "test/demo only, compiled into the relay only with cargo feature test-amm"
+    },
+    "gated_example": {
+      "devnet": "CoXCzcw7MfX6N7kPQJYhJNdGetovatuPq6xo39pHBQLZ",
+      "mainnet": null,
+      "note": "second integrator of verify; test/demo only"
+    }
+  },
+  "conventions": {
+    "endianness": "little",
+    "instructionDataStartsWith": "1-byte tag (u8)",
+    "accountCounts": "EXACT. Too few or too many accounts => ProgramError::NotEnoughAccountKeys",
+    "errorEncoding": "ProgramError::Custom(code). Relay codes are 100..119. AgentAuth surfaces 1..18 and the Token program surfaces its own small codes (0..19) through the same Custom(n) encoding: attribute an error to a program using the 'Program <id> failed' log line, never the number alone.",
+    "pubkeyEncoding": "32 raw bytes"
+  },
+  "constants": {
+    "programIds": {
+      "token": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "token2022": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "system": "11111111111111111111111111111111",
+      "nativeMint": "So11111111111111111111111111111111111111112",
+      "agentAuth": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if",
+      "raydiumCpmmMainnet": "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C",
+      "raydiumCpmmDevnet": "DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb"
+    },
+    "ammAllowlist": {
+      "cargoFeature_devnet(default)": [
+        "DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb"
+      ],
+      "noFeature(mainnet)": [
+        "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"
+      ],
+      "cargoFeature_test-amm(adds)": [
+        "6QhMSWnMsDQKBPswWHpYdtXEDLyRzv3S5BnDBH2M2vLw"
+      ]
+    },
+    "seeds": {
+      "policy": "policy",
+      "authority": "authority",
+      "mandate(core)": "mandate"
+    },
+    "discriminators": {
+      "transferChecked": "0c00000000000000",
+      "raydiumSwapBaseInput": "8fbe5adac41e33de",
+      "gatedExampleGatedAction": "0100000000000000",
+      "rule": "SPL instructions have no 8-byte discriminator, so the relay reports [tag, 0,0,0,0,0,0,0] (TransferChecked tag 12). Anchor programs use sha256('global:<name>')[0..8]."
+    },
+    "policy": {
+      "disc": 167,
+      "version": 1,
+      "size": 944,
+      "configOffset": 144,
+      "configLength": 800,
+      "initDataLength": 802,
+      "maxRecipients": 8,
+      "maxDeadlineSlotsCap": 9000,
+      "flags": {
+        "PAUSED": 1,
+        "STRICT_TOP_LEVEL": 2
+      }
+    },
+    "tokenLayouts": {
+      "tokenAccount": {
+        "len": 165,
+        "mint": 0,
+        "owner": 32,
+        "amount": 64,
+        "delegateCOptionTag": 72,
+        "delegateKey": 76,
+        "state": 108,
+        "isNativeCOptionTag": 109,
+        "delegatedAmount": 121,
+        "closeAuthorityCOptionTag": 129,
+        "closeAuthorityKey": 133,
+        "stateValues": {
+          "0": "Uninitialized",
+          "1": "Initialized",
+          "2": "Frozen"
+        }
+      },
+      "mint": {
+        "len": 82,
+        "mintAuthorityCOption": 0,
+        "supply": 36,
+        "decimals": 44,
+        "isInitialized": 45,
+        "freezeAuthorityCOption": 46
+      },
+      "token2022AccountAcceptedLayouts": [
+        "165 bytes (no extensions)",
+        "170 bytes: byte165 == 2 (AccountType::Account) and bytes[166..170] == 07 00 00 00 (TLV type ImmutableOwner=7, length 0)"
+      ],
+      "token2022MintAccepted": "data_len == 82 (extension-free)"
+    },
+    "mandateReadOffsets": {
+      "disc": 0,
+      "owner": 1,
+      "agent": 33,
+      "expiry": 65,
+      "active": 73,
+      "len": 2136
+    },
+    "limits": {
+      "maxTxBytes": 1232,
+      "maxInstructionStackHeight": 5,
+      "cpiInvokeCu": 1000
+    }
+  },
+  "instructions": [
+    {
+      "name": "init_policy",
+      "tag": 0,
+      "signer": "owner",
+      "desc": "Create the RelayPolicy PDA for a mandate (robust to a pre-funded PDA). Config is immutable afterwards.",
+      "dataLength": 802,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "0"
+        },
+        {
+          "name": "flags",
+          "type": "u8",
+          "offset": 1,
+          "size": 1,
+          "desc": "bit0 PAUSED, bit1 STRICT_TOP_LEVEL; others must be 0"
+        },
+        {
+          "name": "config",
+          "type": "[u8;800]",
+          "offset": 2,
+          "size": 800,
+          "desc": "bytes identical to RelayPolicy[144..944]"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": true,
+          "desc": "pays rent; must equal mandate.owner"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "AgentAuth mandate: owned by AgentAuth, len 2136, byte0==1, byte73==1, owner field == owner",
+          "owner": "agent_auth"
+        },
+        {
+          "name": "policy",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "must be system-owned with 0 data (pre-funded allowed)",
+          "pda": {
+            "program": "agent_auth_relay",
+            "seeds": [
+              {
+                "kind": "const",
+                "utf8": "policy"
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "System program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "cpis": [
+        "System.CreateAccount(owner->policy) OR System.Transfer(top-up)+Allocate+Assign when policy already holds lamports; signer seeds [policy, mandate, policy_bump]"
+      ],
+      "errors": [
+        108,
+        109,
+        117,
+        113,
+        102,
+        103,
+        100
+      ]
+    },
+    {
+      "name": "set_paused",
+      "tag": 1,
+      "signer": "owner",
+      "desc": "Owner-only reversible kill switch (flags bit0).",
+      "dataLength": 2,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "1"
+        },
+        {
+          "name": "paused",
+          "type": "u8",
+          "offset": 1,
+          "size": 1,
+          "desc": "0 or 1"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "must equal policy.owner"
+        },
+        {
+          "name": "policy",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "RelayPolicy",
+          "owner": "agent_auth_relay"
+        }
+      ],
+      "cpis": [],
+      "errors": [
+        100,
+        108,
+        101,
+        109
+      ]
+    },
+    {
+      "name": "close_policy",
+      "tag": 2,
+      "signer": "owner",
+      "desc": "Owner-only. Return rent and delete the policy. Works even if the mandate is already revoked.",
+      "dataLength": 1,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "2"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": true,
+          "desc": "receives the policy lamports; must equal policy.owner"
+        },
+        {
+          "name": "policy",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "RelayPolicy",
+          "owner": "agent_auth_relay"
+        }
+      ],
+      "cpis": [],
+      "errors": [
+        100,
+        108,
+        101,
+        109
+      ]
+    },
+    {
+      "name": "transfer",
+      "tag": 3,
+      "signer": "agent",
+      "desc": "Hard-enforced SPL TransferChecked from the owner's source account to an allowlisted token account, gated by AgentAuth.verify.",
+      "dataLength": 9,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "3"
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "offset": 1,
+          "size": 8,
+          "desc": "raw units of budget_mint; > 0; the SAME value feeds verify and TransferChecked"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "== mandate.agent == policy.agent (may also be fee payer, then the tx marks it writable)"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "AgentAuth mandate; writable because verify bumps counters",
+          "owner": "agent_auth",
+          "pinnedTo": "policy.mandate"
+        },
+        {
+          "name": "owner",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "== mandate.owner == policy.owner",
+          "pinnedTo": "policy.owner"
+        },
+        {
+          "name": "policy",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "RelayPolicy (read-only on the hot path)",
+          "owner": "agent_auth_relay",
+          "pda": {
+            "program": "agent_auth_relay",
+            "seeds": [
+              {
+                "kind": "const",
+                "utf8": "policy"
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "== policy.authority; signer only through invoke_signed",
+          "pda": {
+            "program": "agent_auth_relay",
+            "seeds": [
+              {
+                "kind": "const",
+                "utf8": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              }
+            ],
+            "note": "never allocated; signer-only; SPL delegate key"
+          },
+          "pinnedTo": "policy.authority"
+        },
+        {
+          "name": "source",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "owner's token account",
+          "pinnedTo": "policy.source_account"
+        },
+        {
+          "name": "destination",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "must be in policy.recipients[0..recipients_len)"
+        },
+        {
+          "name": "mint",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "budget mint, initialised, data_len 82",
+          "pinnedTo": "policy.budget_mint"
+        },
+        {
+          "name": "token_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "Token or Token-2022",
+          "pinnedTo": "policy.token_program"
+        },
+        {
+          "name": "agentauth_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "AgentAuth program",
+          "address": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if"
+        }
+      ],
+      "cpis": [
+        "AgentAuth.verify(mandate W, owner R, agent R+S); data [3]+token_program+[12,0,0,0,0,0,0,0]+amount",
+        "TokenProgram.TransferChecked(source W, mint R, destination W, authority R+S); data [12]+amount+decimals; signer seeds [authority, mandate, authority_bump]"
+      ],
+      "errors": [
+        100,
+        107,
+        103,
+        101,
+        116,
+        115,
+        117,
+        102,
+        118,
+        104,
+        105,
+        106
+      ]
+    },
+    {
+      "name": "swap",
+      "tag": 4,
+      "signer": "agent",
+      "desc": "Hard-enforced exact-in swap on ONE pinned Raydium CP-Swap-ABI pool, output forced into the owner's own account, floor price enforced.",
+      "dataLength": 25,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "4"
+        },
+        {
+          "name": "amount_in",
+          "type": "u64",
+          "offset": 1,
+          "size": 8,
+          "desc": "raw in_mint units; > 0; same value feeds verify and the AMM"
+        },
+        {
+          "name": "min_out",
+          "type": "u64",
+          "offset": 9,
+          "size": 8,
+          "desc": "agent's minimum out; effective minimum is max(min_out, ceil(amount_in*floor_out/floor_in))"
+        },
+        {
+          "name": "deadline_slot",
+          "type": "u64",
+          "offset": 17,
+          "size": 8,
+          "desc": "current_slot <= deadline_slot <= current_slot + policy.max_deadline_slots"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "== mandate.agent == policy.agent"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "owner": "agent_auth",
+          "pinnedTo": "policy.mandate"
+        },
+        {
+          "name": "owner",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.owner"
+        },
+        {
+          "name": "policy",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "owner": "agent_auth_relay",
+          "pda": {
+            "program": "agent_auth_relay",
+            "seeds": [
+              {
+                "kind": "const",
+                "utf8": "policy"
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "passed to the AMM as `payer` (readonly signer)",
+          "pda": {
+            "program": "agent_auth_relay",
+            "seeds": [
+              {
+                "kind": "const",
+                "utf8": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "mandate"
+              }
+            ],
+            "note": "never allocated; signer-only; SPL delegate key"
+          },
+          "pinnedTo": "policy.authority"
+        },
+        {
+          "name": "in_account",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "pinnedTo": "policy.in_account"
+        },
+        {
+          "name": "out_account",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "pinnedTo": "policy.out_account"
+        },
+        {
+          "name": "amm_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "executable; in compiled allowlist",
+          "pinnedTo": "policy.amm_program"
+        },
+        {
+          "name": "amm_authority",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.amm_authority"
+        },
+        {
+          "name": "amm_config",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.amm_config"
+        },
+        {
+          "name": "pool_state",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "pinnedTo": "policy.pool_state"
+        },
+        {
+          "name": "input_vault",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "pinnedTo": "policy.input_vault"
+        },
+        {
+          "name": "output_vault",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "pinnedTo": "policy.output_vault"
+        },
+        {
+          "name": "in_token_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.in_token_program"
+        },
+        {
+          "name": "out_token_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.out_token_program"
+        },
+        {
+          "name": "in_mint",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.in_mint"
+        },
+        {
+          "name": "out_mint",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "",
+          "pinnedTo": "policy.out_mint"
+        },
+        {
+          "name": "observation_state",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "",
+          "pinnedTo": "policy.observation_state"
+        },
+        {
+          "name": "agentauth_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "AgentAuth program",
+          "address": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if"
+        }
+      ],
+      "cpis": [
+        "AgentAuth.verify(mandate W, owner R, agent R+S); data [3]+amm_program+8fbe5adac41e33de+amount_in",
+        "AMM.swap_base_input (Raydium CP-Swap ABI, 13 metas: authority R+S, amm_authority R, amm_config R, pool_state W, in_account W, out_account W, input_vault W, output_vault W, in_token_program R, out_token_program R, in_mint R, out_mint R, observation_state W); data disc(8)+amount_in+effective_min_out; signer seeds [authority, mandate, authority_bump]"
+      ],
+      "errors": [
+        100,
+        107,
+        103,
+        101,
+        116,
+        115,
+        117,
+        102,
+        118,
+        110,
+        111,
+        105,
+        114,
+        106,
+        112,
+        119
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "RelayPolicy",
+      "discriminator": {
+        "offset": 0,
+        "value": 167
+      },
+      "size": 944,
+      "pda": {
+        "program": "agent_auth_relay",
+        "seeds": [
+          {
+            "kind": "const",
+            "utf8": "policy"
+          },
+          {
+            "kind": "account",
+            "path": "mandate"
+          }
+        ]
+      },
+      "ownerProgram": "agent_auth_relay",
+      "fields": [
+        {
+          "name": "disc",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "mutableBy": "-",
+          "desc": "0xA7"
+        },
+        {
+          "name": "version",
+          "type": "u8",
+          "offset": 1,
+          "size": 1,
+          "mutableBy": "-",
+          "desc": "1"
+        },
+        {
+          "name": "policy_bump",
+          "type": "u8",
+          "offset": 2,
+          "size": 1,
+          "mutableBy": "-",
+          "desc": "bump of PDA [policy, mandate]"
+        },
+        {
+          "name": "authority_bump",
+          "type": "u8",
+          "offset": 3,
+          "size": 1,
+          "mutableBy": "-",
+          "desc": "bump of PDA [authority, mandate]; used as the only signer seed bump"
+        },
+        {
+          "name": "flags",
+          "type": "u8",
+          "offset": 4,
+          "size": 1,
+          "mutableBy": "owner (bit0 only, via set_paused)",
+          "desc": "bit0 PAUSED, bit1 STRICT_TOP_LEVEL, bits2..7 must be 0"
+        },
+        {
+          "name": "reserved0",
+          "type": "[u8;3]",
+          "offset": 5,
+          "size": 3,
+          "mutableBy": "-",
+          "desc": "zero"
+        },
+        {
+          "name": "mandate",
+          "type": "pubkey",
+          "offset": 8,
+          "size": 32,
+          "mutableBy": "-",
+          "desc": "AgentAuth mandate PDA this policy is bound to"
+        },
+        {
+          "name": "owner",
+          "type": "pubkey",
+          "offset": 40,
+          "size": 32,
+          "mutableBy": "-",
+          "desc": "copied from mandate.owner at init"
+        },
+        {
+          "name": "agent",
+          "type": "pubkey",
+          "offset": 72,
+          "size": 32,
+          "mutableBy": "-",
+          "desc": "copied from mandate.agent at init"
+        },
+        {
+          "name": "authority",
+          "type": "pubkey",
+          "offset": 104,
+          "size": 32,
+          "mutableBy": "-",
+          "desc": "PDA([authority, mandate]) under the relay; the SPL delegate; never allocated"
+        },
+        {
+          "name": "mandate_expiry",
+          "type": "i64",
+          "offset": 136,
+          "size": 8,
+          "mutableBy": "-",
+          "desc": "copied from mandate bytes [65..73] at init; must equal the live mandate's expiry at every execute (stale-policy guard)"
+        },
+        {
+          "name": "token_program",
+          "type": "pubkey",
+          "offset": 144,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "Token or Token-2022 program id for the budget mint"
+        },
+        {
+          "name": "budget_mint",
+          "type": "pubkey",
+          "offset": 176,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "the one mint the transfer action may move; extension-free; not native mint"
+        },
+        {
+          "name": "source_account",
+          "type": "pubkey",
+          "offset": 208,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "owner's token account holding the budget; its SPL delegate must be `authority`"
+        },
+        {
+          "name": "recipients_len",
+          "type": "u8",
+          "offset": 240,
+          "size": 1,
+          "mutableBy": "init only",
+          "desc": "0..=8"
+        },
+        {
+          "name": "swap_enabled",
+          "type": "u8",
+          "offset": 241,
+          "size": 1,
+          "mutableBy": "init only",
+          "desc": "0 or 1"
+        },
+        {
+          "name": "reserved1",
+          "type": "[u8;6]",
+          "offset": 242,
+          "size": 6,
+          "mutableBy": "-",
+          "desc": "zero"
+        },
+        {
+          "name": "recipients",
+          "type": "[pubkey;8]",
+          "offset": 248,
+          "size": 256,
+          "mutableBy": "init only",
+          "desc": "allowlisted destination TOKEN ACCOUNTS; entries >= recipients_len are zero"
+        },
+        {
+          "name": "amm_program",
+          "type": "pubkey",
+          "offset": 504,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "pinned AMM program (must be in the compiled allowlist)"
+        },
+        {
+          "name": "amm_authority",
+          "type": "pubkey",
+          "offset": 536,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "AMM vault authority PDA (Raydium: seeds [vault_and_lp_mint_auth_seed])"
+        },
+        {
+          "name": "amm_config",
+          "type": "pubkey",
+          "offset": 568,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": ""
+        },
+        {
+          "name": "pool_state",
+          "type": "pubkey",
+          "offset": 600,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": ""
+        },
+        {
+          "name": "input_vault",
+          "type": "pubkey",
+          "offset": 632,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "pool vault receiving the input token"
+        },
+        {
+          "name": "output_vault",
+          "type": "pubkey",
+          "offset": 664,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "pool vault paying the output token"
+        },
+        {
+          "name": "observation_state",
+          "type": "pubkey",
+          "offset": 696,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": ""
+        },
+        {
+          "name": "in_mint",
+          "type": "pubkey",
+          "offset": 728,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "swap input mint; extension-free; not native mint"
+        },
+        {
+          "name": "out_mint",
+          "type": "pubkey",
+          "offset": 760,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "swap output mint; extension-free"
+        },
+        {
+          "name": "in_token_program",
+          "type": "pubkey",
+          "offset": 792,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "Token or Token-2022"
+        },
+        {
+          "name": "out_token_program",
+          "type": "pubkey",
+          "offset": 824,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "Token or Token-2022"
+        },
+        {
+          "name": "in_account",
+          "type": "pubkey",
+          "offset": 856,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "owner's input token account (SPL delegate must be `authority`); may equal source_account"
+        },
+        {
+          "name": "out_account",
+          "type": "pubkey",
+          "offset": 888,
+          "size": 32,
+          "mutableBy": "init only",
+          "desc": "owner's own output token account (owner field must equal policy.owner)"
+        },
+        {
+          "name": "floor_out",
+          "type": "u64",
+          "offset": 920,
+          "size": 8,
+          "mutableBy": "init only",
+          "desc": "floor price numerator: min out units"
+        },
+        {
+          "name": "floor_in",
+          "type": "u64",
+          "offset": 928,
+          "size": 8,
+          "mutableBy": "init only",
+          "desc": "floor price denominator: per this many in units"
+        },
+        {
+          "name": "max_deadline_slots",
+          "type": "u32",
+          "offset": 936,
+          "size": 4,
+          "mutableBy": "init only",
+          "desc": "1..=9000; deadline_slot - current_slot must be <= this"
+        },
+        {
+          "name": "reserved2",
+          "type": "[u8;4]",
+          "offset": 940,
+          "size": 4,
+          "mutableBy": "-",
+          "desc": "zero (future: rolling window)"
+        }
+      ],
+      "regions": {
+        "identityHeader": [
+          0,
+          144
+        ],
+        "config": [
+          144,
+          944
+        ]
+      }
+    }
+  ],
+  "events": {
+    "note": "Emitted with one sol_log_data call (shows in logs as `Program data: <base64>`). Events 1 and 2 are required (P0); 3..5 optional (P1).",
+    "list": [
+      {
+        "tag": 1,
+        "name": "TransferExecuted",
+        "emittedBy": "transfer",
+        "layout": [
+          [
+            "event_tag",
+            "u8",
+            1
+          ],
+          [
+            "mandate",
+            "pubkey",
+            32
+          ],
+          [
+            "destination",
+            "pubkey",
+            32
+          ],
+          [
+            "mint",
+            "pubkey",
+            32
+          ],
+          [
+            "amount",
+            "u64",
+            8
+          ]
+        ],
+        "size": 105
+      },
+      {
+        "tag": 2,
+        "name": "SwapExecuted",
+        "emittedBy": "swap",
+        "layout": [
+          [
+            "event_tag",
+            "u8",
+            1
+          ],
+          [
+            "mandate",
+            "pubkey",
+            32
+          ],
+          [
+            "pool_state",
+            "pubkey",
+            32
+          ],
+          [
+            "amount_in_requested",
+            "u64",
+            8
+          ],
+          [
+            "in_delta",
+            "u64",
+            8
+          ],
+          [
+            "out_delta",
+            "u64",
+            8
+          ]
+        ],
+        "size": 89
+      },
+      {
+        "tag": 3,
+        "name": "PolicyInitialized",
+        "emittedBy": "init_policy",
+        "layout": [
+          [
+            "event_tag",
+            "u8",
+            1
+          ],
+          [
+            "mandate",
+            "pubkey",
+            32
+          ],
+          [
+            "policy",
+            "pubkey",
+            32
+          ],
+          [
+            "flags",
+            "u8",
+            1
+          ]
+        ],
+        "size": 66
+      },
+      {
+        "tag": 4,
+        "name": "PolicyClosed",
+        "emittedBy": "close_policy",
+        "layout": [
+          [
+            "event_tag",
+            "u8",
+            1
+          ],
+          [
+            "mandate",
+            "pubkey",
+            32
+          ],
+          [
+            "policy",
+            "pubkey",
+            32
+          ]
+        ],
+        "size": 65
+      },
+      {
+        "tag": 5,
+        "name": "PausedChanged",
+        "emittedBy": "set_paused",
+        "layout": [
+          [
+            "event_tag",
+            "u8",
+            1
+          ],
+          [
+            "mandate",
+            "pubkey",
+            32
+          ],
+          [
+            "paused",
+            "u8",
+            1
+          ]
+        ],
+        "size": 34
+      }
+    ]
+  },
+  "errors": [
+    {
+      "code": 100,
+      "name": "InvalidInstructionData",
+      "msg": "Instruction data has the wrong length, an unknown tag, a zero amount, or a bad flag byte",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 101,
+      "name": "InvalidPolicy",
+      "msg": "Policy account is not a valid RelayPolicy (owner program, length, discriminator or version)",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 102,
+      "name": "AccountMismatch",
+      "msg": "A passed account key differs from the key pinned in the policy / derived PDA / mandate binding",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 103,
+      "name": "WrongProgram",
+      "msg": "A program id is not the compiled-in or pinned one, an account has the wrong owner program, or a mint is not an initialised extension-free mint",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 104,
+      "name": "RecipientNotAllowed",
+      "msg": "Destination token account is not in the recipient allowlist, or equals the source",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 105,
+      "name": "TokenAccountState",
+      "msg": "Token account precondition failed (layout, mint, owner field, frozen, delegate, delegated_amount)",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 106,
+      "name": "BalanceDeltaViolation",
+      "msg": "Post-CPI balance change differs from the exact amount the relay requested",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 107,
+      "name": "AgentNotSigner",
+      "msg": "Agent account did not sign",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 108,
+      "name": "OwnerNotSigner",
+      "msg": "Owner account did not sign",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 109,
+      "name": "NotPolicyOwner",
+      "msg": "Signer is not the owner recorded in the mandate / policy",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 110,
+      "name": "SwapDisabled",
+      "msg": "Policy has swap_enabled = 0",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 111,
+      "name": "DeadlineExpired",
+      "msg": "deadline_slot is in the past or further than max_deadline_slots in the future",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 112,
+      "name": "SlippageFloorViolated",
+      "msg": "Swap output is below max(min_out, floor-price minimum)",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 113,
+      "name": "InvalidConfig",
+      "msg": "init_policy configuration failed validation, or policy already initialised",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 114,
+      "name": "ArithmeticOverflow",
+      "msg": "Checked arithmetic overflowed (floor-price math, balance deltas)",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 115,
+      "name": "NotTopLevel",
+      "msg": "Policy has STRICT_TOP_LEVEL and the relay was invoked through a CPI",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 116,
+      "name": "Paused",
+      "msg": "Policy is paused by the owner",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 117,
+      "name": "InvalidMandate",
+      "msg": "Mandate account is not a live AgentAuth mandate for this owner and agent",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 118,
+      "name": "StalePolicy",
+      "msg": "Policy was created for a previous mandate generation (expiry differs from the live mandate)",
+      "raisedBy": "agent_auth_relay"
+    },
+    {
+      "code": 119,
+      "name": "AccountInvariantViolated",
+      "msg": "A callee changed an owner-side account's owner program, data length, owner field, close authority or delegate",
+      "raisedBy": "agent_auth_relay"
+    }
+  ],
+  "externalErrors": {
+    "agent_auth": [
+      {
+        "code": 1,
+        "name": "InvalidDiscriminator"
+      },
+      {
+        "code": 2,
+        "name": "NotOwner"
+      },
+      {
+        "code": 3,
+        "name": "AlreadyInitialized"
+      },
+      {
+        "code": 4,
+        "name": "NotActive"
+      },
+      {
+        "code": 5,
+        "name": "Expired"
+      },
+      {
+        "code": 6,
+        "name": "ProgramNotAllowed"
+      },
+      {
+        "code": 7,
+        "name": "DiscriminatorNotAllowed"
+      },
+      {
+        "code": 8,
+        "name": "PerTxExceeded"
+      },
+      {
+        "code": 9,
+        "name": "SpendLimitExceeded"
+      },
+      {
+        "code": 10,
+        "name": "PermissionsFull"
+      },
+      {
+        "code": 11,
+        "name": "TooManyDiscriminators"
+      },
+      {
+        "code": 12,
+        "name": "PermissionNotFound"
+      },
+      {
+        "code": 13,
+        "name": "ArithmeticOverflow"
+      },
+      {
+        "code": 14,
+        "name": "AccountOwnerMismatch"
+      },
+      {
+        "code": 15,
+        "name": "InvalidInstructionData"
+      },
+      {
+        "code": 16,
+        "name": "InvalidAccountType"
+      },
+      {
+        "code": 17,
+        "name": "UnknownAgent"
+      },
+      {
+        "code": 18,
+        "name": "InvalidSigner"
+      }
+    ],
+    "spl_token": [
+      {
+        "code": 0,
+        "name": "NotRentExempt"
+      },
+      {
+        "code": 1,
+        "name": "InsufficientFunds"
+      },
+      {
+        "code": 3,
+        "name": "MintMismatch"
+      },
+      {
+        "code": 4,
+        "name": "OwnerMismatch"
+      },
+      {
+        "code": 17,
+        "name": "AccountFrozen"
+      },
+      {
+        "code": 18,
+        "name": "MintDecimalsMismatch"
+      }
+    ]
+  }
+}

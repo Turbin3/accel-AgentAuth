@@ -1,0 +1,693 @@
+{
+  "spec": "agentauth-idl/1",
+  "name": "agent_auth",
+  "version": "0.2.0",
+  "docs": "Interface of the AgentAuth core program AFTER hardening. LOCKED: the 2136-byte layout and every existing offset, the verify ABI (tag 3, 49 bytes) and error codes 1..18. APPENDED: instructions 5..6 and error codes 19..22, and two header bytes taken from the reserved area (version @79, bump @80). Where this file says \"target\", the implementation must match it; any deviation must be reported and this file updated.",
+  "generatedBy": "baseline interface read from commit 7677fef (design/tools/gen_artifacts.py) + hardening decisions of 2026-10-10; the core-fix work package owns this file and must keep it equal to the implementation",
+  "addresses": {
+    "devnet": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if",
+    "mainnet": null
+  },
+  "constants": {
+    "accountSize": 2136,
+    "headerSize": 88,
+    "permissionSize": 128,
+    "maxPermissions": 16,
+    "maxDiscriminators": 8,
+    "mandateDiscriminator": 1,
+    "mandateSeed": "mandate",
+    "permissionsBase": 88,
+    "versionOffset": 79,
+    "bumpOffset": 80,
+    "currentVersion": 1
+  },
+  "instructions": [
+    {
+      "name": "create_mandate",
+      "tag": 0,
+      "dataLength": 9,
+      "dataLengthNote": "exactly 9 bytes: tag + i64 expiry (anything else => 15)",
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "0"
+        },
+        {
+          "name": "expiry",
+          "type": "i64",
+          "offset": 1,
+          "size": 8,
+          "desc": "unix timestamp; the FIRST second at which the mandate is invalid (expired iff now >= expiry); must be > now at creation (else 20)"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": true,
+          "desc": "pays rent"
+        },
+        {
+          "name": "agent",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "agent pubkey (any key; not required to sign)"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "PDA [mandate, owner, agent] under AgentAuth",
+          "pda": {
+            "program": "agent_auth",
+            "seeds": [
+              {
+                "kind": "const",
+                "utf8": "mandate"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "agent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "required for the CreateAccount CPI",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "minAccounts": 3,
+      "checks": "accounts>=3 else 15; owner signer else 18; owner != agent else 19; PDA match else 16; data==9 else 15; expiry>now else 20; discriminator==1 (already initialised) else 3; pre-funded or system-owned PDA => Transfer(top-up to rent)+Allocate(2136)+Assign(AgentAuth) signed by PDA seeds; program-owned zero husk => initialise in place; otherwise CreateAccount",
+      "writes": "disc=1, version=1, bump, owner, agent, expiry, active=1, permissions_len=0"
+    },
+    {
+      "name": "add_permission",
+      "tag": 1,
+      "dataLength": null,
+      "dataLengthNote": "exactly 50 + 8*disc_len bytes (anything else => 15)",
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "1"
+        },
+        {
+          "name": "target_program",
+          "type": "pubkey",
+          "offset": 1,
+          "size": 32,
+          "desc": ""
+        },
+        {
+          "name": "spend_limit",
+          "type": "u64",
+          "offset": 33,
+          "size": 8,
+          "desc": "lifetime cap, 0 = unlimited"
+        },
+        {
+          "name": "per_tx_limit",
+          "type": "u64",
+          "offset": 41,
+          "size": 8,
+          "desc": "per verify call cap, 0 = unlimited"
+        },
+        {
+          "name": "disc_len",
+          "type": "u8",
+          "offset": 49,
+          "size": 1,
+          "desc": "1..=8; 0 is rejected (22 EmptyDiscriminators)"
+        },
+        {
+          "name": "discriminators",
+          "type": "[[u8;8]; disc_len]",
+          "offset": 50,
+          "size": "8*disc_len",
+          "desc": ""
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "must equal mandate.owner"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": ""
+        }
+      ],
+      "minAccounts": 2,
+      "checks": "accounts>=2 else 15; owner signer else 18; mandate.owner==AgentAuth else 14; writable else InvalidAccountData; len 2136 else 15; disc==1 else 16; active else 4; owner match else 2; data>=50 else 15; disc_len==0 else 22; disc_len<=8 else 11; data==50+8n else 15; len<16 else 10; duplicate program id else 21",
+      "writes": "append slot with spend_total=0, call_count=0"
+    },
+    {
+      "name": "remove_permission",
+      "tag": 2,
+      "dataLength": 33,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "2"
+        },
+        {
+          "name": "target_program",
+          "type": "pubkey",
+          "offset": 1,
+          "size": 32,
+          "desc": "removes the WHOLE permission slot of that program (all its discriminators)"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": ""
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": ""
+        }
+      ],
+      "minAccounts": 2,
+      "checks": "as add_permission up to the owner check; data==33 else 15; program not found else 12; swap-remove (last slot moves into the hole, tail zeroed)",
+      "writes": "permissions_len -= 1"
+    },
+    {
+      "name": "verify",
+      "tag": 3,
+      "dataLength": 49,
+      "locked": true,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "3"
+        },
+        {
+          "name": "target_program_id",
+          "type": "pubkey",
+          "offset": 1,
+          "size": 32,
+          "desc": ""
+        },
+        {
+          "name": "discriminator",
+          "type": "[u8;8]",
+          "offset": 33,
+          "size": 8,
+          "desc": ""
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "offset": 41,
+          "size": 8,
+          "desc": ""
+        }
+      ],
+      "accounts": [
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "owned by AgentAuth"
+        },
+        {
+          "name": "owner",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "must equal mandate.owner (not required to sign)"
+        },
+        {
+          "name": "agent",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "must equal mandate.agent AND sign"
+        }
+      ],
+      "minAccounts": 3,
+      "checks": "data (after tag) == 48 else 15; accounts>=3 else NotEnoughAccountKeys; mandate.owner==AgentAuth else 14; writable else InvalidAccountData; len 2136 else 15; disc==1 else 16; active else 4; now<expiry else 5 (expired iff now >= expiry); owner key else 2; agent key else 17; agent signer else 18; program slot else 6; discriminator else 7; per_tx else 8; lifetime else 9 (a limited permission whose spend_total+amount overflows u64 => 9)",
+      "writes": "slot.spend_total += amount; slot.call_count += 1 (saturating for an unlimited permission: verify never reverts because of counter overflow)",
+      "advisory": "verify trusts caller-reported program/discriminator/amount and any program can call it: it is advisory unless the integrator makes it a precondition of an action it controls."
+    },
+    {
+      "name": "revoke_mandate",
+      "tag": 4,
+      "dataLength": 1,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "4"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": true,
+          "desc": "receives the lamports"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": ""
+        },
+        {
+          "name": "system_program",
+          "isSigner": false,
+          "isWritable": false,
+          "desc": "optional: ignored by the current source; the repo test helper passes it",
+          "optional": true
+        }
+      ],
+      "minAccounts": 2,
+      "checks": "accounts>=2 else 15; owner signer else 18; mandate.owner==AgentAuth else 14; writable else InvalidAccountData; len 2136 else 15; disc==1 else 16; owner match else 2; PDA verified with the stored bump else 16; data==1 else 15",
+      "writes": "REAL close: all lamports to owner, data zeroed and shrunk to 0 bytes, account assigned to the System Program (no program-owned husk can remain; the address can be re-funded and re-used)"
+    },
+    {
+      "name": "set_active",
+      "tag": 5,
+      "dataLength": 2,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "5"
+        },
+        {
+          "name": "active",
+          "type": "u8",
+          "offset": 1,
+          "size": 1,
+          "desc": "1 = active (resume), 0 = paused; any other value => 15"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "must equal mandate.owner"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "owned by AgentAuth"
+        }
+      ],
+      "minAccounts": 2,
+      "checks": "accounts>=2 else 15; owner signer else 18; mandate.owner==AgentAuth else 14; writable else InvalidAccountData; len 2136 else 15; disc==1 else 16; owner match else 2; data==2 else 15; value in {0,1} else 15",
+      "writes": "header.active = value. Works on paused mandates. While paused, verify => 4 NotActive and add/remove/update => 4. Counters and permissions are preserved. revoke_mandate stays the destructive kill switch."
+    },
+    {
+      "name": "update_permission",
+      "tag": 6,
+      "dataLength": 49,
+      "args": [
+        {
+          "name": "tag",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "6"
+        },
+        {
+          "name": "target_program",
+          "type": "pubkey",
+          "offset": 1,
+          "size": 32,
+          "desc": "the permission slot to change"
+        },
+        {
+          "name": "spend_limit",
+          "type": "u64",
+          "offset": 33,
+          "size": 8,
+          "desc": "new lifetime cap, 0 = unlimited"
+        },
+        {
+          "name": "per_tx_limit",
+          "type": "u64",
+          "offset": 41,
+          "size": 8,
+          "desc": "new per verify call cap, 0 = unlimited"
+        }
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "isSigner": true,
+          "isWritable": false,
+          "desc": "must equal mandate.owner"
+        },
+        {
+          "name": "mandate",
+          "isSigner": false,
+          "isWritable": true,
+          "desc": "owned by AgentAuth"
+        }
+      ],
+      "minAccounts": 2,
+      "checks": "as add_permission up to the owner check (including active else 4); data==49 else 15; program not found else 12",
+      "writes": "slot.spend_limit and slot.per_tx_limit replaced; spend_total, call_count and the discriminator list are PRESERVED (changing a limit does not grant a fresh budget)"
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AgentMandate",
+      "discriminator": {
+        "offset": 0,
+        "value": 1
+      },
+      "size": 2136,
+      "pda": {
+        "program": "agent_auth",
+        "seeds": [
+          {
+            "kind": "const",
+            "utf8": "mandate"
+          },
+          {
+            "kind": "pubkey",
+            "path": "owner"
+          },
+          {
+            "kind": "pubkey",
+            "path": "agent"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "disc",
+          "type": "u8",
+          "offset": 0,
+          "size": 1,
+          "desc": "1 once initialised"
+        },
+        {
+          "name": "owner",
+          "type": "pubkey",
+          "offset": 1,
+          "size": 32,
+          "desc": ""
+        },
+        {
+          "name": "agent",
+          "type": "pubkey",
+          "offset": 33,
+          "size": 32,
+          "desc": ""
+        },
+        {
+          "name": "expiry",
+          "type": "i64",
+          "offset": 65,
+          "size": 8,
+          "desc": "unix timestamp"
+        },
+        {
+          "name": "active",
+          "type": "u8",
+          "offset": 73,
+          "size": 1,
+          "desc": "1 active, 0 paused (set_active). revoke_mandate closes the account instead"
+        },
+        {
+          "name": "pad0",
+          "type": "[u8;3]",
+          "offset": 74,
+          "size": 3,
+          "desc": "padding"
+        },
+        {
+          "name": "permissions_len",
+          "type": "u16",
+          "offset": 77,
+          "size": 2,
+          "desc": "0..=16"
+        },
+        {
+          "name": "version",
+          "type": "u8",
+          "offset": 79,
+          "size": 1,
+          "desc": "layout/semantics version, 1 for this release (written by create_mandate)"
+        },
+        {
+          "name": "bump",
+          "type": "u8",
+          "offset": 80,
+          "size": 1,
+          "desc": "PDA bump, stored so handlers never search for it (written by create_mandate)"
+        },
+        {
+          "name": "pad1",
+          "type": "bytes",
+          "offset": 81,
+          "size": 7,
+          "desc": "reserved, zero"
+        }
+      ],
+      "permissionSlots": {
+        "count": 16,
+        "stride": 128,
+        "base": 88,
+        "fields": [
+          {
+            "name": "program_id",
+            "type": "pubkey",
+            "offset": 0,
+            "size": 32,
+            "desc": ""
+          },
+          {
+            "name": "spend_limit",
+            "type": "u64",
+            "offset": 32,
+            "size": 8,
+            "desc": "0 = unlimited"
+          },
+          {
+            "name": "per_tx_limit",
+            "type": "u64",
+            "offset": 40,
+            "size": 8,
+            "desc": "0 = unlimited"
+          },
+          {
+            "name": "spend_total",
+            "type": "u64",
+            "offset": 48,
+            "size": 8,
+            "desc": ""
+          },
+          {
+            "name": "call_count",
+            "type": "u32",
+            "offset": 56,
+            "size": 4,
+            "desc": ""
+          },
+          {
+            "name": "discriminators_len",
+            "type": "u8",
+            "offset": 60,
+            "size": 1,
+            "desc": "0..=8"
+          },
+          {
+            "name": "pad",
+            "type": "[u8;3]",
+            "offset": 61,
+            "size": 3,
+            "desc": ""
+          },
+          {
+            "name": "discriminators",
+            "type": "[[u8;8];8]",
+            "offset": 64,
+            "size": 64,
+            "desc": ""
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 1,
+      "name": "InvalidDiscriminator",
+      "msg": "Unknown instruction tag",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 2,
+      "name": "NotOwner",
+      "msg": "Signer / owner key is not the mandate owner",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 3,
+      "name": "AlreadyInitialized",
+      "msg": "Mandate already initialised",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 4,
+      "name": "NotActive",
+      "msg": "Mandate is paused (set_active 0); resume it or create a new one",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 5,
+      "name": "Expired",
+      "msg": "now > mandate.expiry",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 6,
+      "name": "ProgramNotAllowed",
+      "msg": "No permission slot for the reported target program id",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 7,
+      "name": "DiscriminatorNotAllowed",
+      "msg": "Reported discriminator not in the slot's allow-list (an empty list allows nothing)",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 8,
+      "name": "PerTxExceeded",
+      "msg": "amount > per_tx_limit (0 = unlimited)",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 9,
+      "name": "SpendLimitExceeded",
+      "msg": "spend_total + amount > spend_limit (0 = unlimited)",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 10,
+      "name": "PermissionsFull",
+      "msg": "16 permission slots already used",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 11,
+      "name": "TooManyDiscriminators",
+      "msg": "More than 8 discriminators in one permission",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 12,
+      "name": "PermissionNotFound",
+      "msg": "No slot for that program id; ALSO (quirk) returned when the owner did not sign create/add/remove",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 13,
+      "name": "ArithmeticOverflow",
+      "msg": "Checked add overflowed",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 14,
+      "name": "AccountOwnerMismatch",
+      "msg": "revoke_mandate: mandate account not owned by AgentAuth",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 15,
+      "name": "InvalidInstructionData",
+      "msg": "Wrong data length / too few accounts / wrong account length / duplicate permission program",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 16,
+      "name": "InvalidAccountType",
+      "msg": "Mandate discriminator byte != 1, or account not owned by AgentAuth",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 17,
+      "name": "UnknownAgent",
+      "msg": "verify: agent account key != mandate.agent",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 18,
+      "name": "InvalidSigner",
+      "msg": "A required signature is missing: owner (create/add/remove/update/set_active/revoke) or agent (verify)",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 19,
+      "name": "InvalidAgent",
+      "msg": "create_mandate: owner and agent must be different keys",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 20,
+      "name": "InvalidExpiry",
+      "msg": "create_mandate: expiry must be in the future",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 21,
+      "name": "DuplicatePermission",
+      "msg": "add_permission: a permission for this program already exists (use update_permission)",
+      "raisedBy": "agent_auth"
+    },
+    {
+      "code": 22,
+      "name": "EmptyDiscriminators",
+      "msg": "add_permission: at least one discriminator is required",
+      "raisedBy": "agent_auth"
+    }
+  ],
+  "quirks": [
+    "One permission slot per program id (duplicate add => 21). remove_permission removes the whole slot (all its discriminators); use update_permission to change limits without resetting spend_total/call_count.",
+    "spend_limit == 0 and per_tx_limit == 0 mean UNLIMITED (fail-open sentinel kept for layout compatibility). SDK/CLI/dashboard must require an explicit \"unlimited\" opt-in.",
+    "Spend counters are keyed by TARGET PROGRAM and unit-less: every mint/decimal of the SPL Token program shares one raw-unit counter. Hard per-asset budgets need the relay (it pins the mint) or one mandate per asset.",
+    "verify trusts the caller-reported program id / discriminator / amount. It is advisory unless the integrator derives those values itself from the action it is about to perform (as the relay does) and gates the action on the result.",
+    "Anyone can create a mandate that names any agent with themselves as owner. Integrators MUST bind mandate.owner to the owner of the assets/authority they protect, and MUST hard-code the AgentAuth program id (see crates/agent-auth-cpi).",
+    "The mandate has no nonce/created_at: a re-created mandate for the same (owner, agent) has the same address. Consumers (the relay) bind to the stored expiry/bump generation.",
+    "Expiry is the first second at which the mandate is invalid (expired iff now >= expiry)."
+  ]
+}

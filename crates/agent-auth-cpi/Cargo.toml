@@ -1,0 +1,25 @@
+[package]
+name = "agent-auth-cpi"
+version = "0.1.0"
+edition = "2021"
+description = "Safe-by-default helper for Solana programs that integrate AgentAuth mandates (Pinocchio)"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["lib"]
+
+[dependencies]
+pinocchio = { workspace = true }
+
+[dev-dependencies]
+agent-auth = { path = "../.." }
+litesvm = { workspace = true }
+solana-account = { workspace = true }
+solana-instruction = { workspace = true }
+solana-keypair = { workspace = true }
+solana-message = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-signer = { workspace = true }
+solana-transaction = { workspace = true }

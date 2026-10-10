@@ -4,6 +4,29 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
+members = [
+    "programs/relay",
+    "programs/mock-amm",
+    "programs/gated-example",
+    "crates/agent-auth-cpi",
+]
+resolver = "2"
+
+[workspace.dependencies]
+pinocchio = "0.9.3"
+pinocchio-system = "0.4.0"
+pinocchio-pubkey = "0.3"
+litesvm = "0.12.0"
+solana-account = "3.4.0"
+solana-commitment-config = "3"
+solana-instruction = "3.4.0"
+solana-keypair = "3.1.2"
+solana-message = "3.1.0"
+solana-pubkey = "3.0.0"
+solana-rpc-client = "3"
+solana-sdk-ids = "3.1.0"
+solana-signer = "3.0.1"
+solana-transaction = "3.1.0"
 
 [lib]
 crate-type = ["cdylib", "lib"]
