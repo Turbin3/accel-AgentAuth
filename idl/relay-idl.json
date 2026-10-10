@@ -131,7 +131,7 @@
       "name": "init_policy",
       "tag": 0,
       "signer": "owner",
-      "desc": "Create the RelayPolicy PDA for a mandate (robust to a pre-funded PDA). Config is immutable afterwards. The policy is bound to the mandate generation only through the mandate expiry (error 118 on mismatch): after revoke_mandate then create_mandate with the SAME expiry, an un-closed policy and un-revoked SPL delegation re-bind with fresh counters. Always pair revoke_mandate with close_policy and a token Revoke (the SDK unwind does).",
+      "desc": "Create the RelayPolicy PDA for a mandate (robust to a pre-funded PDA). The relay policy's pinned settings (recipients, source account, swap pool and floor) cannot be edited in place; close the policy and initialise a new one to change them. The policy is bound to the mandate generation only through the mandate expiry (error 118 on mismatch): after revoke_mandate then create_mandate with the SAME expiry, an un-closed policy and un-revoked SPL delegation re-bind with fresh counters. Always pair revoke_mandate with close_policy and a token Revoke (the SDK unwind does).",
       "dataLength": 802,
       "args": [
         {

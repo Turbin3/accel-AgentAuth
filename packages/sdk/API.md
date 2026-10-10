@@ -1180,7 +1180,11 @@ A decoded `AgentMandate` account (2136 bytes, core layout).
 
 ```ts
 export interface Mandate {
-  /** Account address, when the caller supplied it. */
+  /**
+   * Account address. Always set by `fetchMandate`, `fetchMandatesByOwner`, `fetchMandatesByAgent`,
+   * `decodeMandateAccount` and `client.inspect`; `undefined` only for a bare `decodeMandate(bytes)`
+   * call that was not given the address.
+   */
   readonly address: Address | undefined
   readonly owner: Address
   readonly agent: Address
@@ -1727,7 +1731,7 @@ Relay `init_policy` (tag 0, 802 data bytes). Accounts `[owner S W, mandate R, po
 Validates the whole config client-side (distinctness rules, 8-recipient cap, swap rules) and
 throws before encoding anything invalid.
 
-Config is immutable after init: changing it later means `close_policy` then `init_policy`.
+The policy config (recipients, source, pool, floor) cannot be edited in place; changing it later means `close_policy` then `init_policy`.
 
 Throws: `ValidationError` `BAD_CONFIG` (relayCode 113)
 
@@ -2921,6 +2925,14 @@ const e = explainMandate(mandate, { policy, budgetDecimals: 6 })
 console.log(e.headline, e.warnings)
 ```
 
+`Explanation.warnings` never contains a duplicate. `dedupeWarnings(...lists)` applies the same rule
+to lists you merge yourself (for example `plan.warnings` plus `explanation.warnings`): a warning that
+is identical to, or a prefix of, another is dropped and the longer text kept.
+
+```ts
+export function dedupeWarnings(...lists: readonly (readonly string[])[]): string[]
+```
+
 #### `DEFAULT_DENY_RISKS`
 
 ```ts
@@ -2956,6 +2968,15 @@ Example:
 describeInstruction(TOKEN_PROGRAM_ID, TRANSFER_CHECKED_DISC).title // "Transfer (checked)"
 ```
 
+#### `describeProgram`
+
+```ts
+export function describeProgram(programId: Address | string, registry?: RegistryLike | null): string
+```
+
+Display name of a program: the registry's name, else the built-in table's, else a short address
+(`Abcd…wxyz`). Never throws.
+
 #### `loadRegistry`
 
 ```ts
@@ -2963,8 +2984,9 @@ export async function loadRegistry(): Promise<RegistryLike | null>
 ```
 
 Try to load `@agentauth-sol/registry` without a static dependency. Resolves to `null` when the
-package is not installed. The import specifier is intentionally not a literal so bundlers keep it
-external.
+package is not installed. The import specifier is intentionally not a literal and carries the
+`/* webpackIgnore: true */` and `/* turbopackIgnore: true */` comments (kept in `dist/index.js`), so
+bundlers keep it external and do not warn "Can't resolve @agentauth-sol/registry".
 
 Throws: never rejects; resolves to `null` when the registry package is not installed.
 
@@ -3006,6 +3028,14 @@ export interface ExplainOptions {
   readonly now?: bigint | number | Date
   /** Decimals of the policy budget mint, to print token amounts in human units next to raw units. */
   readonly budgetDecimals?: number
+  /**
+   * Display symbol of the policy budget mint (for example `"DUSD"`). When given (together with
+   * `budgetDecimals`) the relay lines read "Pay DUSD from ..." and amounts of the budget token read
+   * "5 DUSD". Without it the output is unchanged.
+   */
+  readonly budgetSymbol?: string
+  /** Display labels per mint address (for example the swap's in/out mints). Overrides `budgetSymbol` for that mint. */
+  readonly mintLabels?: Readonly<Record<string, string>>
   /**
    * Live SPL delegation on the policy source account. Without it the relay payment line is labelled
    * "unverified" because the Token program, not the mandate, is the hard cap.
@@ -3838,8 +3868,19 @@ export interface SendOptions extends ParseProgramErrorOptions {
   /** Give up after this many milliseconds. Default 60000. */
   readonly timeoutMs?: number
   readonly abortSignal?: AbortSignal
+  /**
+   * Fetch the transaction logs after confirmation so a SUCCESSFUL result carries them too (read relay
+   * events such as SwapExecuted from `logs`). Default true; pass false to save one RPC round trip.
+   * A failed transaction always fetches its logs (needed to decode the error).
+   */
+  readonly includeLogs?: boolean
 }
 ```
+
+Failure modes: with the default `skipPreflight: false`, an RPC preflight rejection never lands, so
+`sendAndConfirmStep` / `client.sendAndConfirm` THROW a Kit `SolanaError` (decode it with
+`parseProgramError`). A transaction that lands and fails (for example with `skipPreflight: true`)
+RETURNS `ok: false` with the decoded `error` and `logs`.
 
 #### type `SendResult`
 
@@ -4316,6 +4357,8 @@ export interface ActivityItem {
   readonly viaProgram?: Address
   /** Set when the transaction could not be fetched or decoded (the row is a placeholder). */
   readonly fetchError?: string
+  /** Only with `foldVerify`: the nested relay `verify` row folded into this relay row. */
+  readonly verify?: ActivityItem
 }
 ```
 
@@ -4414,6 +4457,19 @@ export interface GetActivityOptions {
   readonly abortSignal?: AbortSignal
   /** Parallel `getTransaction` calls. Default 5. */
   readonly concurrency?: number
+  /**
+   * Fold a nested `verify` row that has `viaProgram` (the relay calling verify) into the relay row of
+   * the same top-level instruction, keeping the verify details in the row's `verify` field, so one
+   * relay action is one row. Default false (every decoded row is returned).
+   */
+  readonly foldVerify?: boolean
+  /**
+   * Stop after the most recent SUCCESSFUL `create` row of this page (rows of that transaction are
+   * kept, older rows are dropped, `nextBefore` becomes null), so a mandate address that was revoked
+   * and created again shows only the current generation. Default false. Only rows of the requested
+   * page are inspected: when the page holds no create row nothing is dropped.
+   */
+  readonly stopAtCreation?: boolean
 }
 ```
 </details>
@@ -4674,7 +4730,7 @@ export interface FoundDelegation {
 <details><summary><code>InspectOptions</code> - Options of `Client.inspect`.</summary>
 
 ```ts
-export interface InspectOptions extends Pick<ExplainOptions, 'budgetDecimals' | 'now'> {
+export interface InspectOptions extends Pick<ExplainOptions, 'budgetDecimals' | 'budgetSymbol' | 'mintLabels' | 'now'> {
   /** An already-fetched mandate (skips refetching it). */
   readonly mandate?: Mandate
 }

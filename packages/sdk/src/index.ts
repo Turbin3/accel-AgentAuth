@@ -247,6 +247,7 @@ export {
 // I. explain + registry
 export {
   explainMandate,
+  dedupeWarnings,
   type DelegationInfo,
   type EnforcementLevel,
   type ExplainOptions,
@@ -257,6 +258,7 @@ export {
   DEFAULT_DENY_RISKS,
   builtinRegistry,
   describeInstruction,
+  describeProgram,
   loadRegistry,
   type InstructionInfo,
   type RegistryInstructionLike,

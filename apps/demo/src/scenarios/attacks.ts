@@ -141,7 +141,8 @@ await runMain(run, async () => {
   )
 
   const lost = await fundsLostTracker(ctx, [A.attackerDusd, A.attackerDout, A.attackerDusdB])
-  const board = run.newBoard('attack suite', lost)
+  const toPayee = await fundsLostTracker(ctx, [A.recipientDusd], 'DUSD')
+  const board = run.newBoard('attack suite', lost, toPayee)
   let baseline = await stateOf(victim, mandate)
   const rebase = async (): Promise<void> => {
     baseline = await stateOf(victim, mandate)
@@ -1295,7 +1296,11 @@ await runMain(run, async () => {
   )
   const sb = await board.snapshot()
   run.out(
-    `  scoreboard  attempted ${sb.attempted} | blocked ${sb.blocked} | allowed ${sb.allowed} | funds lost ${sb.fundsLost}`,
+    `  scoreboard  attempted ${sb.attempted} | blocked ${sb.blocked} | allowed ${sb.allowed} | funds lost to the attacker ${sb.fundsLost} | moved to the allowlisted payee within the budget ${sb.movedToPayee ?? 'n/a'}`,
+  )
+  run.say(
+    `${rows.length} table rows; the scoreboard counts ${sb.attempted} agent- or stranger-signed attempts (the two counts are not one-to-one: owner-side transactions such as the pre-funded-PDA creations are table-only, and a few scoreboard attempts have no row of their own). ` +
+      `The L4 split is the only accepted spend: it moved value to the allowlisted payee, not to the attacker.`,
   )
   if (!sb.fundsLost.startsWith('0 ')) throw new Error(`MALLORY holds funds: ${sb.fundsLost}`)
   if (rows.length < 15) throw new Error('fewer than 15 attacks ran')

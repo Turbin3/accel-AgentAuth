@@ -138,6 +138,19 @@ describe('runner helpers', () => {
     expect(instructionIndexOf(null)).toBeNull()
   })
 
+  it('Scoreboard reports value moved to the allowlisted payee separately from funds lost', async () => {
+    const b = new Scoreboard(
+      't',
+      async () => '0 DUSD',
+      async () => '10 DUSD',
+    )
+    b.record(true)
+    expect(await b.line()).toBe(
+      'scoreboard [t]  attempted 1 | blocked 0 | allowed 1 | funds lost to the attacker 0 DUSD | moved to the allowlisted payee within the budget 10 DUSD',
+    )
+    expect((await b.snapshot()).movedToPayee).toBe('10 DUSD')
+  })
+
   it('Scoreboard counts blocked and allowed and reports funds lost', async () => {
     const b = new Scoreboard('t', async () => '0 DUSD')
     b.record(false)
@@ -145,7 +158,7 @@ describe('runner helpers', () => {
     b.record(true)
     expect(b.attempted).toBe(3)
     expect(await b.line()).toBe(
-      'scoreboard [t]  attempted 3 | blocked 2 | allowed 1 | funds lost 0 DUSD',
+      'scoreboard [t]  attempted 3 | blocked 2 | allowed 1 | funds lost to the attacker 0 DUSD',
     )
   })
 })

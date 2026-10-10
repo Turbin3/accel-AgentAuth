@@ -800,7 +800,7 @@ await runMain(run, async () => {
   const a = await boardA.snapshot()
   const b = await board.snapshot()
   for (const l of table(
-    ['phase', 'attempted', 'blocked', 'allowed', 'funds lost'],
+    ['phase', 'attempted', 'blocked', 'allowed', 'funds lost to the attacker'],
     [a, b].map((s) => [
       s.title,
       String(s.attempted),

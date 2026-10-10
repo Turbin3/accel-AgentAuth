@@ -520,7 +520,7 @@ async function listMandates(
         opts,
       )
       if (owners && !owners.has(decoded.owner)) continue
-      out.push(decoded)
+      out.push(decoded.address === pubkey ? decoded : { ...decoded, address: pubkey })
     } catch (error) {
       opts.onSkip?.(pubkey, error)
     }

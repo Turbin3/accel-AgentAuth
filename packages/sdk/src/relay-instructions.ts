@@ -85,7 +85,7 @@ export interface InitPolicyParams {
  * Validates the whole config client-side (distinctness rules, 8-recipient cap, swap rules) and
  * throws before encoding anything invalid.
  *
- * Config is immutable after init: changing it later means `close_policy` then `init_policy`.
+ * The policy config (recipients, source, pool, floor) cannot be edited in place; changing it later means `close_policy` then `init_policy`.
  *
  * @throws ValidationError `BAD_CONFIG` (relayCode 113)
  */

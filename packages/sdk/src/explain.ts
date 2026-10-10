@@ -6,6 +6,7 @@ import { isoOfSeconds } from './time'
 import {
   DEFAULT_DENY_RISKS,
   describeInstruction,
+  describeProgram,
   type InstructionInfo,
   type RegistryLike,
 } from './registry'
@@ -31,6 +32,14 @@ export interface ExplainOptions {
   readonly now?: bigint | number | Date
   /** Decimals of the policy budget mint, to print token amounts in human units next to raw units. */
   readonly budgetDecimals?: number
+  /**
+   * Display symbol of the policy budget mint (for example `"DUSD"`). When given (together with
+   * `budgetDecimals`) the relay lines read "Pay DUSD from ..." and amounts of the budget token read
+   * "5 DUSD". Without it the output is unchanged.
+   */
+  readonly budgetSymbol?: string
+  /** Display labels per mint address (for example the swap's in/out mints). Overrides `budgetSymbol` for that mint. */
+  readonly mintLabels?: Readonly<Record<string, string>>
   /**
    * Live SPL delegation on the policy source account. Without it the relay payment line is labelled
    * "unverified" because the Token program, not the mandate, is the hard cap.
@@ -108,20 +117,30 @@ interface Ctx {
   readonly registry: RegistryLike | null | undefined
   readonly policy: RelayPolicy | null
   readonly decimals: number | undefined
+  readonly symbol: string | undefined
+  readonly mintLabels: Readonly<Record<string, string>> | undefined
+}
+
+function mintText(mint: Address, ctx: Ctx): string {
+  const label = ctx.mintLabels?.[mint]
+  if (label !== undefined) return label
+  if (ctx.symbol !== undefined && ctx.policy?.budgetMint === mint) return ctx.symbol
+  return short(mint)
 }
 
 function amountText(raw: bigint, program: Address, ctx: Ctx): string {
   if (ctx.decimals !== undefined && ctx.policy && program === ctx.policy.tokenProgram) {
+    if (ctx.symbol !== undefined) return `${formatUnits(raw, ctx.decimals)} ${ctx.symbol}`
     return `${formatUnits(raw, ctx.decimals)} (${raw} raw units)`
   }
   return `${raw} raw units`
 }
 
 function programLabel(permission: Permission, ctx: Ctx): string {
-  const info = describeInstruction(permission.program, '00', ctx.registry)
-  return info.programName
-    ? `${info.programName} (${short(permission.program)})`
-    : `program ${short(permission.program)}`
+  const name = describeProgram(permission.program, ctx.registry)
+  return name === short(permission.program)
+    ? `program ${short(permission.program)}`
+    : `${name} (${short(permission.program)})`
 }
 
 function limitsText(p: Permission, ctx: Ctx): string {
@@ -242,6 +261,8 @@ export function explainMandate(mandate: Mandate, opts: ExplainOptions = {}): Exp
     registry: opts.registry,
     policy: opts.policy ?? null,
     decimals: opts.budgetDecimals,
+    symbol: opts.budgetSymbol,
+    mintLabels: opts.mintLabels,
   }
   const now = toNow(opts.now)
   const expired = now >= mandate.expiry
@@ -369,7 +390,11 @@ export function explainMandate(mandate: Mandate, opts: ExplainOptions = {}): Exp
   const relayBlocked: string[] = []
   if (policy) {
     if (policy.recipients.length > 0) {
-      const line = `Pay token ${short(policy.budgetMint)} from the owner's account ${short(policy.sourceAccount)} to ${plural(policy.recipients.length, 'allowlisted token account')} (${policy.recipients.map(short).join(', ')}) through the relay`
+      const payWhat =
+        ctx.symbol !== undefined || ctx.mintLabels?.[policy.budgetMint] !== undefined
+          ? mintText(policy.budgetMint, ctx)
+          : `token ${short(policy.budgetMint)}`
+      const line = `Pay ${payWhat} from the owner's account ${short(policy.sourceAccount)} to ${plural(policy.recipients.length, 'allowlisted token account')} (${policy.recipients.map(short).join(', ')}) through the relay`
       if (transferBlocker) {
         relayBlocked.push(
           `${line}: would be rejected with ${errName(transferBlocker.program, transferBlocker.code)} (${transferBlocker.code}) because ${transferBlocker.why}.`,
@@ -382,7 +407,7 @@ export function explainMandate(mandate: Mandate, opts: ExplainOptions = {}): Exp
     }
     if (policy.swap) {
       const s = policy.swap
-      const line = `Swap ${short(s.inMint)} for ${short(s.outMint)} on the ONE pinned pool ${short(s.poolState)} at no worse than ${s.floorOut}/${s.floorIn} (out per in, raw units), output forced into the owner's own account, deadline at most ${plural(s.maxDeadlineSlots, 'slot')} ahead`
+      const line = `Swap ${mintText(s.inMint, ctx)} for ${mintText(s.outMint, ctx)} on the ONE pinned pool ${short(s.poolState)} at no worse than ${s.floorOut}/${s.floorIn} (out per in, raw units), output forced into the owner's own account, deadline at most ${plural(s.maxDeadlineSlots, 'slot')} ahead`
       if (swapBlocker) {
         relayBlocked.push(
           `${line}: would be rejected with ${errName(swapBlocker.program, swapBlocker.code)} (${swapBlocker.code}) because ${swapBlocker.why}.`,
@@ -512,5 +537,37 @@ export function explainMandate(mandate: Mandate, opts: ExplainOptions = {}): Exp
       : 'Nothing is hard-enforced (no relay policy).'
   }`
 
-  return { headline, can, cannot, grants, limits, expiry, status, enforcement, warnings }
+  return {
+    headline,
+    can,
+    cannot,
+    grants,
+    limits,
+    expiry,
+    status,
+    enforcement,
+    warnings: dedupeWarnings(warnings),
+  }
+}
+
+const trimEnd = (w: string): string => w.trim().replace(/[\s.;:]+$/, '')
+
+/**
+ * Merge warning lists and drop duplicates: a warning that is identical to, or a prefix of, another
+ * (for example the plan's short "Recipients are token accounts, not wallets: ..." sentence and the
+ * explainer's longer one) is removed; the longer text is kept. Order of first appearance is kept.
+ */
+export function dedupeWarnings(...lists: readonly (readonly string[])[]): string[] {
+  const all = lists.flat()
+  const keys = all.map(trimEnd)
+  const out: string[] = []
+  all.forEach((w, i) => {
+    const k = keys[i]!
+    const covered = keys.some(
+      (other, j) =>
+        j !== i && (other === k ? j < i : other.startsWith(k) && other.length > k.length),
+    )
+    if (!covered) out.push(w)
+  })
+  return out
 }

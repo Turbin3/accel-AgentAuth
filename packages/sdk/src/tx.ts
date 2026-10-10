@@ -258,6 +258,12 @@ export interface SendOptions extends ParseProgramErrorOptions {
   /** Give up after this many milliseconds. Default 60000. */
   readonly timeoutMs?: number
   readonly abortSignal?: AbortSignal
+  /**
+   * Fetch the transaction logs after confirmation so a SUCCESSFUL result carries them too (read relay
+   * events such as SwapExecuted from `logs`). Default true; pass false to save one RPC round trip.
+   * A failed transaction always fetches its logs (needed to decode the error).
+   */
+  readonly includeLogs?: boolean
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -266,7 +272,9 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
  * Sign with the given partial signers, send, and poll until the transaction reaches `commitment`,
  * the blockhash expires, or the timeout elapses. A transaction that lands and FAILS does not throw:
  * the result has `ok: false` with the decoded `error` and logs (so blocked agent attempts can be
- * shown). Expiry/timeouts throw `SdkError`.
+ * shown). Expiry/timeouts throw `SdkError`. An RPC PREFLIGHT rejection (the default,
+ * `skipPreflight: false`) does not land: the RPC call THROWS a Kit `SolanaError`, which
+ * `parseProgramError` decodes. Successful results carry `logs` unless `includeLogs: false`.
  *
  * @throws SdkError `TX_SIGNER_UNSUPPORTED | TX_EXPIRED | TX_TIMEOUT | TX_TOO_LARGE`
  */
@@ -323,8 +331,11 @@ export async function sendAndConfirmStep(
       rank[status.confirmationStatus] >= rank[commitment]
     ) {
       const slot = BigInt(status.slot)
-      if (status.err === null)
-        return { signature, ok: true, err: null, slot, error: null, logs: [] }
+      if (status.err === null) {
+        const okLogs =
+          opts.includeLogs === false ? [] : await fetchLogs(rpc, signature, opts.abortSignal)
+        return { signature, ok: true, err: null, slot, error: null, logs: okLogs }
+      }
       const logs = await fetchLogs(rpc, signature, opts.abortSignal)
       return {
         signature,

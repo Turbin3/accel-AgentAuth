@@ -604,7 +604,7 @@ export async function planOnboarding(input: OnboardingInput): Promise<Plan> {
   steps.push(
     makeStep(
       'Activate relay policy',
-      'Owner-signed: relay init_policy pins recipients, mint, source and (optionally) one swap pool. Config is immutable afterwards.',
+      "Owner-signed: relay init_policy pins recipients, mint, source and (optionally) one swap pool. The relay policy's pinned settings (recipients, source account, swap pool and floor) cannot be edited in place; close the policy and initialise a new one to change them.",
       [init],
       'RelayPolicy account exists; relay transfer/swap now work within the mandate and delegation.',
       feePayer,

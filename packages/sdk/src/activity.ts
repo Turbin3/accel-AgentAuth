@@ -99,6 +99,11 @@ export interface ActivityItem {
   readonly viaProgram?: Address
   /** Set when the transaction could not be fetched or decoded (the row is a placeholder). */
   readonly fetchError?: string
+  /**
+   * Only with `foldVerify`: the nested `verify` row (a CPI made by the relay) that was folded into
+   * this relay row; it keeps the amount/program/discriminator the mandate was asked about.
+   */
+  readonly verify?: ActivityItem
 }
 
 /** A top-level instruction in wire form. */
@@ -530,6 +535,19 @@ export interface GetActivityOptions {
   readonly abortSignal?: AbortSignal
   /** Parallel `getTransaction` calls. Default 5. */
   readonly concurrency?: number
+  /**
+   * Fold a nested `verify` row that has `viaProgram` (the relay calling verify) into the relay row of
+   * the same top-level instruction, keeping the verify details in the row's `verify` field, so one
+   * relay action is one row. Default false (every decoded row is returned).
+   */
+  readonly foldVerify?: boolean
+  /**
+   * Stop after the most recent SUCCESSFUL `create` row of this page (rows of that transaction are
+   * kept, older rows are dropped, `nextBefore` becomes null), so a mandate address that was revoked
+   * and created again shows only the current generation. Default false. Only rows of the requested
+   * page are inspected: when the page holds no create row nothing is dropped.
+   */
+  readonly stopAtCreation?: boolean
 }
 
 /** A page of the activity feed. */
@@ -657,7 +675,47 @@ export async function getActivityPage(
     },
   )
   await Promise.all(workers)
-  return { items: results.flat(), nextBefore }
+  let items = results.flat()
+  if (opts.foldVerify === true) items = foldVerifyRows(items)
+  if (opts.stopAtCreation === true) {
+    const at = items.findIndex((r) => r.kind === 'create' && r.ok)
+    if (at >= 0) {
+      const signature = (items[at] as ActivityItem).signature
+      let end = at + 1
+      while (items[end]?.signature === signature) end++
+      return { items: items.slice(0, end), nextBefore: null }
+    }
+  }
+  return { items, nextBefore }
+}
+
+const RELAY_ACTION_KINDS: readonly ActivityKind[] = ['relay_transfer', 'relay_swap']
+
+/** Fold nested relay `verify` rows into their relay rows (see {@link GetActivityOptions.foldVerify}). */
+function foldVerifyRows(items: readonly ActivityItem[]): ActivityItem[] {
+  const out: ActivityItem[] = []
+  const verifyFor = new Map<string, ActivityItem>()
+  for (const r of items) {
+    if (r.kind === 'verify' && r.viaProgram !== undefined) {
+      const key = `${r.signature}:${r.instructionIndex}`
+      const hostExists = items.some(
+        (h) =>
+          h.signature === r.signature &&
+          h.instructionIndex === r.instructionIndex &&
+          RELAY_ACTION_KINDS.includes(h.kind),
+      )
+      if (hostExists && !verifyFor.has(key)) {
+        verifyFor.set(key, r)
+        continue
+      }
+    }
+    out.push(r)
+  }
+  return out.map((r) => {
+    if (!RELAY_ACTION_KINDS.includes(r.kind)) return r
+    const v = verifyFor.get(`${r.signature}:${r.instructionIndex}`)
+    return v === undefined ? r : { ...r, verify: v }
+  })
 }
 
 /** {@link getActivityPage} without the cursor: just the rows. */

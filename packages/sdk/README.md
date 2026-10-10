@@ -169,6 +169,21 @@ and `idl/relay-idl.json` (IDL drift fails the build), has a truth table for `che
 verifies that every recipe in API.md is the code that typechecks. The tests are offline; LiteSVM
 differential tests against the real programs belong to the integration workflow.
 
+## Display and feed options (additive)
+
+- `explainMandate(m, { policy, budgetDecimals: 6, budgetSymbol: 'DUSD', mintLabels })` prints
+  "Pay DUSD from ..." and "5 DUSD"; without `budgetSymbol` the text is unchanged. `Explanation.warnings`
+  is de-duplicated; `dedupeWarnings(plan.warnings, explanation.warnings)` merges lists the same way.
+- `describeProgram(id, registry?)` returns a program's display name (short address when unknown).
+- `client.sendAndConfirm` returns the transaction `logs` of successful transactions too (read relay
+  events from them); pass `includeLogs: false` to skip that RPC call. An RPC preflight rejection
+  THROWS a Kit `SolanaError` (decode it with `parseProgramError`); a transaction that lands and fails
+  returns `ok: false`.
+- `getActivity({ foldVerify: true })` folds the relay's nested `verify` row into its relay row (kept as
+  `row.verify`); `{ stopAtCreation: true }` stops at the latest successful `create`, so a re-used
+  mandate address shows only the current generation.
+- `Mandate.address` is always set by the fetch/list/inspect paths.
+
 ## Registry
 
 Names and risk classes come from `@agentauth-sol/registry` when you pass it

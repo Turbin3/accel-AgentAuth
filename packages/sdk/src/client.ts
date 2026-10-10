@@ -139,7 +139,10 @@ export interface MandateView {
 }
 
 /** Options of {@link Client.inspect}. */
-export interface InspectOptions extends Pick<ExplainOptions, 'budgetDecimals' | 'now'> {
+export interface InspectOptions extends Pick<
+  ExplainOptions,
+  'budgetDecimals' | 'budgetSymbol' | 'mintLabels' | 'now'
+> {
   /** An already-fetched mandate (skips refetching it). */
   readonly mandate?: Mandate
 }
@@ -420,6 +423,8 @@ export function createClient(opts: CreateClientOptions = {}): Client {
         delegation,
         mandateAddress: address,
         now,
+        ...(o.budgetSymbol !== undefined ? { budgetSymbol: o.budgetSymbol } : {}),
+        ...(o.mintLabels !== undefined ? { mintLabels: o.mintLabels } : {}),
         ...(decimals !== undefined ? { budgetDecimals: decimals } : {}),
       })
       const cap = policy ? capacity(mandate, policy, { delegation, balance, now }) : null

@@ -67,7 +67,11 @@ export interface Permission {
 
 /** A decoded `AgentMandate` account (2136 bytes, core layout). */
 export interface Mandate {
-  /** Account address, when the caller supplied it. */
+  /**
+   * Account address. Always set by `fetchMandate`, `fetchMandatesByOwner`, `fetchMandatesByAgent`,
+   * `decodeMandateAccount` and `client.inspect`; `undefined` only for a bare `decodeMandate(bytes)`
+   * call that was not given the address.
+   */
   readonly address: Address | undefined
   readonly owner: Address
   readonly agent: Address

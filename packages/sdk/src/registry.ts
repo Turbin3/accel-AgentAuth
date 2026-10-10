@@ -280,6 +280,26 @@ export function describeInstruction(
   }
 }
 
+/**
+ * Display name of a program: the registry's name, else the built-in table's, else a short address
+ * (`Abcd…wxyz`). Never throws.
+ */
+export function describeProgram(
+  programId: Address | string,
+  registry?: RegistryLike | null,
+): string {
+  for (const source of [registry, builtinRegistry]) {
+    if (!source) continue
+    try {
+      const name = source.getProgramById(programId)?.name
+      if (name) return name
+    } catch {
+      continue
+    }
+  }
+  return programId.length > 10 ? `${programId.slice(0, 4)}…${programId.slice(-4)}` : programId
+}
+
 function safeBool(fn: () => boolean | undefined): boolean {
   try {
     return fn() === true
@@ -296,7 +316,9 @@ function safeBool(fn: () => boolean | undefined): boolean {
 export async function loadRegistry(): Promise<RegistryLike | null> {
   try {
     const specifier = '@agentauth-sol/registry'
-    const mod: unknown = await import(/* @vite-ignore */ specifier)
+    const mod: unknown = await import(
+      /* @vite-ignore */ /* webpackIgnore: true */ /* turbopackIgnore: true */ specifier
+    )
     const candidate = (mod as { default?: unknown }).default ?? mod
     if (
       candidate &&

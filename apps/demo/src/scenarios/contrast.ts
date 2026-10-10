@@ -232,7 +232,7 @@ await runMain(run, async () => {
   const a = await boardA.snapshot()
   const b = await boardB.snapshot()
   const rows = [
-    ['agent', 'attempted', 'blocked', 'allowed', 'funds lost'],
+    ['agent', 'attempted', 'blocked', 'allowed', 'funds lost to the attacker'],
     ['A hot-wallet agent', String(a.attempted), String(a.blocked), String(a.allowed), a.fundsLost],
     ['B mandate agent', String(b.attempted), String(b.blocked), String(b.allowed), b.fundsLost],
   ]

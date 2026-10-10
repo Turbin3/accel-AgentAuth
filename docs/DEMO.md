@@ -90,7 +90,7 @@ Run `scenario` without `--fast` (about 70 s of narration at the default pause, p
 | 0:00-0:10 | Problem | "Agents hold a key. A prompt injection makes that key do what an attacker says. We do not stop the injection; we cap what a fooled agent can do, on-chain. Local validator, mock funds, unaudited prototype." | the banner; the injected invoice block |
 | 0:10-0:22 | Control (1.1) | "The same injection against a normal agent whose wallet holds the funds: one transaction, everything gone. The attacker is a script, labelled." | `ALLOWED`, funds lost 50 DUSD |
 | 0:22-0:34 | Onboarding and normal work (S1, S2, 2.1, 2.2) | "The owner gives the agent a mandate in two transactions: which programs and instructions, per-call and lifetime limits, one allowlisted payee, one pinned pool, a bounded allowance. The agent pays the invoice and swaps." | the plain-English explanation (can / cannot / enforcement); (explorer) relay -> verify -> TransferChecked |
-| 0:34-0:58 | Injection (3.1-3.10) | "Now the injection. Pay the attacker: relay 104. Pay more than the per-call cap: AgentAuth 8. Split it over five instructions in one transaction: AgentAuth 9, and the whole transaction reverts. Raw token transfer, approve, set-authority with the agent key: the Token program says OwnerMismatch, any wallet does that." | the scoreboard: attempted / blocked / allowed / funds lost 0; the balance panel with MALLORY at 0 |
+| 0:34-0:58 | Injection (3.1-3.10) | "Now the injection. Pay the attacker: relay 104. Pay more than the per-call cap: AgentAuth 8. Split it over five instructions in one transaction: AgentAuth 9, and the whole transaction reverts. Raw token transfer, approve, set-authority with the agent key: the Token program says OwnerMismatch, any wallet does that." | the scoreboard: attempted / blocked / allowed / funds lost to the attacker 0 (plus a separate counter of value moved to the allowlisted payee within the budget); the balance panel with MALLORY at 0 |
 | 0:58-1:10 | The standard, second integrator (4.1, 4.2) | "A different program with nothing to do with the relay checks the same mandate with one CPI." | `gated_action(4)` ok, `gated_action(11)` AgentAuth 8 |
 | 1:10-1:22 | Live per-instruction revoke (5.1-5.5) | "The owner edits the mandate while the agent runs. Remove the Token permission: payment fails with error 6, the swap still works. Add Token back with a different instruction list: error 7, same program, different instruction." | 5.2 error 6, 5.3 swap ok, 5.5 error 7 |
 | 1:22-1:30 | Unwind and honest limits (8.1, 8.3) | "One transaction revokes the delegation and closes the mandate and policy; the agent's next payment fails. The agent could still pay its allowlisted payee up to the budget: that is the blast radius. Hard enforcement only for the relay transfer and the pinned swap; unaudited devnet prototype." | `8.1 ALLOWED` then `8.3 relay 101`; final result table |
@@ -172,7 +172,7 @@ Pass 2 of the double run described in section 1 (second consecutive run against 
 
 > S2  Onboarding transaction 2 of 2: Activate relay policy
   attempt   Owner-signed: relay init_policy pins recipients, mint, source and (optionally) one swap
-            pool. Config is immutable afterwards. (1 instructions, 1072 bytes of 1232 allowed)
+            pool. The relay policy's pinned settings (recipients, source account, swap pool and floor) cannot be edited in place; close the policy and initialise a new one to change them. (1 instructions, 1072 bytes of 1232 allowed)
   signer    OWNER HLL6...2kxx (the human; the only party that signs onboarding)
   result    ALLOWED transaction succeeded
   expected  success (matched)
@@ -368,7 +368,7 @@ contrast: PASSED (9 transactions, every outcome as expected)
 
 > S2  Onboarding transaction 2 of 2: Activate relay policy
   attempt   Owner-signed: relay init_policy pins recipients, mint, source and (optionally) one swap
-            pool. Config is immutable afterwards. (1 instructions, 1072 bytes of 1232 allowed)
+            pool. The relay policy's pinned settings (recipients, source account, swap pool and floor) cannot be edited in place; close the policy and initialise a new one to change them. (1 instructions, 1072 bytes of 1232 allowed)
   signer    OWNER HLL6...2kxx (the human; the only party that signs onboarding)
   result    ALLOWED transaction succeeded
   expected  success (matched)

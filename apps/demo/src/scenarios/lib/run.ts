@@ -131,7 +131,11 @@ export class DeviationError extends Error {
   }
 }
 
-/** attempted / blocked / allowed / funds lost, for one phase of a scenario. */
+/**
+ * attempted / blocked / allowed / funds lost to the attacker, for one phase of a scenario.
+ * An optional second tracker reports value that moved to an allowlisted payee within the
+ * budget (accepted spends such as the disclosed L4 split are counted there, never as a loss).
+ */
 export class Scoreboard {
   attempted = 0
   blocked = 0
@@ -139,6 +143,7 @@ export class Scoreboard {
   constructor(
     readonly title: string,
     private readonly fundsLost: () => Promise<string>,
+    private readonly movedToPayee?: () => Promise<string>,
   ) {}
   record(ok: boolean): void {
     this.attempted++
@@ -146,7 +151,11 @@ export class Scoreboard {
     else this.blocked++
   }
   async line(): Promise<string> {
-    return `scoreboard [${this.title}]  attempted ${this.attempted} | blocked ${this.blocked} | allowed ${this.allowed} | funds lost ${await this.fundsLost()}`
+    const moved =
+      this.movedToPayee === undefined
+        ? ''
+        : ` | moved to the allowlisted payee within the budget ${await this.movedToPayee()}`
+    return `scoreboard [${this.title}]  attempted ${this.attempted} | blocked ${this.blocked} | allowed ${this.allowed} | funds lost to the attacker ${await this.fundsLost()}${moved}`
   }
   async snapshot(): Promise<{
     title: string
@@ -154,6 +163,7 @@ export class Scoreboard {
     blocked: number
     allowed: number
     fundsLost: string
+    movedToPayee: string | null
   }> {
     return {
       title: this.title,
@@ -161,6 +171,7 @@ export class Scoreboard {
       blocked: this.blocked,
       allowed: this.allowed,
       fundsLost: await this.fundsLost(),
+      movedToPayee: this.movedToPayee === undefined ? null : await this.movedToPayee(),
     }
   }
 }
@@ -226,8 +237,12 @@ export class Run {
     if (!this.opts.fast && this.opts.pauseMs > 0) await sleep(this.opts.pauseMs)
   }
 
-  newBoard(title: string, fundsLost: () => Promise<string>): Scoreboard {
-    const b = new Scoreboard(title, fundsLost)
+  newBoard(
+    title: string,
+    fundsLost: () => Promise<string>,
+    movedToPayee?: () => Promise<string>,
+  ): Scoreboard {
+    const b = new Scoreboard(title, fundsLost, movedToPayee)
     this.boards.push(b)
     return b
   }
