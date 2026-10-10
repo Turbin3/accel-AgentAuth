@@ -1,4 +1,23 @@
+# rust / solana
 /target
 test-ledger
 *-keypair.json
+keys/*.json
+.anchor
+# node
+node_modules
+dist
+.next
+.turbo
+coverage
+*.tsbuildinfo
+# env / secrets
+.env
+.env.*
+!.env.example
+# os / editor
 .DS_Store
+.vscode/
+.idea/
+# logs
+*.log
