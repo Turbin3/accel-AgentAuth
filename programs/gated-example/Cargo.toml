@@ -2,7 +2,7 @@
 name = "gated-example"
 version = "0.1.0"
 edition = "2021"
-description = "Third-party example program that gates its own instruction with AgentAuth verify"
+description = "Third-party example program that gates its own instruction with AgentAuth verify (test/demo only)"
 license = "MIT"
 publish = false
 
@@ -10,13 +10,15 @@ publish = false
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
+agent-auth-cpi = { path = "../../crates/agent-auth-cpi" }
 pinocchio = { workspace = true }
 pinocchio-pubkey = { workspace = true }
+pinocchio-system = { workspace = true }
 
 [dev-dependencies]
-agent-auth = { path = "../.." }
 litesvm = { workspace = true }
 solana-account = { workspace = true }
+solana-clock = "3.1.0"
 solana-instruction = { workspace = true }
 solana-keypair = { workspace = true }
 solana-message = { workspace = true }
@@ -24,3 +26,6 @@ solana-pubkey = { workspace = true }
 solana-sdk-ids = { workspace = true }
 solana-signer = { workspace = true }
 solana-transaction = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

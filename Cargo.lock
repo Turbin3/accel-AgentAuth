@@ -1375,11 +1375,13 @@ dependencies = [
 name = "gated-example"
 version = "0.1.0"
 dependencies = [
- "agent-auth",
+ "agent-auth-cpi",
  "litesvm",
  "pinocchio",
  "pinocchio-pubkey",
+ "pinocchio-system",
  "solana-account",
+ "solana-clock",
  "solana-instruction",
  "solana-keypair",
  "solana-message",
