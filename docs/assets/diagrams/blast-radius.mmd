@@ -1,0 +1,19 @@
+flowchart LR
+  subgraph who["What an attacker controls"]
+    K["Agent key stolen or<br/>prompt-injected agent"]
+    R["Relay bug"]
+    V["Core verify bug"]
+    U["Upgrade authority<br/>of a program"]
+  end
+  subgraph cap["What still bounds the loss"]
+    D["SPL delegated_amount<br/>(enforced by the Token program)"]
+    P["Relay policy pins<br/>recipients, pool, floor price"]
+    M["Mandate limits<br/>per_tx_limit, spend_limit, expiry"]
+  end
+  K -->|"relay transfer / swap only"| M
+  K --> P
+  K --> D
+  R --> D
+  V --> P
+  V --> D
+  U -.->|"NOT bounded: mitigated only by<br/>burned authority or multisig"| X["Residual trust"]

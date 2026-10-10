@@ -1,0 +1,154 @@
+name: ci
+
+# AgentAuth is an unaudited devnet prototype. CI builds, lints and tests it; it never deploys, publishes
+# or uses secrets. The e2e job runs a local validator only.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *" # nightly e2e
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Pinned to the versions the project is developed and measured with.
+  SOLANA_VERSION: "3.1.8" # solana-cli 3.1.8 bundles platform-tools v1.52 for cargo build-sbf
+  NODE_VERSION: "24"
+
+jobs:
+  rust:
+    name: rust (fmt, clippy, build-sbf, tests)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable, rustfmt, clippy)
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+          rustc -V
+
+      - name: Install Solana CLI ${{ env.SOLANA_VERSION }}
+        # Anza's release installer, version-pinned. Gives cargo-build-sbf and solana-test-validator.
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: Cache Solana platform-tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/solana
+          key: platform-tools-${{ runner.os }}-${{ env.SOLANA_VERSION }}
+
+      - name: Versions
+        run: |
+          solana --version
+          cargo build-sbf --version
+
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+
+      - name: cargo clippy -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Build every on-chain program
+        run: scripts/build-all.sh
+
+      - name: Rust tests (LiteSVM with the real .so files, classic and p-token flavors)
+        # scripts/env.sh points every *_SO variable at target/; a missing .so is a hard failure.
+        run: |
+          source scripts/env.sh
+          cargo test --workspace --no-fail-fast
+
+      - name: Upload built programs
+        uses: actions/upload-artifact@v4
+        with:
+          name: programs
+          path: |
+            target/deploy/*.so
+            target/deploy-localnet/*.so
+          if-no-files-found: error
+          retention-days: 7
+
+  ts:
+    name: ts (typecheck, lint, test, build)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # pnpm version from "packageManager" in package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r --if-present run typecheck
+      - name: Lint
+        run: pnpm -r --if-present run lint
+      - name: Test
+        run: pnpm -r --if-present run test
+      - name: Build
+        run: pnpm -r --if-present run build
+
+  e2e:
+    name: e2e (local validator)
+    # Nightly, manual, and on pushes to main. Not on pull requests: it needs the validator and takes longest.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Install Solana CLI ${{ env.SOLANA_VERSION }}
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+            ~/.cache/solana
+          key: e2e-${{ runner.os }}-${{ env.SOLANA_VERSION }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: e2e-${{ runner.os }}-${{ env.SOLANA_VERSION }}-
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: make e2e (demo smoke --relay, then the CLI end-to-end against a real validator)
+        run: make e2e
+      - name: make demo (scripted scenario and attack runner; scripted, not a live agent)
+        run: make demo
+      - name: Validator logs on failure
+        if: failure()
+        run: tail -n 100 /tmp/agentauth-localnet*/validator.log || true

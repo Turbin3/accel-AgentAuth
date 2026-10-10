@@ -1,0 +1,21 @@
+name: Security note (non-vulnerability)
+description: A hardening idea, a threat-model question or a documentation correction that is NOT an exploitable vulnerability.
+labels: [security-note]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is public. If you can steal funds, bypass a mandate, or crash a program, report it privately privately through the Security tab of this repository (Report a vulnerability) instead, and do not post details here.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: This is not an exploitable vulnerability.
+          required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: Note
+      description: What is the concern, which document or code path, and what would you change?
+    validations: { required: true }
