@@ -1,0 +1,8 @@
+flowchart TB
+  A["Tier 1: the standard (core program)<br/>Mandate record + verify<br/>GUARANTEES: the record is owner-controlled,<br/>verify applies active, expiry, allow-list, limits to the values it is given<br/>DOES NOT: see what the caller does afterwards"]
+  B["Tier 2: the relay (hard enforcement)<br/>transfer = SPL TransferChecked to pinned recipients<br/>swap = one pinned pool with a price floor<br/>The relay derives program, disc8 and amount itself,<br/>pins accounts, checks balance deltas, and the Token program caps by delegated_amount"]
+  C["Tier 3: second integrator (opt-in)<br/>A program that CPIs verify for its own instruction,<br/>pins the AgentAuth id and binds mandate.owner (agent-auth-cpi)<br/>ENFORCES only that instruction, and only if the integrator is correct"]
+  D["Advisory: every other use of verify<br/>caller-reported values, caller may skip the call"]
+  A --> B
+  A --> C
+  A --> D

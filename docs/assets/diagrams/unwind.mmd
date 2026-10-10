@@ -1,0 +1,7 @@
+flowchart LR
+  subgraph TX["One owner-signed transaction (377 B in the localnet demo scenario)"]
+    I1["Token.Revoke(source)"] --> I2["Token.Revoke(in_account)<br/>if different"] --> I3["AgentAuth.revoke_mandate<br/>(closes the mandate)"] --> I4["relay.close_policy"]
+  end
+  I1 -. "agent next sees" .-> E1["Token error / relay 105"]
+  I3 -. "agent next sees" .-> E2["relay 117 (policy still open) or 101"]
+  I4 -. "agent next sees" .-> E3["relay 101 InvalidPolicy"]

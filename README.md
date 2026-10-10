@@ -1,188 +1,235 @@
-<!-- System Architecture Diagram -->
-
-![AgentAuth Overview](assets/overview.png)
-
 # AgentAuth
 
-> **Full Protocol Design Doc:** [AgentAuth v0.1 Overview →](https://docs.google.com/document/d/1QdYEB15HibHH-9RzIKabaoyQRl9nkYZ8fDDlolDVn2Y/edit?tab=t.0)
+**An on-chain authorization record for AI agents on Solana, with one hard enforcement point built on top of it.**
 
-Solana has authentication — keypair signing. What it lacks is **authorization**: a trustless, onchain mechanism that constrains what a delegated signer is actually permitted to do. That gap becomes critical when the signer is not a human but an autonomous AI agent.
+> **Status: unaudited devnet prototype.** Not audited, not mainnet-ready, no mainnet deployment. Program upgrade authorities are ordinary keys today, so nothing here is immutable. Do not put funds behind it that you cannot lose. Scripted demos in this repository are labelled as scripted; the "compromised agent" in them is a script, not an AI.
 
-**AgentAuth** is a Solana program (built on [Pinocchio](https://github.com/febo/pinocchio), no Anchor) that introduces the **AgentMandate** — an onchain permission record defining exactly what an agent is authorized to do: which programs, which instruction discriminators, and under what spend limits. Any Solana program can verify a mandate trustlessly via CPI. No backend. No custodian. No asset migration.
+![System overview](docs/assets/diagrams/overview.png)
 
-## Deployment
+## The thesis
 
-|            |                                                                                                                            |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Program ID | `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if`                                                                             |
-| Cluster    | devnet                                                                                                                     |
-| Explorer   | [view on Solana Explorer](https://explorer.solana.com/address/AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if?cluster=devnet) |
+Solana authenticates keys; it does not say what a delegated key is allowed to do. An agent that holds a key can do whatever the key can do, including what a prompt injection tells it to.
 
----
+1. A **mandate** is a program-owned account that records, for one `(owner, agent)` pair: which programs and which instructions (8-byte discriminators, `disc8`) the agent may call, a per-call and a lifetime spend limit per program, an expiry, and a pause flag. Only the owner changes it, and it can be taken back in one transaction.
+2. Any program can read it and enforce it with one CPI to `verify`. By itself `verify` is **advisory**: it checks the values its caller reports. That is the standard.
+3. **Hard enforcement** exists where the enforcing code derives those values itself. This repository ships one such point, the **relay**: the agent holds a key but no token authority; the owner delegates a bounded SPL allowance to a per-mandate PDA that only the relay can sign for; the relay's `transfer` (SPL `TransferChecked` to pinned recipients) and its pinned single-pool `swap` call `verify` with values they derive from the action they perform. The Token program's `delegated_amount` is the final cap.
+4. What this buys: we do not stop a prompt injection, we cap what a fooled agent can do, on-chain. A stolen or fooled agent key can move at most the smaller of the remaining SPL delegation and the remaining mandate budget, only to allowlisted recipients.
 
-## How It Works
+## What is real today
 
-1. **Create a mandate.** The owner signs `create_mandate` naming the agent's public key and an expiry timestamp. The program derives a PDA from `["mandate", owner, agent]` seeds and writes the mandate header. No assets move. No authority is transferred.
-2. **Add permissions.** The owner calls `add_permission` for each program the agent is allowed to interact with, specifying the target program ID, allowed instruction discriminators, an optional lifetime spend limit, and an optional per-transaction limit.
-3. **Agent acts.** The agent framework calls the `verify` instruction via CPI, passing the target program ID, the instruction discriminator, and the transaction amount. AgentAuth validates every condition and either returns `Ok(())` or reverts the transaction.
-4. **Revoke at any time.** The owner signs `revoke_mandate`. The PDA is closed, rent is returned, and the agent's authority is immediately and irrevocably terminated onchain.
+Status as of 2026-10-11. "Tests" are results of commands run on that day (see [Measured](#measured)); counts for suites I did not run are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
----
+| Piece | Path | Status | Tests run for this README |
+|---|---|---|---|
+| Core program (the standard) | `src/` | built, hardened in place (ABI and layout locked); upgrade of the existing devnet program is **not yet deployed** | `cargo test --workspace`: 708 passed, 0 failed, 10 ignored across 44 test binaries (whole workspace, not core alone) |
+| Relay (hard enforcement) | `programs/relay/` | built; default build allowlists Raydium CPMM (devnet) only; real-Raydium swap not exercised | `smoke` 10 passed (LiteSVM, real `.so`) |
+| Integrator crate | `crates/agent-auth-cpi/` | built; pins the program id and binds the owner | `e2e` run for CU; suite in crate README |
+| Second integrator | `programs/gated-example/` | built; logs an amount, moves nothing | covered by the demo `scenario` beat 4 |
+| TypeScript SDK | `packages/sdk/` | built, not published | 564 passed |
+| CLI (`agentauth`) | `packages/cli/` | built, not published | 44 passed |
+| MCP server (agent / owner / observer) | `packages/mcp/` | built, not published | 85 passed, 45 skipped (localnet e2e needs a running validator) |
+| Cooperative guard | `packages/guard/` | built; client-side only, not enforcement | 46 passed, 1 skipped |
+| Registry of programs and `disc8` | `packages/registry/` | built | 270 passed of 271 (1 skipped) |
+| Dashboard "Mandate Studio" | `apps/dashboard/` | built (Next.js) | 70 passed |
+| Demo (localnet) | `apps/demo/` | `contrast`, `scenario` (34 transactions) and `attacks` (54 attacks) runners; scripted attacker | `scenario` run: PASSED, 34 transactions; 35 unit tests passed |
+| Devnet deployment | `docs/DEPLOY-DEVNET.md` | the core id exists on devnet but its on-chain bytes differ from the current build (sha256 check in the dry run), so it is presumably the pre-hardening binary; the relay is **not** on devnet | read-only checks in the dry run |
 
-## Instructions
+Test totals come from `pnpm -r test` (exit 0) and `cargo test --workspace` (708 passed, 0 failed, 10 ignored) on 2026-10-11 on one machine; they say the suites pass, not that the code is free of bugs.
 
-| #   | Instruction         | Signer    | Description                                              |
-| --- | ------------------- | --------- | -------------------------------------------------------- |
-| 0   | `create_mandate`    | Owner     | Initialise AgentMandate PDA for a given agent            |
-| 1   | `add_permission`    | Owner     | Append a program + discriminators + spend limits entry   |
-| 2   | `remove_permission` | Owner     | Swap-remove a permission entry by program ID             |
-| 3   | `verify`            | Any (CPI) | Validate mandate and record spend; returns `Ok` or `Err` |
-| 4   | `revoke_mandate`    | Owner     | Close the PDA, reclaim rent, terminate all authority     |
+## Three tiers, kept separate
 
----
+| Tier | What it is | What it guarantees | What it does not |
+|---|---|---|---|
+| **1. The standard** (core program) | mandate record + `verify` | only the owner can change it; `verify` applies active, expiry, program and `disc8` allow-list and the limits to the values it is given, and books them atomically | that the caller reports the truth, or even calls it |
+| **2. The relay** (hard) | `transfer` and one pinned `swap`, built on tier 1 | the relay derives program, `disc8` and amount from the action; accounts are pinned in an immutable policy; exact balance deltas are checked; the SPL delegation is an independent hard cap | arbitrary instructions, other mints than the pinned one, MEV, a malicious AMM upgrade authority |
+| **3. A second integrator** (opt-in) | a program that CPIs `verify` for its own instruction (`agent-auth-cpi`, `gated-example`) | that one instruction, if the integrator pins the AgentAuth id, binds `mandate.owner` and derives the values | anything else the integrator does not gate |
 
-## Account Layout
+Everything that depends on a program calling `verify` is **advisory**. Read [docs/SPEC.md](docs/SPEC.md) section 8 and 9 before relying on it.
 
-The `AgentMandate` PDA is a fixed **2,136-byte** account. Offsets live in `src/constants.rs` and are pinned by `tests/layout.rs` against `fixtures/golden_mandate.bin` — no deserialization at verify time.
+## Quickstart (about 5 minutes on a warm cache)
+
+Prerequisites: Rust via rustup (`export PATH="$HOME/.cargo/bin:$PATH"`, Homebrew's cargo breaks `cargo build-sbf`), Solana CLI 3.x with platform tools, Node 24, pnpm 10. Everything runs on a local validator and spends nothing.
+
+```sh
+pnpm install
+scripts/build-all.sh                                   # all programs -> target/deploy, target/deploy-localnet
+scripts/localnet.sh start                              # fresh validator, four programs preloaded
+eval "$(scripts/localnet.sh env)"                      # AA_RPC_URL, AA_WS_URL, AA_DEMO_DIR
+pnpm --filter @agentauth-sol/demo bootstrap            # keys, mints, token accounts, mock pool
+pnpm --filter @agentauth-sol/demo scenario --fast      # the scripted beat sequence; exit 0 = every outcome as expected
+pnpm --filter @agentauth-sol/cli build                 # then the CLI tour below
+```
+
+I ran every step except `pnpm install` (dependencies were already installed on this machine). On 2026-10-11 `scripts/build-all.sh` took 88 s (warm cargo cache), `localnet.sh start` 41 s, `bootstrap` 36 s and `scenario --fast` 33 s. Expected end of the scenario output:
+
+```
+  phase             attempted  blocked  allowed  funds lost to the attacker
+  hot-wallet agent  1          0        1        50 DUSD/DOUT
+  mandate agent     22         17       5        0 DUSD/DOUT
+...
+scenario: PASSED (34 transactions, every outcome as expected)
+```
+
+Without `--fast` each beat pauses 1.2 s for a recording. The localnet relay is the `test-amm` build, which allowlists the mock AMM; **never deploy it** (`deploy/agent_auth_relay.so` is the one to ship).
+
+### CLI tour (what I ran, with real output)
+
+```sh
+alias agentauth="node $PWD/packages/cli/dist/index.js"
+agentauth doctor
+# ok    program agent_auth         deployed (AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if)
+# ok    program agent_auth_relay   deployed (33VpeDjreoanKn8Qa5HLLF247W1ctwgMnixg36yhqkN6)
+agentauth mandate create --preset payments-usdc --per-call "5 DUSD" --budget "20 DUSD" \
+  --delegate "50 DUSD" --allow-override --recipient @recipientDusd --swap-pool demo \
+  --swap-per-call 5 --swap-budget 10 --yes
+#   1. Create mandate, grant permissions, delegate: 532 B
+#   2. Activate relay policy: 1072 B, after step 1
+#   HARD  Transfer (checked) on SPL Token (only via relay transfer, to allowlisted token accounts)
+agentauth relay pay --to @recipientDusd --amount "3 DUSD"
+# Paid 3 DUSD ... relay -> AgentAuth.verify -> Token.TransferChecked (hard-enforced)
+agentauth relay pay --to @attackerDusd --amount "40 DUSD" --no-preflight
+# error relay transfer landed and FAILED on chain (the fee is paid, nothing moved)
+#   program error  relay:104 RecipientNotAllowed        (exit 3)
+agentauth permission remove spl-token --yes
+agentauth relay pay --to @recipientDusd --amount "1 DUSD" --no-preflight
+#   program error  agent_auth:6 ProgramNotAllowed       (exit 3)
+agentauth mandate revoke --yes                          # one transaction, 377 B
+agentauth relay pay --to @recipientDusd --amount "1 DUSD"
+#   error pre-flight: this mandate has no relay policy ... relay:101 InvalidPolicy   (exit 2)
+```
+
+## Demo highlights (scripted, local validator, mock AMM)
+
+Copied from the run of `scenario --fast` and from [docs/DEMO.md](docs/DEMO.md), which has the beat table and full transcripts. The attacker "MALLORY" is a script.
+
+| Beat | Attempt | Outcome |
+|---|---|---|
+| 1.1 | hot-wallet agent (holds the funds) obeys the injection | succeeds: 50 DUSD lost (the control) |
+| 3.1 | pay the attacker's account | BLOCKED `relay 104 RecipientNotAllowed` |
+| 3.2 | 40 DUSD to the allowed payee | BLOCKED `agent_auth 8 PerTxExceeded` |
+| 3.3 | more than the whole delegation | BLOCKED `relay 105 TokenAccountState` (the SPL delegation is the independent cap) |
+| 3.4 | five transfers in one transaction | BLOCKED `agent_auth 9 SpendLimitExceeded` at instruction 3; whole transaction reverts |
+| 3.5 to 3.7 | raw `TransferChecked`, `Approve`, `SetAuthority` with the agent key | BLOCKED `token 4 OwnerMismatch` (the Token program, as for any wallet) |
+| 3.9 | swap output into the attacker's account | BLOCKED `relay 102 AccountMismatch` |
+| 4.1, 4.2 | a different program (`gated-example`) checks the same mandate | `gated_action(4)` ok; `gated_action(11)` BLOCKED `agent_auth 8` |
+| 5.1, 5.2, 5.3 | **live revoke**: owner removes the Token permission; the agent pays; the agent swaps | BLOCKED `agent_auth 6 ProgramNotAllowed`; the swap still succeeds |
+| 5.4, 5.5 | owner re-adds Token with a different instruction list | BLOCKED `agent_auth 7 DiscriminatorNotAllowed` |
+| 6.1 | owner pauses the relay policy | BLOCKED `relay 116 Paused`; resume works |
+| 7.2 | swap at a price pushed by a scripted searcher | BLOCKED `mock_amm 7001 ExceededSlippage` |
+| 8.1, 8.3 | one-transaction unwind (377 B), then the agent pays again | unwind succeeds; payment BLOCKED `relay 101 InvalidPolicy` |
+
+Final scoreboard of that run: mandate agent attempted 22, blocked 17, allowed 5, funds lost to the attacker 0. The agent can still pay its pinned payee up to the budget: that is the blast radius, not a bug. The `attacks` runner (54 scripted attacks with balance and delegation checks after each) takes about 3 minutes; its results are in [docs/DEMO.md](docs/DEMO.md), and I did not re-run it for this README.
+
+## The core program in one page
+
+PDA `["mandate", owner, agent]`, 2136 bytes (`88 + 16 * 128`). Offsets are in `src/constants.rs`, pinned by `tests/layout.rs` against `fixtures/golden_mandate.bin`. Full normative text: [docs/SPEC.md](docs/SPEC.md).
 
 ```
 HEADER (88 bytes)
-  [0]     discriminator   u8        — 1 once initialized
-  [1-32]  owner           [u8; 32]  — mandate owner pubkey
-  [33-64] agent           [u8; 32]  — authorized agent pubkey
-  [65-72] expiry          i64       — unix timestamp
-  [73]    active          u8        — 0 = revoked, 1 = active
-  [77-78] permissions_len u16       — current permission count
-
-PERMISSIONS (16 × 128 bytes = 2,048 bytes)
-  Each slot:
-    [0-31]   program_id         [u8; 32]     — target program
-    [32-39]  spend_limit        u64          — lifetime cap (0 = unlimited)
-    [40-47]  per_tx_limit       u64          — per-tx cap (0 = unlimited)
-    [48-55]  spend_total        u64          — cumulative spend
-    [56-59]  call_count         u32          — total calls
-    [60]     discriminators_len u8           — count of allowed instructions
-    [64-127] discriminators     [[u8;8]; 8]  — allowed ix discriminators
+  [0]      disc            u8        1 once initialised
+  [1-32]   owner           [u8;32]
+  [33-64]  agent           [u8;32]
+  [65-72]  expiry          i64       first second at which the mandate is invalid (expired iff now >= expiry)
+  [73]     active          u8        1 active, 0 paused (set_active). Revoke CLOSES the account
+  [77-78]  permissions_len u16
+  [79]     version         u8        1 (0 on accounts from the pre-hardening binary)
+  [80]     bump            u8        stored PDA bump
+PERMISSIONS (16 x 128 bytes from offset 88)
+  [0-31] program_id  [32-39] spend_limit u64 (0 = unlimited)  [40-47] per_tx_limit u64 (0 = unlimited)
+  [48-55] spend_total u64   [56-59] call_count u32   [60] discriminators_len u8   [64-127] 8 x disc8
 ```
 
-**Max 16 permissions per mandate. Max 8 discriminators per permission.**
+| Tag | Instruction | Signer | Data (after tag) |
+|---|---|---|---|
+| 0 | `create_mandate` | owner | `expiry` i64 (must be in the future) |
+| 1 | `add_permission` | owner | program[32], spend_limit u64, per_tx_limit u64, disc_len u8, disc8 x disc_len |
+| 2 | `remove_permission` | owner | program[32] (removes the whole slot) |
+| 3 | `verify` | **agent** | program[32], disc8[8], amount u64 (49 bytes total) |
+| 4 | `revoke_mandate` | owner | none; closes the account, returns rent. Re-creation at the same address is possible |
+| 5 | `set_active` | owner | 1 resume, 0 pause (reversible) |
+| 6 | `update_permission` | owner | program[32], spend_limit u64, per_tx_limit u64; counters preserved |
 
----
+`verify` check order, cheapest first (accounts `[mandate W, owner R, agent S]`): mandate owned by AgentAuth (14), size and discriminator (16), active (4), not expired (5), owner key (2), agent key (17), agent signed (18), program has a slot (6), `disc8` allowed (7), `amount <= per_tx_limit` (8), `spend_total + amount <= spend_limit` (9), then book the spend. Error codes 1..22 are in the SPEC; the relay's are 100..119.
 
-## Verify: The Critical Path
+Trust note, in plain words: **`verify` checks caller-reported values. It is advisory unless the integrator derives them.** Hard enforcement exists only in the relay `transfer` and the pinned `swap`, and in an integrator that gates its own instruction.
 
-`verify` is the most-called instruction. Checks are ordered by cheapness, fail-fast:
+## Measured
 
-1. Assert mandate account is owned by this program
-2. Read `active` byte — fail immediately if `0`
-3. Read `expiry` — compare against `Clock` sysvar
-4. Assert `owner` and `agent` pubkeys match accounts provided
-5. Assert agent is a signer
-6. Linear scan `permissions[]` for `program_id` match (max 16)
-7. Linear scan `discriminators[]` for `[u8; 8]` match (max 8)
-8. Check `amount <= per_tx_limit` if set
-9. Check `spend_total + amount <= spend_limit` if set
-10. Write back: increment `call_count`, add to `spend_total` → return `Ok`
+Only numbers I produced with a command on 2026-10-11 (LiteSVM unless stated, not mainnet); [docs/BENCHMARKS.md](docs/BENCHMARKS.md) holds the full tables and the metrics refreshed from the final build.
 
-**Estimated CU cost: ~1,500–2,500 CU** for a fully loaded mandate. Zero deserialization — all reads at compile-time byte offsets.
+| Measurement | Value | Command |
+|---|---|---|
+| core `verify` | 480 to 738 CU (slot 1 to slot 16, 8th discriminator, limits set) | `cargo test --test regression_cu -- --nocapture` |
+| `agent-auth-cpi` overhead over a bare verify CPI | 162 CU | `cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture` |
+| relay `transfer` (classic spl-token / p-token variant / Token-2022 ATA-shaped) | 10,764 / 4,623 / 6,439 CU | `cargo test -p agent-auth-relay --test smoke -- --nocapture --test-threads=1` |
+| relay `swap` incl. mock AMM | 12,153 CU | same |
+| onboarding transactions | 532 B and 1072 B (limit 1232 B) | `agentauth mandate create ...` (local validator) |
+| unwind transaction | 377 B | `agentauth mandate revoke --yes` |
+| built program sizes | core 36,472 B, relay 64,032 B | `scripts/build-all.sh` |
 
----
+The old README's "estimated 1,500 to 2,500 CU" for `verify` was wrong; the figure above replaces it. The old Pinocchio-versus-Anchor CU comparison was never measured and has been removed.
 
-## Architecture
+## Repository map
 
 ```
-src/
-  lib.rs                  — entrypoint + instruction dispatch
-  constants.rs            — all byte offsets and size constants
-  state.rs                — zero-copy Mandate / Permission views
-  error.rs                — MandateError enum (stable error codes)
-  instructions/
-    create_mandate.rs     — [0] derive PDA, init header
-    add_permission.rs     — [1] append permission slot
-    remove_permission.rs  — [2] swap-remove permission slot
-    verify.rs             — [3] CPI-composable mandate check
-    revoke_mandate.rs     — [4] close PDA, zero data, return rent
-
-tests/
-  layout.rs                           — offset/size pinned against golden fixture
-  mandate_lifecycle_test.rs           — create → add → remove lifecycle
-  verify_tests_unit.rs                — verify logic unit tests
-  verify_tests_integration.rs         — verify via LiteSVM
-  full_lifecycle_tests_integration.rs — end-to-end
-  remove_permission.rs
-  revoke_mandate.rs
-  security.rs                         — signer validation, PDA spoofing, etc.
-
-fixtures/
-  golden_mandate.bin                  — pinned binary fixture for layout tests
+src/ tests/ fixtures/      core program `agent_auth` (Pinocchio, no_std), tests, golden layout fixture
+programs/relay/            agent_auth_relay: hard enforcement (transfer, pinned swap, policy lifecycle)
+programs/gated-example/    ~100-line second integrator of verify
+programs/mock-amm/         Raydium-CPMM-shaped test AMM with adversarial modes (test and demo only)
+programs/evil-token/       test-only Token stub for LiteSVM
+crates/agent-auth-cpi/     safe-by-default Rust helper for integrators
+idl/                       core-idl.json, relay-idl.json: source of truth for offsets and layouts
+packages/{sdk,cli,mcp,guard,registry}   TypeScript clients (scope @agentauth-sol/, not published)
+apps/dashboard/            Mandate Studio (Next.js)
+apps/demo/                 localnet bootstrap, scripted attacker, contrast / scenario / attacks runners
+scripts/                   build-all.sh, test-all.sh, localnet.sh, devnet-deploy.sh (dry run by default)
+docs/                      SPEC, ARCHITECTURE, INTEGRATING, SECURITY, DEMO, COMPARISON, DISCLOSURE, DEPLOY-DEVNET, ...
+keys/                      generated program keypairs (gitignored; back them up)
 ```
 
----
+## Documentation
 
-## Why Pinocchio, Not Anchor
+| Document | For |
+|---|---|
+| [docs/SPEC.md](docs/SPEC.md) | the normative Mandate standard: layout, instructions, `verify`, errors, integrator rules, conformance |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | components, tiers, onboarding, transfer flow, unwind, trust model, design decisions, CU and size budget |
+| [docs/INTEGRATING.md](docs/INTEGRATING.md) | program authors, agent frameworks, API sellers |
+| [docs/SECURITY.md](docs/SECURITY.md) | threat model, findings, accepted limitations |
+| [docs/DEMO.md](docs/DEMO.md) | demo guide, beat table, real transcripts |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | measured CU, sizes, test counts, mutation scores |
+| [docs/COMPARISON.md](docs/COMPARISON.md) | other projects, with sources |
+| [docs/DISCLOSURE.md](docs/DISCLOSURE.md) | pre-existing versus in-window work |
+| [docs/DEPLOY-DEVNET.md](docs/DEPLOY-DEVNET.md) | the devnet runbook (nothing is executed for you) |
 
-|                        | Pinocchio (AgentAuth)   | Anchor               |
-| ---------------------- | ----------------------- | -------------------- |
-| Account reads          | Direct byte offsets     | Full deserialization |
-| CU cost (verify)       | ~1,500–2,500            | ~5,000–10,000+       |
-| Discriminator overhead | 1-byte `u8` tag         | 8-byte prefix        |
-| Code transparency      | Line-by-line, no macros | Macro-generated      |
+## What is NOT claimed
 
----
+* Not audited. Not mainnet-ready. Not immutable: upgrade authorities are keys until someone burns or transfers them.
+* Not "trustless": you trust the program code, the Token program, the pinned AMM and each program's upgrade authority.
+* Not prompt-injection prevention. A fooled agent can still pay its allowlisted payees up to the budget.
+* Not MEV protection: the swap floor is a static price guard.
+* Not general instruction gating: only `transfer` and one pinned `swap` are hard-enforced. Everything else is advisory.
+* Not a market-demand claim, and not a claim that nothing like it exists: see below.
+* Real Raydium CPMM swap CU is unmeasured; the demo swap runs against a mock AMM.
+* The dashboard, CLI and MCP server are clients; they add no enforcement.
 
-## Build & Test
+## Prior art and what is different
 
-Build the on-chain program first, then run the tests:
+Squads (the [Smart Account Program](https://github.com/Squads-Protocol/smart-account-program) has instruction-level policies; [v4 SpendingLimit](https://github.com/Squads-Protocol/v4) does not), [Swig](https://github.com/anagrambuild/swig-wallet) and LazorKit enforce limits by executing from a program-controlled wallet account. The Solana Foundation's [Subscriptions & Allowances](https://github.com/solana-foundation/subscriptions) uses a per-user authority PDA as the SPL delegate, as the relay does, with no program or instruction scoping. Off-chain policy engines (Privy, Turnkey, Coinbase) scope by instruction inside a vendor's signer. On EVM, [ERC-7710/7715](https://github.com/MetaMask/delegation-framework) and [Zodiac Roles](https://github.com/gnosisguild/zodiac-modifier-roles) are the closest standards. Hackathon projects with related ideas: [AgentTrust](https://github.com/agenttrust-labs/agenttrust), [Fuin](https://github.com/Fuin-Labs/Fuin), [Guardrail](https://guardrail.shikhr.in/), [SNSIP-Agent](https://github.com/hien-p/snsip-agent), [Altheia](https://github.com/altheia-xyz/altheia-program).
 
-```sh
-cargo build-sbf      # compile the program -> target/deploy/agent_auth.so
-cargo test           # host unit + layout + litesvm integration tests
-```
+What is different, narrowly: AgentAuth is a non-custodial, agent-keyed record with owner-configured `(program, disc8)` allow-lists, per-permission per-call and lifetime caps, and a CPI-callable `verify` that any program can use, plus a relay that makes it binding for two actions without moving assets. Among the 36 hackathon repositories and 19 incumbents and standards we reviewed (as of 2026-10-11), we found none combining all of these; each ingredient exists somewhere, and "we found none" is bounded by what we read. We do not claim to be first. Full matrix with sources: [docs/COMPARISON.md](docs/COMPARISON.md).
 
-Order matters: the litesvm integration tests load the compiled
-`target/deploy/agent_auth.so`, and `cargo test` does not rebuild it. If you skip
-`cargo build-sbf` after changing a handler, you'll run stale bytecode (an old
-build can panic in a handler that's actually fine in source).
+## Status and disclosure
 
-If you change the account layout, regenerate the golden fixture:
+The core program (`src/`) and its first devnet deployment are **pre-existing work** from the team's earlier capstone, imported as a baseline snapshot before the Crypto World's Fair window. In-window work is: core hardening (tags 5 and 6, errors 19..22, real close on revoke, pre-funding robustness, a rewritten test suite), the relay, the integrator crate, the second integrator, the SDK, CLI, MCP server, guard, registry, dashboard, demo and attack suite, and these documents. The exact split, with commits, is in [docs/DISCLOSURE.md](docs/DISCLOSURE.md).
 
-```sh
-cargo test write_golden -- --ignored
-```
+The hardened core and the relay have not been deployed to devnet yet; the on-chain core program's bytes differ from the current build (read-only sha256 comparison on 2026-10-11) and the relay id has no account on devnet. See [docs/DEPLOY-DEVNET.md](docs/DEPLOY-DEVNET.md).
 
-## Devnet Tests
+## Contributing and reporting security issues
 
-`tests/devnet.rs` drives the live program over RPC: the full lifecycle (create, add, verify, remove, revoke) plus the reject path for every handler. They're `#[ignore]` by default; run them with a funded payer keypair:
+Build and test: `scripts/build-all.sh`, then `scripts/test-all.sh` (builds, runs `cargo test --workspace` with every `*_SO` variable set, then `pnpm -r test`; a missing `.so` is a hard failure). Order matters: LiteSVM tests load the compiled `.so`, so rebuild after changing a handler. If you change the account layout, regenerate the golden fixture with `cargo test write_golden -- --ignored` and update `idl/core-idl.json`.
 
-```sh
-AA_PAYER=payer.json cargo test --test devnet -- --ignored
-```
-
-![devnet tests passing](assets/devnet-tests.png)
-
----
-
-## Roadmap
-
-| Phase                                   | Scope                                                                                                      |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Phase 1 — Core Protocol** _(current)_ | Onchain program, fixed-size layout, all 5 instructions, devnet deployment, integration tests               |
-| **Phase 2 — Integration Surface**       | TypeScript SDK, CLI, reference Jupiter integration, documentation                                          |
-| **Phase 3 — Agent Accessibility**       | MCP server exposing `get_mandate`, `check_permission`, `create_mandate`, `revoke_mandate` as LLM tools     |
-| **Phase 4 — Future**                    | Rolling spend-window resets, agent-to-agent sub-delegation, target protocol CPI integrations, formal audit |
-
----
-
-## Tech Stack
-
-| Layer   | Stack                                                |
-| ------- | ---------------------------------------------------- |
-| Program | Pinocchio 0.9, pinocchio-system 0.4, `no_std`        |
-| Testing | LiteSVM 0.12 (integration), Rust unit tests          |
-| Build   | `cargo build-sbf`, `overflow-checks = true`, LTO fat |
-
----
+Please report security issues privately (GitHub "Report a vulnerability" on the repository) rather than in a public issue. Include the program, the instruction, and a LiteSVM or localnet reproduction if you have one. The threat model and the list of accepted limitations are in [docs/SECURITY.md](docs/SECURITY.md).
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

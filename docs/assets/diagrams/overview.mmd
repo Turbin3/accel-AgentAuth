@@ -1,0 +1,32 @@
+flowchart TB
+  subgraph Owner["Owner (human wallet)"]
+    OW["owner key<br/>holds the tokens"]
+  end
+  subgraph Agent["Agent process"]
+    AG["agent key<br/>fee SOL only,<br/>no token authority"]
+  end
+  subgraph Core["AgentAuth core (standard)"]
+    MD[("Mandate PDA<br/>2136 B<br/>programs, disc8, limits, expiry")]
+    VF["verify (tag 3)"]
+  end
+  subgraph Relay["Relay (hard enforcement)"]
+    PO[("RelayPolicy PDA<br/>944 B<br/>recipients, pool, floor")]
+    TR["transfer (tag 3)"]
+    SW["swap (tag 4)"]
+  end
+  TOK["SPL Token / Token-2022<br/>delegated_amount = hard cap"]
+  AMM["Pinned AMM<br/>Raydium CPMM"]
+  GX["Any other program<br/>(e.g. gated-example)<br/>advisory unless it gates itself"]
+  OW -- "create_mandate, add_permission,<br/>set_active, revoke_mandate" --> MD
+  OW -- "init_policy, set_paused, close_policy" --> PO
+  OW -- "Approve(delegate = relay authority PDA)" --> TOK
+  AG -- "transfer / swap" --> TR
+  AG --> SW
+  TR -- "CPI 1" --> VF
+  SW -- "CPI 1" --> VF
+  VF --- MD
+  TR -- "CPI 2: TransferChecked<br/>signed by authority PDA" --> TOK
+  SW -- "CPI 2: swap_base_input" --> AMM
+  AMM --> TOK
+  AG -- "own instruction" --> GX
+  GX -- "CPI: verify" --> VF

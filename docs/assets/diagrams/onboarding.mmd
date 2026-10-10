@@ -1,0 +1,15 @@
+sequenceDiagram
+  autonumber
+  participant O as Owner wallet
+  participant C as AgentAuth core
+  participant T as SPL Token
+  participant R as Relay
+  Note over O,T: Transaction 1 (owner signs, about 532 B with one permission)
+  O->>C: System.Transfer fee SOL to agent
+  O->>C: create_mandate(expiry)
+  O->>C: add_permission(Token program, limits, [TransferChecked])
+  O->>C: add_permission(AMM program, limits, [swap]) (optional)
+  O->>T: Approve(source, delegate = authority PDA, amount)
+  Note over O,R: Transaction 2 (1072 B, does not fit in tx 1)
+  O->>R: init_policy(recipients, pool, floor, flags)
+  Note over R: Until all pieces exist every agent action fails closed

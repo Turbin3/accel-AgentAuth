@@ -1,0 +1,14 @@
+sequenceDiagram
+  autonumber
+  participant A as Agent (signer)
+  participant R as Relay.transfer
+  participant C as AgentAuth.verify
+  participant T as SPL Token
+  A->>R: [3] + amount (9 B), 10 accounts
+  Note over R: agent signed, policy valid, not paused,<br/>mandate live and bound, expiry matches,<br/>destination in recipients, delegate and balances read
+  R->>C: CPI 1 verify(mandate W, owner R, agent R+S)<br/>data: [3] + token_program + [12,0,0,0,0,0,0,0] + amount
+  C-->>R: Ok (spend_total += amount, call_count += 1) or Custom(4..18)
+  R->>T: CPI 2 TransferChecked(source, mint, dest, authority PDA)<br/>signer seeds ["authority", mandate, bump]
+  T-->>R: Ok, or Custom(n) if delegated_amount or balance too low
+  Note over R: balance deltas must equal amount exactly (else 106)
+  R-->>A: event TransferExecuted (sol_log_data)

@@ -13,7 +13,7 @@ statement less true, in order. See [SECURITY.md](SECURITY.md) for the limitation
 | Finish the 233-mutant relay campaign and triage the interim survivors | Each survivor is either an equivalent mutant or a test gap; the binding checks (`C15` to `C17`) matter most | The campaign finishing; a decision per survivor |
 | Replay the one deep-fuzz case that ended in a runtime "Could not create program address" error (seed 424243, iteration 145,566) | Establish that it is only an error-code quality issue, then map it to a relay error or document it | Reproducing with the recorded seed |
 | Measure swap compute units and behaviour against the real Raydium CP-Swap binary (`SW-15`) | Today only the mock AMM is tested; the real binary may differ | A dumped devnet binary and a devnet pool |
-| Regenerate or retire `overview/*.docx` | It has drifted from the code (SPEC-15, MATH-14) | A decision whether to keep a docx |
+| ~~Regenerate or retire the overview docx~~ | Done: moved to `docs/archive/pre-hackathon/` and marked superseded (it had drifted from the code: SPEC-15, MATH-14) | none |
 | Publish a verifiable build for each deployed program | Lets anyone tie deployed bytes to source ([AUDIT-PREP.md](AUDIT-PREP.md) section 4.4) | A public repository and a deployment |
 
 ## 2. Deployment and governance

@@ -255,7 +255,7 @@ Evidence names are test functions under `tests/` (`regression_lifecycle`, `regre
 | MATH-11 | info | CU claim overstated | docs | measured CU replaces the estimate; see docs/BENCHMARKS.md |
 | MATH-12 | low | Boundary/sentinel logic not pinned by tests | fixed | tests/error_matrix.rs, tests/regression_verify.rs, tests/model_properties.rs; 98 of 99 mutants killed |
 | MATH-13 | info | Revocation claims overstated | fixed | regression_lifecycle::revoke_is_a_real_close, set_active_pauses_and_resumes… |
-| MATH-14 | info | Overview struct listing sums to 81 header bytes, not 88 | deferred | overview/*.docx was not regenerated; it still lists an 81-byte header. The code and docs/SPEC.md are authoritative |
+| MATH-14 | info | Overview struct listing sums to 81 header bytes, not 88 | deferred | the overview docx was not regenerated (it is now archived in docs/archive/pre-hackathon/ and marked superseded); it still lists an 81-byte header. The code and docs/SPEC.md are authoritative |
 | SPEC-1 | info | Claims audit table (README + docx) | docs | claims audit; input to the documentation rewrite |
 | SPEC-2 | info | CU estimate 2-3x too high | docs | CU estimate replaced by measurements |
 | SPEC-3 | medium | Trust model omitted from README | docs | trust-model statement: section 3 of this file |

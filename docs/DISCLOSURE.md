@@ -21,8 +21,8 @@ What the baseline contained (29 files):
 | Core on-chain program `agent_auth` | A Pinocchio program, 973 lines in `src/` (10 files), 5 instructions: `create_mandate`, `add_permission`, `remove_permission`, `verify`, `revoke_mandate` |
 | Test suite | 41 passing tests plus 7 ignored (6 devnet, 1 golden writer), about 2,100 lines in `tests/` |
 | Golden layout fixture | `fixtures/golden_mandate.bin` (the 2136-byte mandate layout) |
-| README and images | `README.md`, `assets/overview.png`, `assets/devnet-tests.png` |
-| Design document | `overview/AgentAuthorizationProtocol_Overview.docx` (v0.1) |
+| README and images | `README.md`, `overview.png`, `devnet-tests.png` (the images are now in `docs/archive/pre-hackathon/`) |
+| Design document | `AgentAuthorizationProtocol_Overview.docx` (v0.1; now `docs/archive/pre-hackathon/`, superseded) |
 
 Evidence for the dates, from sources other than the commit message:
 
@@ -155,5 +155,5 @@ git log --oneline 7677fef..HEAD | wc -l
 git diff --numstat 7677fef..e38124d      # per-file added/deleted lines; sum by directory
 solana block-time 471094128 --url devnet # baseline deployment time
 solana program show AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if --url devnet
-unzip -p overview/AgentAuthorizationProtocol_Overview.docx docProps/core.xml
+unzip -p docs/archive/pre-hackathon/AgentAuthorizationProtocol_Overview.docx docProps/core.xml
 ```
