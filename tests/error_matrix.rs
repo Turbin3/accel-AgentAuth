@@ -1013,6 +1013,14 @@ fn verify_rows() -> Vec<Case> {
     const AMOUNT: std::ops::Range<usize> = 41..49;
 
     rows.push(v("allowed call", St::Active, W::Ok, |_, _| {}));
+    // Check order (error.rs): program owner (14) comes before the writable
+    // check (InvalidAccountData). A mandate that fails both reports 14.
+    rows.push(v(
+        "foreign-owned AND read-only reports the owner mismatch first",
+        St::Foreign,
+        W::Code(E::AccountOwnerMismatch),
+        |ix, _| ix.accounts[0].is_writable = false,
+    ));
     rows.push(v(
         "extra trailing accounts are ignored",
         St::Active,
