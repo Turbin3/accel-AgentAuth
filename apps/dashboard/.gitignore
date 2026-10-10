@@ -1,0 +1,5 @@
+test-results/
+playwright-report/
+.next/
+tsconfig.tsbuildinfo
+next-env.d.ts
