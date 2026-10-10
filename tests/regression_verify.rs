@@ -2,11 +2,10 @@
 //! saturation, strict input validation and robustness against corrupt state.
 //! Each test asserts the FIXED behaviour.
 
-mod regression_support;
+mod common;
 
-use regression_support::*;
+use common::integration::*;
 
-use agent_auth::*;
 use solana_account::Account;
 use solana_pubkey::Pubkey;
 use solana_signer::Signer;

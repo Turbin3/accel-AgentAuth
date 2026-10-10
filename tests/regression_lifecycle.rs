@@ -2,11 +2,10 @@
 //! by pre-funding, zombie accounts after revoke, pause/resume, limit updates
 //! and creation-time validation. Each test asserts the FIXED behaviour.
 
-mod regression_support;
+mod common;
 
-use regression_support::*;
+use common::integration::*;
 
-use agent_auth::*;
 use solana_account::Account;
 use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
