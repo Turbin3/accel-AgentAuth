@@ -1,0 +1,26 @@
+[package]
+name = "fixture-caller"
+version = "0.1.0"
+edition = "2021"
+description = "Test fixture: a tiny third-party program that uses agent-auth-cpi (built with cargo build-sbf, loaded by tests/e2e.rs)"
+license = "MIT"
+publish = false
+
+# Standalone workspace: this crate is a build fixture, not a member of the repo workspace.
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+agent-auth-cpi = { path = "../.." }
+pinocchio = "0.9.3"
+pinocchio-system = "0.4.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1

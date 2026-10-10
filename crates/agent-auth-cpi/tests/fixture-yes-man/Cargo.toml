@@ -1,0 +1,22 @@
+[package]
+name = "fixture-yes-man"
+version = "0.1.0"
+edition = "2021"
+description = "Test fixture: adversarial stand-in for AgentAuth that accepts every instruction (negative control for the program-id check)"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+pinocchio = "0.9.3"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
