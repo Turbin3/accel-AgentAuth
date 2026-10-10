@@ -38,6 +38,7 @@
       "token2022": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
       "system": "11111111111111111111111111111111",
       "nativeMint": "So11111111111111111111111111111111111111112",
+      "nativeMint2022": "9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP",
       "agentAuth": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if",
       "raydiumCpmmMainnet": "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C",
       "raydiumCpmmDevnet": "DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb"
@@ -130,7 +131,7 @@
       "name": "init_policy",
       "tag": 0,
       "signer": "owner",
-      "desc": "Create the RelayPolicy PDA for a mandate (robust to a pre-funded PDA). Config is immutable afterwards.",
+      "desc": "Create the RelayPolicy PDA for a mandate (robust to a pre-funded PDA). Config is immutable afterwards. The policy is bound to the mandate generation only through the mandate expiry (error 118 on mismatch): after revoke_mandate then create_mandate with the SAME expiry, an un-closed policy and un-revoked SPL delegation re-bind with fresh counters. Always pair revoke_mandate with close_policy and a token Revoke (the SDK unwind does).",
       "dataLength": 802,
       "args": [
         {
@@ -251,14 +252,15 @@
         100,
         108,
         101,
-        109
+        109,
+        102
       ]
     },
     {
       "name": "close_policy",
       "tag": 2,
       "signer": "owner",
-      "desc": "Owner-only. Return rent and delete the policy. Works even if the mandate is already revoked.",
+      "desc": "Owner-only. Return rent and delete the policy. Works even if the mandate is already revoked. Pair it with revoke_mandate and a token Revoke on every delegated account: the relay cannot detect a re-created mandate that reuses the old expiry.",
       "dataLength": 1,
       "args": [
         {
@@ -289,7 +291,8 @@
         100,
         108,
         101,
-        109
+        109,
+        102
       ]
     },
     {
@@ -311,7 +314,7 @@
           "type": "u64",
           "offset": 1,
           "size": 8,
-          "desc": "raw units of budget_mint; > 0; the SAME value feeds verify and TransferChecked"
+          "desc": "raw units of budget_mint; > 0; the SAME value feeds verify and TransferChecked. NOTE: per_tx_limit in the mandate is checked per verify call, not per transaction: up to 21 relay transfers fit in one transaction (measured, RT-22), so the loss in one transaction is bounded by min(21 x per_tx_limit, remaining spend_limit, delegated_amount)"
         }
       ],
       "accounts": [
@@ -451,7 +454,7 @@
           "type": "u64",
           "offset": 1,
           "size": 8,
-          "desc": "raw in_mint units; > 0; same value feeds verify and the AMM"
+          "desc": "raw in_mint units; > 0; same value feeds verify and the AMM. NOTE: the AMM permission per_tx_limit is checked per verify call, not per transaction (see transfer.amount)"
         },
         {
           "name": "min_out",
@@ -779,7 +782,7 @@
           "offset": 176,
           "size": 32,
           "mutableBy": "init only",
-          "desc": "the one mint the transfer action may move; extension-free; not native mint"
+          "desc": "the one mint the transfer action may move; extension-free; not a native (wrapped SOL) mint, classic or Token-2022"
         },
         {
           "name": "source_account",
@@ -883,7 +886,7 @@
           "offset": 728,
           "size": 32,
           "mutableBy": "init only",
-          "desc": "swap input mint; extension-free; not native mint"
+          "desc": "swap input mint; extension-free; not a native (wrapped SOL) mint, classic or Token-2022"
         },
         {
           "name": "out_mint",
@@ -1136,7 +1139,7 @@
     {
       "code": 102,
       "name": "AccountMismatch",
-      "msg": "A passed account key differs from the key pinned in the policy / derived PDA / mandate binding",
+      "msg": "A passed account key differs from the key pinned in the policy / derived PDA / mandate binding, or an account the instruction mutates (set_paused policy; close_policy owner and policy) was passed read-only",
       "raisedBy": "agent_auth_relay"
     },
     {
@@ -1202,7 +1205,7 @@
     {
       "code": 113,
       "name": "InvalidConfig",
-      "msg": "init_policy configuration failed validation, or policy already initialised",
+      "msg": "init_policy configuration failed validation (including a native/wrapped-SOL budget or input mint, classic or Token-2022), or policy already initialised",
       "raisedBy": "agent_auth_relay"
     },
     {

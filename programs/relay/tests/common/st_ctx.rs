@@ -306,7 +306,7 @@ dual_token!(unwind_in_one_transaction_stops_the_agent, |ctx| {
     assert!(ctx
         .svm
         .get_account(&ctx.mandate)
-        .map_or(true, |a| a.lamports == 0 || a.data.iter().all(|b| *b == 0)));
+        .is_none_or(|a| a.lamports == 0 || a.data.iter().all(|b| *b == 0)));
     assert!(ctx.svm.get_account(&ctx.policy).is_none(), "policy closed");
     ctx.send_agent(&[ctx.transfer_ix(10)])
         .assert_relay_err(relay_err::INVALID_POLICY);
@@ -386,11 +386,17 @@ dual_token!(fake_programs_are_rejected_before_any_cpi, |ctx| {
     ctx.install_always_ok(fake);
     let before = ctx.snapshot();
     // TR-13: fake AgentAuth program that always returns Ok
-    let ix = ctx.transfer_ix(10).with_account(transfer_idx::AGENTAUTH_PROGRAM, fake);
-    ctx.send_agent(&[ix]).assert_relay_err(relay_err::WRONG_PROGRAM);
+    let ix = ctx
+        .transfer_ix(10)
+        .with_account(transfer_idx::AGENTAUTH_PROGRAM, fake);
+    ctx.send_agent(&[ix])
+        .assert_relay_err(relay_err::WRONG_PROGRAM);
     // TR-14: fake Token program that "succeeds" without moving funds
-    let ix = ctx.transfer_ix(10).with_account(transfer_idx::TOKEN_PROGRAM, fake);
-    ctx.send_agent(&[ix]).assert_relay_err(relay_err::ACCOUNT_MISMATCH);
+    let ix = ctx
+        .transfer_ix(10)
+        .with_account(transfer_idx::TOKEN_PROGRAM, fake);
+    ctx.send_agent(&[ix])
+        .assert_relay_err(relay_err::ACCOUNT_MISMATCH);
     assert_nothing_moved(&before, &ctx.snapshot());
 });
 
@@ -398,7 +404,11 @@ dual_token!(fake_programs_are_rejected_before_any_cpi, |ctx| {
 
 #[test]
 fn every_invalid_config_row_is_rejected_with_113_and_creates_nothing() {
-    let Some(mut ctx) = Ctx::builder(Flavor::Classic).with_swap().no_policy().try_build() else {
+    let Some(mut ctx) = Ctx::builder(Flavor::Classic)
+        .with_swap()
+        .no_policy()
+        .try_build()
+    else {
         return;
     };
     let base = ctx.cfg.clone();
@@ -434,7 +444,10 @@ fn every_invalid_config_row_is_rejected_with_113_and_creates_nothing() {
     // and the valid base is accepted afterwards (nothing was poisoned)
     let ix = ctx.init_policy_ix(&base, 0);
     ctx.send_owner(&[ix]).assert_ok();
-    assert_eq!(ctx.policy_bytes(), ctx.expected_header(0).encode_with(&base));
+    assert_eq!(
+        ctx.policy_bytes(),
+        ctx.expected_header(0).encode_with(&base)
+    );
 }
 
 // ---------------------------------------------------------------- raw edits
@@ -442,15 +455,18 @@ fn every_invalid_config_row_is_rejected_with_113_and_creates_nothing() {
 dual_token!(raw_edit_helpers_drive_the_core_failure_paths, |ctx| {
     // inactive mandate: AgentAuth NotActive (4) raised inside verify
     ctx.set_mandate_active_raw(false);
-    ctx.send_agent(&[ctx.transfer_ix(1)]).assert_aa_err(aa_err::NOT_ACTIVE);
+    ctx.send_agent(&[ctx.transfer_ix(1)])
+        .assert_aa_err(aa_err::NOT_ACTIVE);
     ctx.set_mandate_active_raw(true);
     // expiry changed behind the policy's back: stale-policy guard (118)
     ctx.set_mandate_expiry_raw(DEFAULT_EXPIRY + 1);
-    ctx.send_agent(&[ctx.transfer_ix(1)]).assert_relay_err(relay_err::STALE_POLICY);
+    ctx.send_agent(&[ctx.transfer_ix(1)])
+        .assert_relay_err(relay_err::STALE_POLICY);
     ctx.set_mandate_expiry_raw(DEFAULT_EXPIRY);
     // the clock past the expiry: AgentAuth Expired (5)
     ctx.set_unix_time(DEFAULT_EXPIRY + 1);
-    ctx.send_agent(&[ctx.transfer_ix(1)]).assert_aa_err(aa_err::EXPIRED);
+    ctx.send_agent(&[ctx.transfer_ix(1)])
+        .assert_aa_err(aa_err::EXPIRED);
     ctx.set_unix_time(0);
     ctx.send_agent(&[ctx.transfer_ix(1)]).assert_ok();
 });
@@ -464,8 +480,11 @@ fn a_consistent_look_alike_pool_is_rejected_by_the_pins() {
     };
     let alt = ctx.new_pool(amm_mode::NORMAL, 1_000_000_000, 1_000_000_000);
     let before = ctx.snapshot();
-    let ix = ctx.swap_accounts_with_pool(&alt).ix(1_000, 0, ctx.deadline(10));
-    ctx.send_agent(&[ix]).assert_relay_err(relay_err::ACCOUNT_MISMATCH);
+    let ix = ctx
+        .swap_accounts_with_pool(&alt)
+        .ix(1_000, 0, ctx.deadline(10));
+    ctx.send_agent(&[ix])
+        .assert_relay_err(relay_err::ACCOUNT_MISMATCH);
     assert_nothing_moved(&before, &ctx.snapshot());
 }
 
@@ -476,10 +495,17 @@ fn every_swap_pin_replacement_is_rejected_with_102() {
     };
     let before = ctx.snapshot();
     for (name, idx) in SWAP_PIN_TABLE {
-        let ix = ctx.swap_ix(1_000, 0, ctx.deadline(10)).with_account(idx, unique());
+        let ix = ctx
+            .swap_ix(1_000, 0, ctx.deadline(10))
+            .with_account(idx, unique());
         let r = ctx.send_agent(&[ix]);
         assert!(!r.is_ok(), "pin `{name}` replaced but the swap succeeded");
-        assert_eq!(assert::custom_code(&r.result), Some(relay_err::ACCOUNT_MISMATCH), "pin `{name}`\n{}", r.pretty_logs());
+        assert_eq!(
+            assert::custom_code(&r.result),
+            Some(relay_err::ACCOUNT_MISMATCH),
+            "pin `{name}`\n{}",
+            r.pretty_logs()
+        );
     }
     assert_nothing_moved(&before, &ctx.snapshot());
 }
@@ -516,7 +542,8 @@ fn production_relay_build_rejects_the_mock_amm_but_test_amm_build_accepts_it() {
     };
     let cfg = ctx.cfg.clone();
     assert_eq!(cfg.amm_program, MOCK_AMM_ID);
-    ctx.send_owner(&[ctx.init_policy_ix(&cfg, 0)]).assert_relay_err(relay_err::INVALID_CONFIG);
+    ctx.send_owner(&[ctx.init_policy_ix(&cfg, 0)])
+        .assert_relay_err(relay_err::INVALID_CONFIG);
     assert!(ctx.svm.get_account(&ctx.policy).is_none());
     // a transfer-only policy is fine on the production build
     let mut only = cfg.clone();

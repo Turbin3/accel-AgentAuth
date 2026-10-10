@@ -6,6 +6,7 @@
 //! `init_policy` in a later transaction creates a new policy.
 //!
 //! Data `[2]`; accounts (exactly 2): `owner` (signer, writable), `policy` (writable).
+//! Either account passed read-only is refused with `AccountMismatch` (102).
 
 use pinocchio::{
     account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey, ProgramResult,
@@ -34,6 +35,13 @@ pub fn close_policy(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) 
         }
         *p.mandate()
     };
+
+    // Both accounts are mutated below: refuse with a relay code instead of letting
+    // the runtime fail the transaction with `ReadonlyDataModified` /
+    // `ReadonlyLamportChange` after the program returns.
+    if !owner.is_writable() || !policy.is_writable() {
+        return Err(RelayError::AccountMismatch.into());
+    }
 
     // Zero-fill so no stale configuration survives in the account buffer, then
     // move every lamport to the owner and close (owner/lamports/len zeroed).

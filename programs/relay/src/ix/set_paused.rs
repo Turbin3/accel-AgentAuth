@@ -4,6 +4,8 @@
 //! policy byte that ever changes after `init_policy`.
 //!
 //! Data `[1, paused]`; accounts (exactly 2): `owner` (signer), `policy` (writable).
+//! A policy passed read-only is refused with `AccountMismatch` (102) instead of the
+//! runtime failing the transaction with `ReadonlyDataModified` after the program returns.
 
 use pinocchio::{
     account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey, ProgramResult,
@@ -35,6 +37,10 @@ pub fn set_paused(program_id: &Pubkey, accounts: &[AccountInfo], data: &[u8]) ->
         }
         *p.mandate()
     };
+    // Fail with a relay code, not a runtime `ReadonlyDataModified` after return.
+    if !policy.is_writable() {
+        return Err(RelayError::AccountMismatch.into());
+    }
     {
         let mut d = policy.try_borrow_mut_data()?;
         let flags = d.get_mut(OFF_FLAGS).ok_or(RelayError::InvalidPolicy)?;

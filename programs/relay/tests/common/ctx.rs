@@ -1172,8 +1172,16 @@ impl Ctx {
         let tp = self.token_program;
         let pool_auth = amm::pool_authority();
         let (input_vault, output_vault, pool_state) = (unique(), unique(), unique());
-        self.place_token(input_vault, TokenAcct::new(tp, s.in_mint, pool_auth, reserve_in), "alt_input_vault");
-        self.place_token(output_vault, TokenAcct::new(tp, s.out_mint, pool_auth, reserve_out), "alt_output_vault");
+        self.place_token(
+            input_vault,
+            TokenAcct::new(tp, s.in_mint, pool_auth, reserve_in),
+            "alt_input_vault",
+        );
+        self.place_token(
+            output_vault,
+            TokenAcct::new(tp, s.out_mint, pool_auth, reserve_out),
+            "alt_output_vault",
+        );
         let (amm_config, observation_state) = (unique(), unique());
         let lamports = self.svm.rent(amm::POOL_STATE_LEN);
         let ps = PoolState::normal(input_vault, output_vault)

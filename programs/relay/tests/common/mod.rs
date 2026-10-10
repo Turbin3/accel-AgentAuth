@@ -37,8 +37,8 @@ pub use ctx::{
 pub use ids::*;
 pub use macros::for_flavors;
 pub use policy::{
-    header_alias_rows, invalid_config_rows, required_min_out, InvalidRow, PolicyCfg, PolicyHeader, PolicyView, SwapPins, FLAG_PAUSED,
-    FLAG_STRICT_TOP_LEVEL,
+    header_alias_rows, invalid_config_rows, required_min_out, InvalidRow, PolicyCfg, PolicyHeader,
+    PolicyView, SwapPins, FLAG_PAUSED, FLAG_STRICT_TOP_LEVEL,
 };
 pub use relay_ix::{
     init_idx, swap_idx, transfer_idx, InitPolicyIx, IxExt, SwapIx, TransferIx, SWAP_PIN_TABLE,

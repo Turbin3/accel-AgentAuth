@@ -11,7 +11,7 @@ use pinocchio::pubkey::Pubkey;
 
 use crate::bytes::{byte_at, key_at, same_key, slice_at, u32_at, u64_at};
 use crate::error::RelayError;
-use crate::ids::{is_token_program, NATIVE_MINT};
+use crate::ids::{is_native_mint, is_token_program};
 
 // ---- AgentAuth mandate offsets (core layout, locked) ------------------------
 
@@ -289,7 +289,7 @@ impl<'a> Config<'a> {
         if !is_token_program(self.token_program()) {
             return Err(bad);
         }
-        if self.budget_mint() == &zero || self.budget_mint() == &NATIVE_MINT {
+        if self.budget_mint() == &zero || is_native_mint(self.budget_mint()) {
             return Err(bad);
         }
         if self.source_account() == &zero {
@@ -344,7 +344,7 @@ impl<'a> Config<'a> {
                 return Err(bad);
             }
         }
-        if self.in_mint() == &NATIVE_MINT || self.in_mint() == self.out_mint() {
+        if is_native_mint(self.in_mint()) || self.in_mint() == self.out_mint() {
             return Err(bad);
         }
         if !is_token_program(self.in_token_program()) || !is_token_program(self.out_token_program())
@@ -561,7 +561,7 @@ pub fn write_policy(buf: &mut [u8], h: &Header, config: &[u8]) -> Option<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ids::{NATIVE_MINT, TOKEN22_ID, TOKEN_ID};
+    use crate::ids::{NATIVE_MINT, NATIVE_MINT_2022, TOKEN22_ID, TOKEN_ID};
 
     const AMM: Pubkey = [0x71; 32];
     const ID: IdentityKeys<'static> = IdentityKeys {
@@ -776,6 +776,14 @@ mod tests {
             (
                 "in_mint native",
                 Box::new(|c| put(c, OFF_IN_MINT, &NATIVE_MINT)),
+            ),
+            (
+                "budget_mint Token-2022 native",
+                Box::new(|c| put(c, OFF_BUDGET_MINT, &NATIVE_MINT_2022)),
+            ),
+            (
+                "in_mint Token-2022 native",
+                Box::new(|c| put(c, OFF_IN_MINT, &NATIVE_MINT_2022)),
             ),
             (
                 "max_deadline_slots 0",

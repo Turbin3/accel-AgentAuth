@@ -17,6 +17,10 @@ pub const TOKEN22_ID: Pubkey = pubkey!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPx
 pub const SYSTEM_ID: Pubkey = pubkey!("11111111111111111111111111111111");
 /// Wrapped SOL mint. Rejected as `budget_mint` and `in_mint`.
 pub const NATIVE_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
+/// Token-2022's own native mint (a different address from the classic one).
+/// Rejected exactly like [`NATIVE_MINT`]: a native account's `amount` can be
+/// changed by anyone through lamport donation plus `SyncNative`.
+pub const NATIVE_MINT_2022: Pubkey = pubkey!("9pan9bMn5HatX4EJdBwg9VgCa7Uz5HL8N1m5D3NdXejP");
 
 /// Raydium CP-Swap on mainnet-beta.
 pub const CPMM_MAINNET_ID: Pubkey = pubkey!("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C");
@@ -79,4 +83,25 @@ pub fn amm_allowed(key: &Pubkey) -> bool {
 /// Is `key` the classic Token or the Token-2022 program?
 pub fn is_token_program(key: &Pubkey) -> bool {
     key == &TOKEN_ID || key == &TOKEN22_ID
+}
+
+/// Is `key` one of the two native (wrapped SOL) mints?
+pub fn is_native_mint(key: &Pubkey) -> bool {
+    key == &NATIVE_MINT || key == &NATIVE_MINT_2022
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// RT-F3: both wSOL mints are native; ordinary mints and the token program
+    /// ids are not.
+    #[test]
+    fn native_mints_recognised() {
+        assert!(is_native_mint(&NATIVE_MINT));
+        assert!(is_native_mint(&NATIVE_MINT_2022));
+        assert!(!is_native_mint(&TOKEN_ID));
+        assert!(!is_native_mint(&TOKEN22_ID));
+        assert!(!is_native_mint(&[0u8; 32]));
+    }
 }

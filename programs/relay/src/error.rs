@@ -16,7 +16,9 @@ pub enum RelayError {
     InvalidInstructionData = 100,
     /// Policy owner program, length, discriminator, version or reserved flag bits wrong.
     InvalidPolicy = 101,
-    /// A passed key differs from a pinned key, a derived PDA or a mandate binding.
+    /// A passed key differs from a pinned key, a derived PDA or a mandate binding,
+    /// or an account the instruction mutates (`set_paused` policy, `close_policy`
+    /// owner and policy) was passed read-only.
     AccountMismatch = 102,
     /// AgentAuth, Token or AMM program id is not the compiled or pinned one;
     /// an account owner program is wrong; a mint is not an initialised
