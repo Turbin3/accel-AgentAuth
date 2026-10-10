@@ -383,7 +383,7 @@ ledger check (no lamport or token balance outside the policy may change). The co
 substitution, a hostile pinned AMM, re-entrancy, forged mandate or policy accounts, or Token-2022
 account shapes. The CPI account lists the relay builds are exactly the pinned ones (RT-F5).
 
-**What was found.** Six low or info findings, regression-tested in `programs/relay/tests/rt.rs`:
+**What was found.** Seven low or info findings, regression-tested in `programs/relay/tests/rt.rs` and `rt2.rs`:
 
 | Id | Finding | Disposition |
 |---|---|---|
@@ -393,15 +393,25 @@ account shapes. The CPI account lists the relay builds are exactly the pinned on
 | RT-F4 | `set_paused` and `close_policy` with a read-only mutated account failed with a runtime error instead of a relay code. | **Fixed** in `5ad0992` (relay error 102) |
 | RT-F5 | The relay's CPI account lists must be exactly the pinned ones (the AMM never receives the agent, mandate, owner, policy, relay or AgentAuth). | Held; property pinned by a test |
 | RT-F6 | A test gap. | Listed in the `5ad0992` commit message; `rt.rs` does not describe it further, so its detail is not recorded here |
+| RT-F7 | One deep-fuzz iteration ended in a runtime error: the fuzzer had corrupted the relay's own stored authority bump. Not reachable through any instruction. | Triaged, no program change; atomic revert pinned by `rt2.rs` (see below) |
 
-**Open observation from the deep fuzz run.** A 300,000-iteration release-mode run (`RT_ITERS=300000
-RT_SEED=424242`, log from 2026-10-11 00:59 IST) ended with one abnormal termination: seed 424243,
-iteration 145,566, a `swap` after mutating two accounts, where the relay failed with the runtime message
-"Could not create program address with signer seeds: Provided seeds do not result in a valid address"
-rather than a relay error code. The transaction failed and reverted, so this is a fail-closed
-error-code quality issue, not a loss path as far as the log shows. A later 100,000-iteration run passed, but that run never
-reaches iteration 145,566, and I found no triage record for this case. It is an open item until someone
-replays that seed and either fixes the error mapping or documents it.
+**RT-F7 (info), the one abnormal termination of the deep fuzz run, now triaged.** A 300,000-iteration
+release-mode run (`RT_ITERS=300000 RT_SEED=424242`, log from 2026-10-11 00:59 IST) ended, after about 1.4
+million fuzzed transactions in total, with one abnormal termination: seed 424243, iteration 145,566, a
+`swap` where the relay failed with the runtime message "Could not create program address with signer
+seeds: Provided seeds do not result in a valid address" instead of a relay error code. It was replayed
+deterministically (same outcome, same compute units, same log line). Root cause: the fuzzer had overwritten
+the stored `authority_bump` (policy byte 3) of the relay's own policy account, so the signed CPI derived either
+an invalid address or a different PDA (the latter fails with PrivilegeEscalation). Only the relay itself
+writes that field, at `init_policy`, using `find_program_address`, and no instruction accepts a bump from the
+caller, so an agent or a third party cannot reach this state; the relay does not re-derive the bump on the hot
+path, by design. We tested all 255 wrong bump values on `transfer` and `swap` with the classic and p-token
+binaries (specific variants also on Token-2022) in LiteSVM. In every case the transaction reverted
+atomically after the core `verify` had succeeded, with no change to balances, delegation, spend or call
+counters, or any tracked account byte. The program was not changed; the behaviour is pinned by 14 tests in
+`programs/relay/tests/rt2.rs`. This is a statement about the tested inputs, not an audit. The earlier
+red-team statement is narrowed accordingly: no non-Custom failure is reachable through instruction inputs;
+corrupting relay-owned policy bytes (which no instruction path allows) yields an atomic runtime revert.
 
 **Where the evidence lives.** The red-team suites and the run scripts are working files outside the
 repository (only the regression tests in `rt.rs` are in the repository). Committing the red-team harness
