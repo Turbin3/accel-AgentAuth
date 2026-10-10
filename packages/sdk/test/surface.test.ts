@@ -20,11 +20,13 @@ import {
   ValidationError,
   assertValidRelayPolicyConfig,
   fetchRawAccount,
+  fetchRawAccounts,
   parseDisc,
   parseDiscList,
   parseLimit,
   TOKEN_PROGRAM_ID,
   type AccountsRpc,
+  type MultipleAccountsRpc,
 } from '../src/index'
 import { fakeAddress, raw, readIdl } from './helpers'
 
@@ -205,5 +207,24 @@ describe('small exports', () => {
       executable: false,
     })
     expect([...acc!.data]).toEqual([1, 2, 3])
+  })
+  it('raw reads default to the confirmed commitment (an unset commitment would read at the validator default, finalized)', async () => {
+    const seen: unknown[] = []
+    const rpc = {
+      getAccountInfo: (_a: unknown, cfg: { commitment?: string }) => {
+        seen.push(cfg.commitment)
+        return { send: async () => ({ value: null }) }
+      },
+      getMultipleAccounts: (_a: unknown, cfg: { commitment?: string }) => {
+        seen.push(cfg.commitment)
+        return { send: async () => ({ value: [null] }) }
+      },
+    }
+    await fetchRawAccount(rpc as unknown as AccountsRpc, fakeAddress(1))
+    await fetchRawAccount(rpc as unknown as AccountsRpc, fakeAddress(1), {
+      commitment: 'finalized',
+    })
+    await fetchRawAccounts(rpc as unknown as MultipleAccountsRpc, [fakeAddress(1)])
+    expect(seen).toEqual(['confirmed', 'finalized', 'confirmed'])
   })
 })

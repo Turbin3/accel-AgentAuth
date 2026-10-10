@@ -295,7 +295,7 @@ export async function fetchRawAccount(
   opts: Pick<FetchOptions, 'commitment' | 'abortSignal'> = {},
 ): Promise<RawAccount | null> {
   const res = await rpc
-    .getAccountInfo(address, { encoding: 'base64', commitment: opts.commitment })
+    .getAccountInfo(address, { encoding: 'base64', commitment: opts.commitment ?? 'confirmed' })
     .send({ abortSignal: opts.abortSignal })
   const value = res.value
   if (!value) return null
@@ -330,7 +330,10 @@ export async function fetchRawAccounts(
   for (let i = 0; i < addresses.length; i += 100) {
     const chunk = addresses.slice(i, i + 100)
     const res = await rpc
-      .getMultipleAccounts(chunk, { encoding: 'base64', commitment: opts.commitment })
+      .getMultipleAccounts(chunk, {
+        encoding: 'base64',
+        commitment: opts.commitment ?? 'confirmed',
+      })
       .send({ abortSignal: opts.abortSignal })
     chunk.forEach((address, j) => {
       const value = res.value[j]
@@ -487,7 +490,7 @@ async function listMandates(
   const accounts = await rpc
     .getProgramAccounts(ids.agentAuth, {
       encoding: 'base64',
-      commitment: opts.commitment,
+      commitment: opts.commitment ?? 'confirmed',
       filters: [
         { dataSize: BigInt(ACCOUNT_SIZE) },
         { memcmp: { offset, bytes: key as unknown as Base58EncodedBytes, encoding: 'base58' } },
