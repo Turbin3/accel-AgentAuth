@@ -21,20 +21,20 @@ Status as of 2026-10-11. "Tests" are results of commands run on that day (see [M
 
 | Piece | Path | Status | Tests run for this README |
 |---|---|---|---|
-| Core program (the standard) | `src/` | built, hardened in place (ABI and layout locked); upgrade of the existing devnet program is **not yet deployed** | `cargo test --workspace`: 708 passed, 0 failed, 10 ignored across 44 test binaries (whole workspace, not core alone) |
-| Relay (hard enforcement) | `programs/relay/` | built; default build allowlists Raydium CPMM (devnet) only; real-Raydium swap not exercised | `smoke` 10 passed (LiteSVM, real `.so`) |
-| Integrator crate | `crates/agent-auth-cpi/` | built; pins the program id and binds the owner | `e2e` run for CU; suite in crate README |
-| Second integrator | `programs/gated-example/` | built; logs an amount, moves nothing | covered by the demo `scenario` beat 4 |
-| TypeScript SDK | `packages/sdk/` | built, not published | 564 passed |
-| CLI (`agentauth`) | `packages/cli/` | built, not published | 44 passed |
-| MCP server (agent / owner / observer) | `packages/mcp/` | built, not published | 85 passed, 45 skipped (localnet e2e needs a running validator) |
+| Core program (the standard) | `src/` | built, hardened in place (ABI and layout locked); upgrade of the existing devnet program is **not yet deployed** | core crate alone: 141 passed, 0 failed, 8 ignored; whole `cargo test --workspace`: 778 passed, 0 failed, 10 ignored |
+| Relay (hard enforcement) | `programs/relay/` | built; default build allowlists Raydium CPMM (devnet) only; real-Raydium swap not exercised | 529 passed, 2 ignored (real-Raydium rows), LiteSVM, real `.so` |
+| Integrator crate | `crates/agent-auth-cpi/` | built; pins the program id and binds the owner | 27 passed (9 unit, 14 e2e, 4 doctests) |
+| Second integrator | `programs/gated-example/` | built; logs an amount, moves nothing | 21 passed; also the demo `scenario` beat 4 |
+| TypeScript SDK | `packages/sdk/` | built, not published | 565 passed |
+| CLI (`agentauth`) | `packages/cli/` | built, not published | 48 passed |
+| MCP server (agent / owner / observer) | `packages/mcp/` | built, not published | 88 passed, 46 skipped (localnet e2e needs a running validator) |
 | Cooperative guard | `packages/guard/` | built; client-side only, not enforcement | 46 passed, 1 skipped |
-| Registry of programs and `disc8` | `packages/registry/` | built | 270 passed of 271 (1 skipped) |
-| Dashboard "Mandate Studio" | `apps/dashboard/` | built (Next.js) | 70 passed |
-| Demo (localnet) | `apps/demo/` | `contrast`, `scenario` (34 transactions) and `attacks` (54 attacks) runners; scripted attacker | `scenario` run: PASSED, 34 transactions; 35 unit tests passed |
+| Registry of programs and `disc8` | `packages/registry/` | built | 271 passed of 272 (1 skipped) |
+| Dashboard "Mandate Studio" | `apps/dashboard/` | built (Next.js) | 73 passed |
+| Demo (localnet) | `apps/demo/` | `contrast`, `scenario` (34 transactions) and `attacks` (54 attacks) runners; scripted attacker | `scenario` run: PASSED, 34 transactions; 35 unit tests passed (`pnpm -r test`) |
 | Devnet deployment | `docs/DEPLOY-DEVNET.md` | the core id exists on devnet but its on-chain bytes differ from the current build (sha256 check in the dry run), so it is presumably the pre-hardening binary; the relay is **not** on devnet | read-only checks in the dry run |
 
-Test totals come from `pnpm -r test` (exit 0) and `cargo test --workspace` (708 passed, 0 failed, 10 ignored) on 2026-10-11 on one machine; they say the suites pass, not that the code is free of bugs.
+Test totals come from `pnpm -r test` (exit 0) and `source scripts/env.sh; cargo test --workspace --no-fail-fast` (778 passed, 0 failed, 10 ignored) on 2026-10-11 on one machine; they say the suites pass, not that the code is free of bugs.
 
 ## Three tiers, kept separate
 
@@ -195,13 +195,16 @@ Only numbers produced by a command on 2026-10-11 (LiteSVM unless stated, not mai
 
 | Measurement | Value | Command |
 |---|---|---|
-| core `verify` | 480 to 738 CU (slot 1 to slot 16, 8th discriminator, limits set) | `cargo test --test regression_cu -- --nocapture` |
+| core `verify` | 480 to 738 CU (slot 1 to slot 16, 8th discriminator, limits set) | `cargo test --test regression_cu -- --nocapture --test-threads=1` |
 | `agent-auth-cpi` overhead over a bare verify CPI | 162 CU | `cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture` |
-| relay `transfer` (classic spl-token / p-token variant / Token-2022 ATA-shaped) | 10,764 / 4,623 / 6,439 CU | `cargo test -p agent-auth-relay --test smoke -- --nocapture --test-threads=1` |
-| relay `swap` incl. mock AMM | 12,153 CU | same |
-| onboarding transactions | 532 B and 1072 B (limit 1232 B) | `agentauth mandate create ...` (local validator) |
+| relay `transfer` (classic spl-token / p-token / Token-2022), whole transaction | 10,649 / 4,508 / 6,160 CU | `cargo test -p agent-auth-relay --test fe -- --nocapture --test-threads=1` |
+| relay `swap` incl. mock AMM (classic / p-token / Token-2022) | 24,881 / 12,162 / 15,445 CU | same |
+| onboarding transactions | 532 B and 1072 B on a local validator (`agentauth mandate create ...`); LiteSVM harness (different instruction mix): 579 B and 1072 B (limit 1232 B) | same `fe` command |
 | unwind transaction | 377 B | `agentauth mandate revoke --yes` |
-| built program sizes | core 36,472 B, relay 64,032 B | `scripts/build-all.sh` |
+| built program sizes | core 36,472 B, relay 64,032 B (sha256 in BENCHMARKS) | `scripts/build-all.sh` |
+| tests | 778 Rust, 1,126 TypeScript passed (565 sdk, 48 cli, 88 mcp, 46 guard, 271 registry, 73 dashboard, 35 demo) | `cargo test --workspace`, `pnpm -r test` |
+| mutation testing | core 203/206 killed, 3 proven equivalent; relay 251/251 non-equivalent killed after witness tests (211/251 = 84.1% against the original suite; 6 proven equivalent; each kill verified individually, full sweep not re-run) | `security/mutation-*/run.py` |
+| relay red team | 1.4 million fuzzed transactions over 3 Token flavours (100,000 iterations x 14 sections), 2 fixes, no fund movement outside the policy in the recorded runs | `security/redteam-relay/` (not in the normal test path) |
 
 The old README's "estimated 1,500 to 2,500 CU" for `verify` was wrong; the figure above replaces it. The old Pinocchio-versus-Anchor CU comparison was never measured and has been removed.
 

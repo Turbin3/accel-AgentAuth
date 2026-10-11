@@ -714,24 +714,14 @@
     ],
     "witness_tests": {
       "file": "programs/relay/tests/witness.rs",
-      "killed_of_the_40": 31,
-      "method": "Each witness test was run against its mutant individually (the witness test binary only); the full suite is green on the real source (529 relay tests). The full 257-mutant sweep was NOT re-run after the witness tests were added.",
-      "score_after_witness_tests": "242/251 = 96.4%"
+      "killed_of_the_40": 40,
+      "method": "Each witness test (W01 to W21) was run against its mutant individually (the witness test binary only, results_w..results_w6 in the campaign directory, now summarised in security/mutation-relay/results.csv); the full suite is green on the real source (529 relay tests). The full 257-mutant sweep was NOT re-run after the witness tests were added.",
+      "score_after_witness_tests": "251/251 = 100% of the non-equivalent mutants (each kill verified individually)"
     },
     "open_survivors": {
-      "count": 9,
-      "ids": [
-        "G09",
-        "N10",
-        "N12",
-        "N13",
-        "S12",
-        "S41",
-        "S42",
-        "T07",
-        "T11"
-      ],
-      "note": "Open, not proven equivalent. Each is a check that another layer also enforces (token program pinned by the policy, owner program re-checked by token_acct_ok, out token program only differs when in and out use different Token programs, agent != owner already refused by create_mandate, system-owned and empty-data checks on the policy account also fail in create_account). Listed so a reviewer can decide whether to add a witness test or remove the redundant check."
+      "count": 0,
+      "ids": [],
+      "note": "The nine mutants that survived the first witness batch (G09, N10, N12, N13, S12, S41, S42, T07, T11) were killed by later witness tests W15 to W21 (security/mutation-relay/results.csv). Six mutants are proven equivalent (security/mutation-relay/EQUIVALENT.md)."
     },
     "caveat": "The score describes the tests' sensitivity to these mutants, not the absence of bugs. The sweep predates the RT-F3/F4 fixes and the later tests."
   },
