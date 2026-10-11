@@ -2,10 +2,11 @@ sequenceDiagram
   autonumber
   participant O as Owner wallet
   participant C as AgentAuth core
+  participant Y as System program
   participant T as SPL Token
   participant R as Relay
-  Note over O,T: Transaction 1 (owner signs, about 532 B with one permission)
-  O->>C: System.Transfer fee SOL to agent
+  Note over O,T: Transaction 1 (owner signs, 532 B and 5 instructions in the demo scenario)
+  O->>Y: System.Transfer fee SOL to agent
   O->>C: create_mandate(expiry)
   O->>C: add_permission(Token program, limits, [TransferChecked])
   O->>C: add_permission(AMM program, limits, [swap]) (optional)

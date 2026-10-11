@@ -48,7 +48,7 @@ Components, all in this repository:
 | `agent_auth` core | `src/` | the Mandate record and `verify`; Pinocchio, `no_std`; devnet id `AKkih5Yd...Uc2if` |
 | `agent_auth_relay` | `programs/relay/` | the hard enforcement point: SPL `TransferChecked` to pinned recipients and one pinned swap; Pinocchio |
 | `agent-auth-cpi` | `crates/agent-auth-cpi/` | safe-by-default helper for integrators |
-| `gated-example` | `programs/gated-example/` | a ~100-line second integrator (logs an amount, moves nothing) |
+| `gated-example` | `programs/gated-example/` | a 79-line second integrator (its gate is about 25 lines; it logs an amount and moves nothing) |
 | `mock-amm`, `evil-token` | `programs/` | test and demo programs only; never part of the relay |
 | SDK, CLI, MCP, guard, registry | `packages/` | TypeScript clients, an MCP server (agent, owner, observer profiles), a cooperative client-side guard, a verified table of programs and discriminators |
 | Mandate Studio | `apps/dashboard/` | Next.js dashboard on the SDK |
@@ -86,10 +86,11 @@ sequenceDiagram
   autonumber
   participant O as Owner wallet
   participant C as AgentAuth core
+  participant Y as System program
   participant T as SPL Token
   participant R as Relay
-  Note over O,T: Transaction 1 (owner signs, about 532 B with one permission)
-  O->>C: System.Transfer fee SOL to agent
+  Note over O,T: Transaction 1 (owner signs, 532 B and 5 instructions in the demo scenario)
+  O->>Y: System.Transfer fee SOL to agent
   O->>C: create_mandate(expiry)
   O->>C: add_permission(Token program, limits, [TransferChecked])
   O->>C: add_permission(AMM program, limits, [swap]) (optional)
@@ -101,7 +102,7 @@ sequenceDiagram
 
 Derived addresses: `mandate = PDA(["mandate", owner, agent], AgentAuth)`, `policy = PDA(["policy", mandate], relay)`, `authority = PDA(["authority", mandate], relay)`. The SPL delegate is `authority`, a PDA that holds no data and can only sign inside the relay. `Approve` must be a top-level instruction signed by the owner. `init_policy` is immutable configuration: recipients (up to 8 token accounts), the pinned source account, optionally one AMM pool with a floor price, and flags (`PAUSED`, `STRICT_TOP_LEVEL`). Changing it means `close_policy` then `init_policy`; the agent fails closed in between.
 
-Measured on the local validator (CLI `mandate create`, 2026-10-11): transaction 1 is 532 B, transaction 2 is 1072 B, both under the 1232 B limit.
+Sizes: the demo scenario printed 532 B (5 instructions) and 1072 B for the two transactions ([DEMO.md](DEMO.md) S1; local validator, not re-run in the conformance pass). The LiteSVM harness measures `init_policy` at 1072 B and a transaction 1 of fee transfer, `create_mandate`, two `add_permission` and two `Approve` at 579 B (`docs/data/relay-metrics.json`, `transaction_sizes_bytes`). Both limits are 1232 B.
 
 ## 4. The transfer flow and its CPIs
 
@@ -115,9 +116,9 @@ sequenceDiagram
   participant C as AgentAuth.verify
   participant T as SPL Token
   A->>R: [3] + amount (9 B), 10 accounts
-  Note over R: agent signed, policy valid, not paused,<br/>mandate live and bound, expiry matches,<br/>destination in recipients, delegate and balances read
+  Note over R: agent signed, policy valid, not paused,<br/>mandate is a genuine AgentAuth account bound to owner and agent,<br/>stored expiry matches, destination in recipients,<br/>delegate and balances read
   R->>C: CPI 1 verify(mandate W, owner R, agent R+S)<br/>data: [3] + token_program + [12,0,0,0,0,0,0,0] + amount
-  C-->>R: Ok (spend_total += amount, call_count += 1) or Custom(4..18)
+  C-->>R: Ok (spend_total += amount, call_count += 1) or a core error (2, 4..9, 14..18)
   R->>T: CPI 2 TransferChecked(source, mint, dest, authority PDA)<br/>signer seeds ["authority", mandate, bump]
   T-->>R: Ok, or Custom(n) if delegated_amount or balance too low
   Note over R: balance deltas must equal amount exactly (else 106)
@@ -126,7 +127,7 @@ sequenceDiagram
 
 The agent supplies only an amount (data is `[3] + amount u64`, 9 bytes). The relay then:
 
-1. checks that the agent signed, the AgentAuth account is the compiled-in id, the policy is a valid relay-owned policy, it is not paused, the stack height is 1 if `STRICT_TOP_LEVEL` is set, the mandate is a live AgentAuth mandate for this owner and agent, and the policy's stored `mandate_expiry` equals the live mandate's expiry (stale-policy guard, error 118);
+1. checks that the data is exactly 9 bytes with a non-zero `amount` (error 100), that the agent signed, the AgentAuth account is the compiled-in id, the policy is a valid relay-owned policy, it is not paused, the stack height is 1 if `STRICT_TOP_LEVEL` is set, the mandate is an AgentAuth-owned, 2136-byte, `disc == 1` account naming this owner and agent (error 117; the active flag and the expiry are left to `verify`), and the policy's stored `mandate_expiry` equals the live mandate's expiry (stale-policy guard, error 118);
 2. checks every passed account against the policy pins (source, mint, token program, authority), that the destination is in the recipient list and is not the source, that the source's owner field is the policy owner, its delegate is `authority` and its `delegated_amount >= amount`;
 3. **CPI 1, `AgentAuth.verify`**, with data `[3] + token_program + [12,0,0,0,0,0,0,0] + amount`. The program id, `disc8` and amount are the relay's own constants and the same `amount` variable that is used in CPI 2: the agent cannot report a smaller number than it moves;
 4. **CPI 2, SPL `TransferChecked`**, signed by the relay for the `authority` PDA (seeds `["authority", mandate, bump]`);
@@ -191,23 +192,23 @@ Every figure is from a command run on 2026-10-11 on this repository at the state
 |---|---|---|
 | core `verify`, slot 1 to slot 16 (8th discriminator, limits set) | 480 to 738 CU | `cargo test --test regression_cu -- --nocapture` |
 | core `verify` failing on an unknown program (scans 16 slots) | 496 CU | same |
-| `create_mandate` fresh / pre-funded | 3,433 to 9,433 / 4,618 CU | same (the range depends on the bump search for the agent key) |
+| `create_mandate` fresh / pre-funded | 3,433 up to a worst case of 9,433 to 13,933 / 4,618 CU | same (60 random agent keys per run; the worst case is the bump search for a random key and differed between runs: 9,433, 10,933 in `core-metrics.json`, 13,933 on the 2026-10-11 re-run; pre-funded was 6,118 in `core-metrics.json`) |
 | `add_permission`, `update_permission`, `remove_permission`, `set_active` | 243 to 420, 204 to 339, 228 to 338, 124 to 126 CU | same |
-| `revoke_mandate` (stored bump) | 1,802 CU | same |
+| `revoke_mandate` (stored bump) | 1,802 CU | same (a legacy version 0 mandate needs a bump search: 3,322 in `core-metrics.json`, 9,322 on the re-run) |
 | helper overhead of `agent-auth-cpi` over a bare verify CPI | 162 CU | `cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture` |
 | System transfer alone vs transfer + `VerifyCpi::invoke` | 1,552 vs 3,290 CU | same |
 | relay `transfer`, classic spl-token, STRICT_TOP_LEVEL on | 10,764 CU | `cargo test -p agent-auth-relay --test smoke -- --nocapture --test-threads=1` |
-| relay `transfer`, the test's p-token variant | 4,623 CU | same |
+| relay `transfer`, the test's p-token variant | 4,623 CU | same (`relay-metrics.json`, fe.rs harness, gives 10,649 / 4,508 / 6,160 for classic / p-token / Token-2022: the two harnesses differ by 1 to 3 percent; the cause was not investigated) |
 | relay `transfer`, Token-2022 ATA-shaped accounts | 6,439 CU | same |
-| relay `swap` including the mock AMM (whole instruction) | 12,153 CU | same |
+| relay `swap` including the mock AMM (whole transaction) | 12,153 CU | same. The fe.rs harness in `relay-metrics.json` gives 24,881 (classic spl-token), 12,162 (p-token), 15,445 (Token-2022) for the same swap |
 | relay `init_policy` | 9,567 (classic) / 11,067 (p-token variant) CU | same |
-| transactions on the local validator | onboarding 532 B + 1072 B; unwind 377 B; limit 1232 B | `agentauth mandate create ...`, `agentauth mandate revoke`; `pnpm --filter @agentauth-sol/demo scenario --fast` |
+| transaction sizes | LiteSVM: transfer 476 B, swap (mock AMM) 757 B, `init_policy` 1,072 B, onboarding tx 1 579 B, unwind 415 B (377 B with a single Revoke). Demo scenario on the local validator: 532 B + 1,072 B onboarding, 377 B unwind. Limit 1,232 B | `docs/data/relay-metrics.json` (`transaction_sizes_bytes`); `pnpm --filter @agentauth-sol/demo scenario --fast` (DEMO.md, not re-run in the conformance pass) |
 
-Not measured by us: real Raydium CPMM swap CU (the real binary was not exercised), mainnet figures. Do not quote either from this repository. Design-phase estimates in `RELAY-SPEC.md` (transfer 476 B, swap 829 B worst case) were prototype figures and should be re-measured before being cited.
+Not measured by us: real Raydium CPMM swap CU (the real binary was not exercised), mainnet figures. Do not quote either from this repository. The `RELAY-SPEC.md` design-phase estimate for the swap transaction (829 B worst case) was superseded by the LiteSVM measurement of 757 B above; the transfer figure of 476 B was confirmed.
 
 Depth: the runtime limit is an instruction stack height of 5 (SIMD-0268, which would raise it to 8, was not active on devnet or mainnet-beta when last checked on 2026-10-10; re-check with `solana feature status` before relying on it). Relay `transfer`: relay (1), then `verify` (2) and Token (2). Relay `swap`: relay (1), then `verify` (2), AMM (2), Token (3). If a wrapper program calls the relay, add 1. Without a wrapper the deepest path is height 3; with one it is 4 of 5. The policy flag `STRICT_TOP_LEVEL` makes the relay refuse to run unless it is at height 1 (about +207 CU, a design-phase measurement).
 
-Rent on devnet and mainnet-beta, read 2026-10-10 with `getMinimumBalanceForRentExemption` (design package): policy 944 B = 5,445,760 lamports; mandate 2136 B = 11,501,120; token account 165 B = 1,488,440. The local validator's defaults differ (the scenario returned 15,757,440 and 7,461,120 for mandate and policy on unwind).
+Rent on devnet and mainnet-beta, read with `getMinimumBalanceForRentExemption` on 2026-10-10 (design package) and re-read with `solana rent <bytes>` on 2026-10-11 (same values on both clusters): policy 944 B = 5,445,760 lamports; mandate 2136 B = 11,501,120; token account 165 B = 1,488,440. The LiteSVM runtime and the local validator use a higher rate: `relay-metrics.json` (`rent_lamports`) gives 15,757,440 (mandate), 7,461,120 (policy) and 2,039,280 (token account), which the demo scenario also returned on unwind.
 
 ## 9. Known limits (read before relying on anything)
 

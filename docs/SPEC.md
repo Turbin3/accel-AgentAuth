@@ -48,7 +48,7 @@ Slot `i` starts at `88 + 128 * i`. Only the first `permissions_len` slots are me
 | 61 | 3 | `pad` | [u8;3] | zero |
 | 64 | 64 | `discriminators` | [[u8;8];8] | allowed `disc8` values; entries past `discriminators_len` are zero |
 
-Constants: `MAX_PERMISSIONS = 16`, `MAX_DISCRIMINATORS = 8`, `ACCOUNT_SIZE = 2136`, `HEADER_SIZE = 88`, `PERMISSION_SIZE = 128`, mandate seed `b"mandate"`. They are pinned by `tests/layout.rs` against `fixtures/golden_mandate.bin`.
+Constants: `MAX_PERMISSIONS = 16`, `MAX_DISCRIMINATORS = 8`, `ACCOUNT_SIZE = 2136`, `HEADER_SIZE = 88`, `PERMISSION_SIZE = 128`, mandate seed `b"mandate"`. They are pinned by `tests/layout.rs` against `fixtures/golden_mandate.bin` (v0 header, counters zero), by `tests/layout_v1.rs` against `fixtures/golden_mandate_v1.bin` (version 1 header with stored bump and non-zero counters), and by `tests/idl_conformance.rs` against `idl/core-idl.json`.
 
 Rules:
 * One permission per target program id. A second `add_permission` for the same program fails (21).
@@ -88,9 +88,9 @@ Extra trailing accounts are ignored.
 
 ### 3.2 Semantics
 
-**`create_mandate(expiry)`.** MUST fail with 19 if `owner == agent`, 18 if the owner did not sign, 16 if the mandate address is not the canonical PDA, 20 if `expiry <= now`, 3 if a live mandate already exists, 14 if the address is owned by another program. A fresh address is created with `CreateAccount`; an address that was pre-funded with lamports is topped up to rent-exemption, assigned and grown (so pre-funding cannot block creation). Result: whole account zeroed, then `disc = 1`, `version = 1`, `bump`, `owner`, `agent`, `expiry`, `active = 1`, `permissions_len = 0`.
+**`create_mandate(expiry)`.** MUST fail with 18 if the owner did not sign, 19 if `owner == agent`, 15 on wrong data length, 16 if the mandate address is not the canonical PDA, 20 if `expiry <= now`, `InvalidAccountData` if the mandate is not writable, and then by the state of the address: 14 if it is owned by a program other than AgentAuth and the System Program, 3 if it is an initialised mandate (`disc == 1`), 16 if it is owned by AgentAuth with another size or discriminator (a zeroed 2136-byte husk with `disc == 0` left by the v0.1 binary is topped up and initialised in place). The checks run in the order listed (`src/instructions/create_mandate.rs:35-110`). A fresh address is created with `CreateAccount`; an address that was pre-funded with lamports is topped up to rent-exemption, assigned and grown (so pre-funding cannot block creation). Result: whole account zeroed, then `disc = 1`, `version = 1`, `bump`, `owner`, `agent`, `expiry`, `active = 1`, `permissions_len = 0`.
 
-**`add_permission`.** Appends a slot with `spend_total = 0`, `call_count = 0`. Fails with 2 (not the owner), 4 (paused), 22 (`disc_len == 0`), 11 (`disc_len > 8`), 21 (duplicate program), 10 (already 16 permissions). An empty discriminator list is rejected because an empty list allows nothing.
+**`add_permission`.** Appends a slot with `spend_total = 0`, `call_count = 0`. Fails, in this order after the common checks, with 2 (not the owner), 4 (paused), 22 (`disc_len == 0`), 11 (`disc_len > 8`), 21 (duplicate program), 10 (already 16 permissions). A discriminator byte count that does not match `disc_len` is a length error (15) raised before the signer and ownership checks. An empty discriminator list is rejected because an empty list allows nothing.
 
 **`remove_permission`.** Removes the WHOLE slot of that program (all its discriminators) by swap-remove: the last slot moves into the hole and the tail is zeroed. Fails with 12 if the program has no slot, 4 if paused. Removing and re-adding resets the counters.
 
@@ -166,10 +166,10 @@ The verified registry (`packages/registry`, field `disc8`) lists values for know
 | 10 | PermissionsFull | 16 slots already used |
 | 11 | TooManyDiscriminators | more than 8 discriminators in one permission |
 | 12 | PermissionNotFound | `remove_permission` / `update_permission`: no slot |
-| 13 | ArithmeticOverflow | checked add overflowed |
+| 13 | ArithmeticOverflow | `revoke_mandate`: crediting the mandate's lamports to the owner overflowed `u64` (practically unreachable). `verify` never returns 13: counter arithmetic saturates or maps to 9 |
 | 14 | AccountOwnerMismatch | the mandate account is not owned by AgentAuth (includes a revoked mandate) |
 | 15 | InvalidInstructionData | wrong data length, or too few accounts |
-| 16 | InvalidAccountType | `disc != 1`, size != 2136, corrupt header, or non-canonical PDA on create/revoke |
+| 16 | InvalidAccountType | `disc != 1`, size != 2136, `permissions_len > 16`, or non-canonical PDA on create/revoke |
 | 17 | UnknownAgent | `verify`: agent key is not `mandate.agent` |
 | 18 | InvalidSigner | a required signature is missing (owner, or agent for `verify`) |
 | 19 | InvalidAgent | `create_mandate`: owner equals agent |
@@ -177,7 +177,7 @@ The verified registry (`packages/registry`, field `disc8`) lists values for know
 | 21 | DuplicatePermission | `add_permission`: slot for this program exists (use `update_permission`) |
 | 22 | EmptyDiscriminators | `add_permission`: `disc_len == 0` |
 
-Codes overlap across programs (the SPL Token program also returns small `Custom(n)`; the relay uses 100..119). Clients MUST attribute an error to the failing program id in the logs, not to the number alone.
+The per-instruction order of checks is stated in the header comment of `src/error.rs` and in the `checks` field of each instruction in `idl/core-idl.json`; the error numbers themselves are pinned by `tests/idl_conformance.rs::error_codes_match` and `tests/error_matrix.rs`; the prose in `checks` is descriptive and not machine-checked. Codes overlap across programs (the SPL Token program also returns small `Custom(n)`; the relay uses 100..119). Clients MUST attribute an error to the failing program id in the logs, not to the number alone.
 
 ## 8. Requirements on integrators
 
@@ -221,7 +221,7 @@ An agent that holds the raw key of an asset can ignore a mandate entirely. A man
 An implementation, client or integrator conforms to version 1 if all of the following hold. Items marked (I) apply to integrators only.
 
 - [ ] Account decoding checks owner program, size 2136, `disc == 1` and `permissions_len <= 16` before reading fields.
-- [ ] Offsets match section 2 exactly (golden fixture `fixtures/golden_mandate.bin`).
+- [ ] Offsets match section 2 exactly (golden fixtures `fixtures/golden_mandate.bin` and `fixtures/golden_mandate_v1.bin`).
 - [ ] The mandate address is `PDA(["mandate", owner, agent], AgentAuth)`.
 - [ ] `verify` data is 49 bytes with accounts `[mandate W, owner R, agent S]`.
 - [ ] Expiry is evaluated as `now >= expiry` means expired.
@@ -235,3 +235,33 @@ An implementation, client or integrator conforms to version 1 if all of the foll
 - [ ] (I) The integrator does not describe its check as enforcement unless the action is conditional on it.
 
 The repository's own conformance evidence: the core test suite (error matrix, model differential, fuzz, PoC regressions) and the LiteSVM end-to-end tests of `crates/agent-auth-cpi`; counts and measurements are in [BENCHMARKS.md](BENCHMARKS.md).
+
+## 13. Evidence index (where each normative statement is implemented and tested)
+
+Checked against the source on 2026-10-11 by reading each line and running `cargo test --test layout --test layout_v1 --test idl_conformance` (all pass: 1 + 3 + 5 tests; the 2 ignored tests are golden-file writers).
+
+| Statement | Implementation | Test or artefact |
+|---|---|---|
+| Size 2136, header 88, slot 128, 16 slots, 8 discriminators, seed `mandate` | `src/constants.rs:21-30` | `tests/layout.rs`, `tests/idl_conformance.rs::constants_match` |
+| Header offsets 0, 1, 33, 65, 73, 77, 79, 80; pads 74..77 and 81..88 | `src/constants.rs:33-40` | `tests/layout_v1.rs::v1_header_offsets`, `idl_conformance.rs::header_and_slot_field_offsets_match` |
+| Slot offsets 0, 32, 40, 48, 56, 60, 64 | `src/constants.rs:46-52` | `tests/layout_v1.rs::v1_counters_sit_at_their_offsets`, `v1_bytes_match_golden` |
+| `active` is `byte == 1`; any other value is paused | `src/state.rs:112-118` | `tests/state_unit.rs` |
+| Account decode: size, `permissions_len <= 16`, `disc == 1` give 16 | `src/state.rs:36-46`, `src/instructions/mod.rs:106-112` | `tests/error_matrix.rs` |
+| Instruction tags 0..6, unknown tag gives 1 | `src/instructions/mod.rs:45-56`, `src/lib.rs:41-53` | `idl_conformance.rs::instruction_tags_match` |
+| Exact data lengths 9, 50+8n, 33, 49, 1, 2, 49 | handlers in `src/instructions/*.rs` (`take_*`, `expect_end`, `src/instructions/mod.rs:61-82`) | `idl_conformance.rs::fixed_instruction_data_lengths_match`, `tests/error_matrix.rs` |
+| `verify` check order, steps 1 to 14 | `src/instructions/verify.rs:30-91` | `tests/error_matrix.rs`, `tests/regression_verify.rs` |
+| Expiry is `now >= expiry` | `src/state.rs:108-110`, `src/instructions/verify.rs:53` | `src/state.rs` unit test `expiry_is_the_first_invalid_second`, `tests/regression_verify.rs` |
+| `spend_total` saturates only when `spend_limit == 0`; overflow on a limited slot gives 9 | `src/instructions/verify.rs:77-86` | `tests/regression_verify.rs`, `tests/model_properties.rs` |
+| `create_mandate` order and husk / pre-funded handling | `src/instructions/create_mandate.rs:35-115` | `tests/regression_lifecycle.rs`, `tests/mutation_survivors.rs` |
+| `add_permission` empty list (22), over 8 (11), duplicate (21), full (10) | `src/instructions/add_permission.rs:19-53` | `tests/error_matrix.rs` |
+| `remove_permission` swap-remove, tail zeroed | `src/instructions/remove_permission.rs:16-39`, `src/state.rs:204-220` | `tests/state_unit.rs` |
+| `update_permission` keeps counters and discriminators | `src/instructions/update_permission.rs:20-47` | `tests/regression_lifecycle.rs` |
+| `set_active` accepts only 0 or 1, works while paused | `src/instructions/set_active.rs:15-32` | `tests/error_matrix.rs` |
+| `revoke_mandate` is a close; works on paused mandates; stored bump | `src/instructions/revoke_mandate.rs:26-74` | `tests/regression_lifecycle.rs` |
+| Error codes 1..22 | `src/error.rs` (enum) | `idl_conformance.rs::error_codes_match` |
+| Accounts, signer and writable flags per instruction | `idl/core-idl.json` (`instructions[].accounts`) | `tests/idl_conformance.rs` |
+| Integrator rules 1, 2, 4, 5 by construction | `crates/agent-auth-cpi/src/verify.rs:90-126` | `crates/agent-auth-cpi/tests/e2e.rs` (14 tests, all pass) |
+| `disc8` examples (`8fbe5adac41e33de`, `0c00...`, `0200...`) | `crates/agent-auth-cpi/src/disc8.rs:60-64`; Anchor value recomputed with `sha256("global:swap_base_input")[0..8]` on 2026-10-11 | `packages/registry` |
+| Relay error range 100..119 | `idl/relay-idl.json` (`errors`, 20 codes) | relay test suite, see `docs/data/relay-metrics.json` |
+
+Not independently verified by this pass: the statement in section 5 that the pre-hardening v0.1 binary did not check the expiry at creation (it is a statement about a binary that is no longer in the tree).

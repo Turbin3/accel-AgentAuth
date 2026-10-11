@@ -10,7 +10,7 @@ Which section do you need?
 | Building an agent or an agent framework that holds a key | 3 (SDK, MCP server, CLI) |
 | Running an API or service that wants to know whether an agent is authorised | 4 |
 
-Every snippet below was compiled or run on 2026-10-11; the sentence after it says how.
+Each snippet says how it was checked and when. Checks made by the 2026-10-11 conformance pass are labelled "compiled", "type-checked" or "run"; a statement that an earlier run happened and was not repeated is labelled "not re-run".
 
 ## 1. Program authors: Rust and Pinocchio with `agent-auth-cpi`
 
@@ -38,7 +38,7 @@ VerifyCpi {
 // verified: now perform exactly that action, out of the vault controlled by `vault_owner`
 ```
 
-A complete program that does this (verify, then a System transfer out of the PDA `["treasury", expected_owner]`, with the expected owner read from a config account the program owns) is [`crates/agent-auth-cpi/tests/fixture-caller/src/lib.rs`](../crates/agent-auth-cpi/tests/fixture-caller/src/lib.rs); a smaller one is [`programs/gated-example`](../programs/gated-example/README.md). Both are built by `scripts/build-all.sh` (on 2026-10-11 the build took 88 s on a warm cache) and exercised against the real `agent_auth.so` in LiteSVM (`cargo test -p agent-auth-cpi`, 14 end-to-end tests listed in the crate README).
+A complete program that does this (verify, then a System transfer out of the PDA `["treasury", expected_owner]`, with the expected owner read from a config account the program owns) is [`crates/agent-auth-cpi/tests/fixture-caller/src/lib.rs`](../crates/agent-auth-cpi/tests/fixture-caller/src/lib.rs); a smaller one is [`programs/gated-example`](../programs/gated-example/README.md). Both are built by `scripts/build-all.sh` and exercised against the real `agent_auth.so` in LiteSVM (`cargo test -p agent-auth-cpi`, 14 end-to-end tests listed in the crate README).
 
 ### What `invoke()` checks before it makes the CPI
 
@@ -122,7 +122,7 @@ pub fn verify_ix(mandate: Pubkey, owner: Pubkey, agent: Pubkey, target: Pubkey, 
 }
 ```
 
-Compiled and tested on 2026-10-11 in a scratch crate (`solana-instruction 4.0.0`, `solana-pubkey 4.2.0`, `cargo test --offline`): a unit test asserts length 49, tag 3, the target at 1..33, `[12,0,0,0,0,0,0,0]` at 33..41 and the amount at 41..49. The `invoke` call itself (`solana_program::program::invoke(&verify_ix(...), &[mandate, owner, agent, agent_auth_program])`) is the standard one and was not compiled here. Before it, in your program, you MUST:
+Compiled and tested on 2026-10-11 in a scratch crate with `solana-instruction = "4"` and `solana-pubkey = "4"` (cargo resolved 4.0.0 and 4.4.0; `solana-instruction 4.0.0` requires `solana-pubkey >= 4.3.0`, so a pin of `solana-pubkey =4.2.0` does not resolve): a unit test asserts length 49, tag 3, the target at 1..33, `[12,0,0,0,0,0,0,0]` at 33..41 and the amount at 41..49. The `invoke` call itself (`solana_program::program::invoke(&verify_ix(...), &[mandate, owner, agent, agent_auth_program])`) is the standard one and was not compiled here. Before it, in your program, you MUST:
 
 1. check that the AgentAuth program account passed in equals `AGENT_AUTH_ID` (or do not take it from the caller at all);
 2. read the mandate account's data: owner program must be `AGENT_AUTH_ID`, length 2136, `data[0] == 1`, and bytes `1..33` (the mandate `owner`) must equal the owner your own state says controls the funds; bytes `33..65` must equal the agent that signed;
@@ -137,27 +137,31 @@ The agent holds only its own key (fee SOL, no token authority). The owner sets u
 ### TypeScript SDK (`@agentauth-sol/sdk`, not published; build from this repo)
 
 ```ts
+import type { Address, KeyPairSigner } from '@solana/kit'
 import { createClient, mandatePda, preflightFailureToError, relayTransferIx } from '@agentauth-sol/sdk'
 
-const client = createClient({ cluster: 'devnet' }) // 'localnet' with rpcUrl for tests
-// pre-flight against live chain data and the cluster clock: no transaction, no fee
-const pre = await client.preflightTransfer({ owner, agent: agent.address, destination, amount: 2_000_000n })
-if (!pre.ok) { const e = preflightFailureToError(pre); console.log(e.program, e.name, e.code); return }
-const mandate = (await mandatePda(owner, agent.address)).address
-const policy = await client.fetchPolicy(mandate)
-if (!policy) throw new Error('no relay policy')
-const ix = await relayTransferIx({ agent, policy, destination, amount: 2_000_000n })
-const res = await client.sendAndConfirm([ix], { signers: [agent], computeUnitLimit: 200_000 })
+export async function pay(owner: Address, agent: KeyPairSigner, destination: Address) {
+  const client = createClient({ cluster: 'devnet' }) // 'localnet' with rpcUrl for tests
+  // pre-flight against live chain data and the cluster clock: no transaction, no fee
+  const pre = await client.preflightTransfer({ owner, agent: agent.address, destination, amount: 2_000_000n })
+  if (!pre.ok) { const e = preflightFailureToError(pre); console.log(e.program, e.name, e.code); return }
+  const mandate = (await mandatePda(owner, agent.address)).address
+  const policy = await client.fetchPolicy(mandate)
+  if (!policy) throw new Error('no relay policy')
+  const ix = await relayTransferIx({ agent, policy, destination, amount: 2_000_000n })
+  const res = await client.sendAndConfirm([ix], { signers: [agent], computeUnitLimit: 200_000 })
+  return res.signature
+}
 ```
 
-Run on 2026-10-11 against a local validator with the demo environment: a 2 DUSD payment to the allowlisted account was sent; the same call to a non-allowlisted account returned `relay RecipientNotAllowed 104` from the pre-flight and nothing was sent. `owner` is the owner you trust (never read it from a request); the same recipe is type-checked in `packages/sdk/test/recipes.ts`. See [`packages/sdk/README.md`](../packages/sdk/README.md) and `API.md`.
+Type-checked on 2026-10-11 with `tsc --noEmit` (strict, the repository's base config) against `packages/sdk/dist/index.d.ts`. An earlier run against a local validator with the demo environment (recorded in [DEMO.md](DEMO.md), not re-run in the conformance pass): a 2 DUSD payment to the allowlisted account was sent; the same call to a non-allowlisted account returned `relay RecipientNotAllowed 104` from the pre-flight and nothing was sent. `owner` is the owner you trust (never read it from a request); the same recipe is type-checked in `packages/sdk/test/recipes.ts` (`pnpm --filter @agentauth-sol/sdk test`, `recipes.test.ts` and `surface.test.ts` pass: 79 tests on 2026-10-11). See [`packages/sdk/README.md`](../packages/sdk/README.md) and `API.md`.
 
 ### MCP server (`@agentauth-sol/mcp`)
 
 Three profiles with separate trust: `agent` (holds only the agent key; tools `agentauth_status`, `agentauth_check_action`, `agentauth_pay`, `agentauth_explain_denial`, `agentauth_activity`, and `agentauth_swap` when the policy enables swaps), `owner` (no key; builds **unsigned** plans for the human's wallet), `observer` (read only). An agent process refuses to start if the owner keypair variable is in its environment. Claude Code:
 
 ```sh
-pnpm --filter @agentauth-sol/mcp build        # builds packages/mcp/dist/bin.js; run on 2026-10-11, `--help` printed the usage
+pnpm --filter @agentauth-sol/mcp build        # builds packages/mcp/dist/bin.js; on 2026-10-11 `node packages/mcp/dist/bin.js --help` printed the usage
 claude mcp add agentauth -e AGENTAUTH_AGENT_KEYPAIR=$HOME/.config/agentauth/agent.json \
   -- node /ABS/PATH/packages/mcp/dist/bin.js --profile agent --cluster devnet --owner <OWNER_WALLET>
 ```
@@ -178,7 +182,7 @@ agentauth activity                                 # ok rows and BLOCKED attempt
 agentauth mandate revoke --yes                     # one-transaction unwind
 ```
 
-This tour was run end to end on 2026-10-11 against a local validator; the output is quoted in the README. Every preview lists WARNINGS first and labels each capability HARD (relay) or ADVISORY. Exit codes: 2 pre-flight denial, 3 landed and failed on chain.
+The flags above were checked against `agentauth mandate create --help` on 2026-10-11. The end-to-end tour against a local validator was run earlier and is quoted in the CLI README (not re-run in the conformance pass). Every preview lists WARNINGS first and labels each capability HARD (relay) or ADVISORY. Exit codes: 2 pre-flight denial, 3 landed and failed on chain.
 
 ### Cooperative guard (`@agentauth-sol/guard`)
 
@@ -203,7 +207,7 @@ const r = assertMandateAuthorises(mandate, {
 if (!r.ok) throw r.error // r.error.program, r.error.name, r.error.code
 ```
 
-Run on 2026-10-11 against a mandate with a 5 DUSD per-call cap: 3,000,000 returned `authorised (advisory)`, 9,000,000 returned `agent_auth PerTxExceeded (8)`.
+The snippet was type-checked against `dist` on 2026-10-11. Run offline on 2026-10-11 against `fixtures/golden_mandate_v1.bin` (per-call cap 50,000, owner bytes `01`*32, agent `02`*32, target `AA`*32, `disc8` `0102030405060708`, `now` 1,800,000,000): amount 50,000 returned ok (advisory), 50,001 returned `agent_auth PerTxExceeded 8`, and a different `expectedOwner` returned `agent_auth NotOwner 2`.
 
 This check is **advisory**. It is an off-chain read: it cannot reserve budget (two sellers can both pass and the second on-chain `verify` can still fail), and it does not stop the agent from doing anything. `expectedOwner` is required on purpose: a mandate created by a stranger for the agent verifies fine against itself. If you need enforcement, make the action an instruction of an on-chain program that calls `verify` (section 1 or 2), or accept payment only through the relay.
 
