@@ -1,0 +1,893 @@
+[
+ {
+  "id": "C1",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: no owner signature check",
+  "operator": "guard-deletion",
+  "old": "if !owner.is_signer() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C2",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: allow owner == agent",
+  "operator": "comparison-flip",
+  "old": "if owner.key() == agent.key() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C3",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: no PDA address check",
+  "operator": "guard-deletion",
+  "old": "if mandate_account.key() != &expected {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C4",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: expiry == now accepted",
+  "operator": "comparison-flip",
+  "old": "if expiry <= Clock::get()?.unix_timestamp {",
+  "new": "if expiry < Clock::get()?.unix_timestamp {",
+  "expected": "killed"
+ },
+ {
+  "id": "C5",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: no expiry check",
+  "operator": "guard-deletion",
+  "old": "if expiry <= Clock::get()?.unix_timestamp {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C6",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: no writable check",
+  "operator": "guard-deletion",
+  "old": "if !mandate_account.is_writable() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C7",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: re-initialise a live mandate",
+  "operator": "wrong-value",
+  "old": "Some(&MANDATE_DISCRIMINATOR) => return Err(MandateError::AlreadyInitialized.into()),",
+  "new": "Some(&MANDATE_DISCRIMINATOR) => {}",
+  "expected": "killed"
+ },
+ {
+  "id": "C8",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: husk path does not top up",
+  "operator": "dropped-write",
+  "old": "        top_up(owner, mandate_account, rent)?;\n    } else if",
+  "new": "    } else if",
+  "expected": "killed"
+ },
+ {
+  "id": "C9",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: adopt a program-owned account of any size",
+  "operator": "other",
+  "old": "if mandate_account.data_len() != ACCOUNT_SIZE {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C10",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: adopt a system account with data",
+  "operator": "other",
+  "old": "if mandate_account.data_len() != 0 {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "C11",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: store bump 0",
+  "operator": "wrong-value",
+  "old": "Mandate::initialize(&mut account_data, owner.key(), agent.key(), expiry, bump)?;",
+  "new": "Mandate::initialize(&mut account_data, owner.key(), agent.key(), expiry, 0)?;",
+  "expected": "killed"
+ },
+ {
+  "id": "C12",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: pre-funded path forgets to resize",
+  "operator": "dropped-write",
+  "old": "            mandate_account.resize(ACCOUNT_SIZE)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "C13",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: adopt discriminator 2",
+  "operator": "other",
+  "old": "Some(0) => {}",
+  "new": "Some(0) | Some(2) => {}",
+  "expected": "killed"
+ },
+ {
+  "id": "C14",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: owner and agent swapped",
+  "operator": "wrong-value",
+  "old": "Mandate::initialize(&mut account_data, owner.key(), agent.key(), expiry, bump)?;",
+  "new": "Mandate::initialize(&mut account_data, agent.key(), owner.key(), expiry, bump)?;",
+  "expected": "killed"
+ },
+ {
+  "id": "R2",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: no owner identity check",
+  "operator": "guard-deletion",
+  "old": "        require_owner(&mandate, owner)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "R3",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: no PDA address check",
+  "operator": "guard-deletion",
+  "old": "if mandate_account.key() != &derived {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "R4",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: always trust the stored bump",
+  "operator": "guard-deletion",
+  "old": "if mandate.version() >= 1 {",
+  "new": "if true {",
+  "expected": "killed"
+ },
+ {
+  "id": "R5",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: does not pay the owner",
+  "operator": "other",
+  "old": "*owner_lamports = owner_lamports\n            .checked_add(*mandate_lamports)\n            .ok_or(MandateError::ArithmeticOverflow)?;",
+  "new": "*owner_lamports = owner_lamports\n            .checked_add(0)\n            .ok_or(MandateError::ArithmeticOverflow)?;",
+  "expected": "killed"
+ },
+ {
+  "id": "R6",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: no close (zero-lamport husk)",
+  "operator": "dropped-write",
+  "old": "    mandate_account.close()\n",
+  "new": "    Ok(())\n",
+  "expected": "killed"
+ },
+ {
+  "id": "R7",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: no data wipe (expected equivalent)",
+  "operator": "dropped-write",
+  "old": "        account_data.fill(0);\n",
+  "new": "",
+  "expected": "equivalent"
+ },
+ {
+  "id": "R8",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: trailing bytes accepted",
+  "operator": "guard-deletion",
+  "old": "expect_end(data)?;",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "M1",
+  "file": "src/instructions/mod.rs",
+  "description": "owner-family: no signature check",
+  "operator": "guard-deletion",
+  "old": "    if !owner.is_signer() {\n        return Err(MandateError::InvalidSigner.into());\n    }\n    if !mandate.is_owned_by",
+  "new": "    if !mandate.is_owned_by",
+  "expected": "killed"
+ },
+ {
+  "id": "M2",
+  "file": "src/instructions/mod.rs",
+  "description": "owner-family: no program-ownership check",
+  "operator": "guard-deletion",
+  "old": "    if !mandate.is_owned_by(program_id) {\n        return Err(MandateError::AccountOwnerMismatch.into());\n    }\n    if !mandate.is_writable()",
+  "new": "    if !mandate.is_writable()",
+  "expected": "killed"
+ },
+ {
+  "id": "M3",
+  "file": "src/instructions/mod.rs",
+  "description": "owner-family: no writable check",
+  "operator": "guard-deletion",
+  "old": "    if !mandate.is_writable() {\n        return Err(ProgramError::InvalidAccountData);\n    }\n    Ok(())",
+  "new": "    Ok(())",
+  "expected": "killed"
+ },
+ {
+  "id": "M4",
+  "file": "src/instructions/mod.rs",
+  "description": "open_mandate: no discriminator check",
+  "operator": "guard-deletion",
+  "old": "    if mandate.discriminator() != MANDATE_DISCRIMINATOR {\n        return Err(MandateError::InvalidAccountType);\n    }\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "M5",
+  "file": "src/instructions/mod.rs",
+  "description": "require_owner always passes",
+  "operator": "guard-deletion",
+  "old": "if owner.key().as_ref() != mandate.owner() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "M6",
+  "file": "src/instructions/mod.rs",
+  "description": "require_active always passes",
+  "operator": "guard-deletion",
+  "old": "    if !mandate.is_active() {\n        return Err(MandateError::NotActive.into());\n    }\n    Ok(())",
+  "new": "    Ok(())",
+  "expected": "killed"
+ },
+ {
+  "id": "M7",
+  "file": "src/instructions/mod.rs",
+  "description": "expect_end accepts trailing bytes",
+  "operator": "guard-deletion",
+  "old": "    if rest.is_empty() {\n        Ok(())",
+  "new": "    if true {\n        Ok(())",
+  "expected": "killed"
+ },
+ {
+  "id": "M8",
+  "file": "src/instructions/mod.rs",
+  "description": "dispatch: tag 5 -> verify",
+  "operator": "other",
+  "old": "5 => Ok(Instruction::SetActive),",
+  "new": "5 => Ok(Instruction::Verify),",
+  "expected": "killed"
+ },
+ {
+  "id": "M9",
+  "file": "src/instructions/mod.rs",
+  "description": "dispatch: tag 6 -> set_active",
+  "operator": "other",
+  "old": "6 => Ok(Instruction::UpdatePermission),",
+  "new": "6 => Ok(Instruction::SetActive),",
+  "expected": "killed"
+ },
+ {
+  "id": "M10",
+  "file": "src/instructions/mod.rs",
+  "description": "dispatch: tag 7 accepted",
+  "operator": "guard-deletion",
+  "old": "_ => Err(MandateError::InvalidDiscriminator),",
+  "new": "7 => Ok(Instruction::Verify),\n            _ => Err(MandateError::InvalidDiscriminator),",
+  "expected": "killed"
+ },
+ {
+  "id": "A1",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: duplicates allowed",
+  "operator": "guard-deletion",
+  "old": "    if mandate.find_permission(target_program).is_some() {\n        return Err(MandateError::DuplicatePermission.into());\n    }\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "A2",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: empty discriminator list allowed",
+  "operator": "guard-deletion",
+  "old": "    if discriminators.is_empty() {\n        return Err(MandateError::EmptyDiscriminators.into());\n    }\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "A3",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: 8 discriminators refused",
+  "operator": "wrong-value",
+  "old": "if discriminators.len() > MAX_DISCRIMINATORS {",
+  "new": "if discriminators.len() >= MAX_DISCRIMINATORS {",
+  "expected": "killed"
+ },
+ {
+  "id": "A4",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: trailing bytes accepted",
+  "operator": "guard-deletion",
+  "old": "if discriminators.len() != disc_len as usize || !trailing.is_empty() {",
+  "new": "if discriminators.len() != disc_len as usize {",
+  "expected": "killed"
+ },
+ {
+  "id": "A5",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: length byte ignored",
+  "operator": "wrong-value",
+  "old": "if discriminators.len() != disc_len as usize || !trailing.is_empty() {",
+  "new": "if !trailing.is_empty() {",
+  "expected": "killed"
+ },
+ {
+  "id": "A6",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: limits swapped",
+  "operator": "wrong-value",
+  "old": "append_permission(target_program, spend_limit, per_tx_limit, discriminators)",
+  "new": "append_permission(target_program, per_tx_limit, spend_limit, discriminators)",
+  "expected": "killed"
+ },
+ {
+  "id": "A7",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: allowed while paused",
+  "operator": "guard-deletion",
+  "old": "    require_active(&mandate)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "A8",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: no owner identity check",
+  "operator": "guard-deletion",
+  "old": "    require_owner(&mandate, owner)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "X1",
+  "file": "src/instructions/remove_permission.rs",
+  "description": "remove: allowed while paused",
+  "operator": "guard-deletion",
+  "old": "    require_active(&mandate)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "X2",
+  "file": "src/instructions/remove_permission.rs",
+  "description": "remove: always removes slot 0",
+  "operator": "guard-deletion",
+  "old": "mandate.swap_remove_permission(index)?;",
+  "new": "mandate.swap_remove_permission(0)?;",
+  "expected": "killed"
+ },
+ {
+  "id": "X3",
+  "file": "src/instructions/remove_permission.rs",
+  "description": "remove: no owner identity check",
+  "operator": "guard-deletion",
+  "old": "    require_owner(&mandate, owner)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "U1",
+  "file": "src/instructions/update_permission.rs",
+  "description": "update: limits swapped",
+  "operator": "wrong-value",
+  "old": "permission.set_spend_limit(spend_limit);\n    permission.set_per_tx_limit(per_tx_limit);",
+  "new": "permission.set_spend_limit(per_tx_limit);\n    permission.set_per_tx_limit(spend_limit);",
+  "expected": "killed"
+ },
+ {
+  "id": "U2",
+  "file": "src/instructions/update_permission.rs",
+  "description": "update: allowed while paused",
+  "operator": "guard-deletion",
+  "old": "    require_active(&mandate)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "U3",
+  "file": "src/instructions/update_permission.rs",
+  "description": "update: resets the spent budget",
+  "operator": "wrong-value",
+  "old": "permission.set_per_tx_limit(per_tx_limit);",
+  "new": "permission.set_per_tx_limit(per_tx_limit);\n    permission.set_spend_total(0);",
+  "expected": "killed"
+ },
+ {
+  "id": "U4",
+  "file": "src/instructions/update_permission.rs",
+  "description": "update: ignores per_tx",
+  "operator": "wrong-value",
+  "old": "    permission.set_per_tx_limit(per_tx_limit);\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "U5",
+  "file": "src/instructions/update_permission.rs",
+  "description": "update: no owner identity check",
+  "operator": "guard-deletion",
+  "old": "    require_owner(&mandate, owner)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "U6",
+  "file": "src/instructions/update_permission.rs",
+  "description": "update: resets call_count",
+  "operator": "wrong-value",
+  "old": "permission.set_per_tx_limit(per_tx_limit);",
+  "new": "permission.set_per_tx_limit(per_tx_limit);\n    permission.set_call_count(0);",
+  "expected": "killed"
+ },
+ {
+  "id": "S1",
+  "file": "src/instructions/set_active.rs",
+  "description": "set_active: inverted",
+  "operator": "other",
+  "old": "mandate.set_active(active);",
+  "new": "mandate.set_active(!active);",
+  "expected": "killed"
+ },
+ {
+  "id": "S2",
+  "file": "src/instructions/set_active.rs",
+  "description": "set_active: no owner identity check",
+  "operator": "guard-deletion",
+  "old": "    require_owner(&mandate, owner)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "S3",
+  "file": "src/instructions/set_active.rs",
+  "description": "set_active: accepts 2",
+  "operator": "guard-deletion",
+  "old": "[1] => true,",
+  "new": "[1] | [2] => true,",
+  "expected": "killed"
+ },
+ {
+  "id": "V1",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: ignores paused",
+  "operator": "wrong-value",
+  "old": "    require_active(&mandate)?;\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "V2",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: owner account unchecked",
+  "operator": "other",
+  "old": "if owner.key().as_ref() != mandate.owner() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "V3",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: agent key unchecked",
+  "operator": "other",
+  "old": "if agent.key().as_ref() != mandate.agent() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "V4",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: agent signature unchecked",
+  "operator": "other",
+  "old": "if !agent.is_signer() {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "V5",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: per-tx boundary",
+  "operator": "comparison-flip",
+  "old": "if per_tx_limit != 0 && amount > per_tx_limit {",
+  "new": "if per_tx_limit != 0 && amount >= per_tx_limit {",
+  "expected": "killed"
+ },
+ {
+  "id": "V6",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: lifetime boundary",
+  "operator": "comparison-flip",
+  "old": "Some(total) if total <= spend_limit => total,",
+  "new": "Some(total) if total < spend_limit => total,",
+  "expected": "killed"
+ },
+ {
+  "id": "V7",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: unlimited total wraps",
+  "operator": "wrong-value",
+  "old": "permission.spend_total().saturating_add(amount)\n    }",
+  "new": "permission.spend_total().wrapping_add(amount)\n    }",
+  "expected": "killed"
+ },
+ {
+  "id": "V8",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: call_count wraps",
+  "operator": "wrong-value",
+  "old": "let call_count = permission.call_count().saturating_add(1);",
+  "new": "let call_count = permission.call_count().wrapping_add(1);",
+  "expected": "killed"
+ },
+ {
+  "id": "V9",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: discriminator unchecked",
+  "operator": "other",
+  "old": "    if !permission.allows(disc) {\n        return Err(MandateError::DiscriminatorNotAllowed.into());\n    }\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "V10",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: trailing bytes accepted",
+  "operator": "guard-deletion",
+  "old": "if !rest.is_empty() {\n        return Err(MandateError::InvalidInstructionData.into());\n    }",
+  "new": "if false {\n        return Err(MandateError::InvalidInstructionData.into());\n    }",
+  "expected": "killed"
+ },
+ {
+  "id": "V11",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: charges slot 0",
+  "operator": "other",
+  "old": "let mut permission = mandate.permission_mut(index);",
+  "new": "let mut permission = mandate.permission_mut(0);",
+  "expected": "killed"
+ },
+ {
+  "id": "V12",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: no expiry check",
+  "operator": "guard-deletion",
+  "old": "if mandate.is_expired(Clock::get()?.unix_timestamp) {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "V13",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: no writable check",
+  "operator": "guard-deletion",
+  "old": "    if !mandate_account.is_writable() {\n        return Err(ProgramError::InvalidAccountData);\n    }\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "V14",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: does not record spend",
+  "operator": "other",
+  "old": "permission.set_spend_total(spend_total);\n    permission.set_call_count(call_count);",
+  "new": "permission.set_call_count(call_count);",
+  "expected": "killed"
+ },
+ {
+  "id": "V15",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: does not count calls",
+  "operator": "other",
+  "old": "permission.set_spend_total(spend_total);\n    permission.set_call_count(call_count);",
+  "new": "permission.set_spend_total(spend_total);",
+  "expected": "killed"
+ },
+ {
+  "id": "V16",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: no program-ownership check",
+  "operator": "guard-deletion",
+  "old": "if !mandate_account.is_owned_by(program_id) {",
+  "new": "if false {",
+  "expected": "killed"
+ },
+ {
+  "id": "V17",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: wrong code for lifetime limit",
+  "operator": "wrong-value",
+  "old": "_ => return Err(MandateError::SpendLimitExceeded.into()),",
+  "new": "_ => return Err(MandateError::PerTxExceeded.into()),",
+  "expected": "killed"
+ },
+ {
+  "id": "T1",
+  "file": "src/state.rs",
+  "description": "state: find scans all 16 slots",
+  "operator": "other",
+  "old": "(0..self.permissions_len()).find(|&i| self.permission(i).program_id() == &program_id[..])",
+  "new": "(0..MAX_PERMISSIONS).find(|&i| self.permission(i).program_id() == &program_id[..])",
+  "expected": "killed"
+ },
+ {
+  "id": "T2",
+  "file": "src/state.rs",
+  "description": "state: allows scans all 8",
+  "operator": "guard-deletion",
+  "old": "(0..self.discriminators_len()).any(|i| self.discriminator(i) == &disc[..])",
+  "new": "(0..MAX_DISCRIMINATORS).any(|i| self.discriminator(i) == &disc[..])",
+  "expected": "killed"
+ },
+ {
+  "id": "T3",
+  "file": "src/state.rs",
+  "description": "state: swap_remove bound",
+  "operator": "comparison-flip",
+  "old": "if idx >= len {",
+  "new": "if idx > len {",
+  "expected": "killed"
+ },
+ {
+  "id": "T4",
+  "file": "src/state.rs",
+  "description": "state: append past 16",
+  "operator": "other",
+  "old": "if len >= MAX_PERMISSIONS {",
+  "new": "if len > MAX_PERMISSIONS {",
+  "expected": "killed"
+ },
+ {
+  "id": "T5",
+  "file": "src/state.rs",
+  "description": "state: append refuses 8 discs",
+  "operator": "wrong-value",
+  "old": "if discriminators.len() > MAX_DISCRIMINATORS {",
+  "new": "if discriminators.len() >= MAX_DISCRIMINATORS {",
+  "expected": "killed"
+ },
+ {
+  "id": "T6",
+  "file": "src/state.rs",
+  "description": "state: active = nonzero",
+  "operator": "other",
+  "old": "self.data[OFF_ACTIVE] == 1",
+  "new": "self.data[OFF_ACTIVE] != 0",
+  "expected": "killed"
+ },
+ {
+  "id": "T7",
+  "file": "src/state.rs",
+  "description": "state: from_bytes length bound",
+  "operator": "comparison-flip",
+  "old": "if this.permissions_len() > MAX_PERMISSIONS {",
+  "new": "if this.permissions_len() > MAX_PERMISSIONS + 1 {",
+  "expected": "killed"
+ },
+ {
+  "id": "T8",
+  "file": "src/state.rs",
+  "description": "state: no disc clamp",
+  "operator": "guard-deletion",
+  "old": "(self.data[P_DISC_LEN] as usize).min(MAX_DISCRIMINATORS)",
+  "new": "self.data[P_DISC_LEN] as usize",
+  "expected": "killed"
+ },
+ {
+  "id": "T9",
+  "file": "src/state.rs",
+  "description": "state: swap_remove leaves stale tail",
+  "operator": "dropped-write",
+  "old": "        self.data[tail..tail + PERMISSION_SIZE].fill(0);\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "T10",
+  "file": "src/state.rs",
+  "description": "state: initialize does not wipe",
+  "operator": "other",
+  "old": "        data.fill(0);\n        let mut this",
+  "new": "        let mut this",
+  "expected": "killed"
+ },
+ {
+  "id": "T11",
+  "file": "src/state.rs",
+  "description": "state: append does not clear the slot",
+  "operator": "other",
+  "old": "            p.clear();\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "T12",
+  "file": "src/state.rs",
+  "description": "state: expiry boundary",
+  "operator": "comparison-flip",
+  "old": "now >= self.expiry()",
+  "new": "now > self.expiry()",
+  "expected": "killed"
+ },
+ {
+  "id": "T13",
+  "file": "src/state.rs",
+  "description": "state: key compared on 31 bytes",
+  "operator": "other",
+  "old": "self.permission(i).program_id() == &program_id[..]",
+  "new": "self.permission(i).program_id()[..31] == program_id[..31]",
+  "expected": "killed"
+ },
+ {
+  "id": "T14",
+  "file": "src/state.rs",
+  "description": "state: swap_remove copies only for the last",
+  "operator": "wrong-value",
+  "old": "if idx != last {",
+  "new": "if idx == last {",
+  "expected": "killed"
+ },
+ {
+  "id": "K1",
+  "file": "src/constants.rs",
+  "description": "const: OFF_ACTIVE",
+  "operator": "other",
+  "old": "pub const OFF_ACTIVE: usize = 73;",
+  "new": "pub const OFF_ACTIVE: usize = 74;",
+  "expected": "killed"
+ },
+ {
+  "id": "K2",
+  "file": "src/constants.rs",
+  "description": "const: P_SPEND_TOTAL",
+  "operator": "other",
+  "old": "pub const P_SPEND_TOTAL: usize = 48;",
+  "new": "pub const P_SPEND_TOTAL: usize = 49;",
+  "expected": "killed"
+ },
+ {
+  "id": "K3",
+  "file": "src/constants.rs",
+  "description": "const: OFF_BUMP",
+  "operator": "other",
+  "old": "pub const OFF_BUMP: usize = 80;",
+  "new": "pub const OFF_BUMP: usize = 81;",
+  "expected": "killed"
+ },
+ {
+  "id": "K4",
+  "file": "src/constants.rs",
+  "description": "const: seed",
+  "operator": "other",
+  "old": "pub const MANDATE_SEED: &[u8] = b\"mandate\";",
+  "new": "pub const MANDATE_SEED: &[u8] = b\"mandat3\";",
+  "expected": "killed"
+ },
+ {
+  "id": "K5",
+  "file": "src/constants.rs",
+  "description": "const: version",
+  "operator": "other",
+  "old": "pub const CURRENT_VERSION: u8 = 1;",
+  "new": "pub const CURRENT_VERSION: u8 = 2;",
+  "expected": "killed"
+ },
+ {
+  "id": "L1",
+  "file": "src/lib.rs",
+  "description": "dispatch: update routed to set_active",
+  "operator": "wrong-value",
+  "old": "Instruction::UpdatePermission => {\n            instructions::update_permission(program_id, accounts, data)",
+  "new": "Instruction::UpdatePermission => {\n            instructions::set_active(program_id, accounts, data)",
+  "expected": "killed"
+ },
+ {
+  "id": "E1",
+  "file": "src/error.rs",
+  "description": "error code 2 renumbered",
+  "operator": "error-variant",
+  "old": "NotOwner = 2,",
+  "new": "NotOwner = 32,",
+  "expected": "killed"
+ },
+ {
+  "id": "O1",
+  "file": "src/instructions/mod.rs",
+  "description": "require_owner compares 31 bytes",
+  "operator": "other",
+  "old": "if owner.key().as_ref() != mandate.owner() {",
+  "new": "if owner.key().as_ref()[..31] != mandate.owner()[..31] {",
+  "expected": "killed"
+ },
+ {
+  "id": "O2",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: owner compared on 31 bytes",
+  "operator": "other",
+  "old": "if owner.key().as_ref() != mandate.owner() {",
+  "new": "if owner.key().as_ref()[..31] != mandate.owner()[..31] {",
+  "expected": "killed"
+ },
+ {
+  "id": "O3",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: agent compared without byte 0",
+  "operator": "guard-deletion",
+  "old": "if agent.key().as_ref() != mandate.agent() {",
+  "new": "if agent.key().as_ref()[1..] != mandate.agent()[1..] {",
+  "expected": "killed"
+ },
+ {
+  "id": "O4",
+  "file": "src/instructions/verify.rs",
+  "description": "verify: counts calls twice",
+  "operator": "other",
+  "old": "let call_count = permission.call_count().saturating_add(1);",
+  "new": "let call_count = permission.call_count().saturating_add(2);",
+  "expected": "killed"
+ },
+ {
+  "id": "O5",
+  "file": "src/state.rs",
+  "description": "state: key compared without byte 0",
+  "operator": "guard-deletion",
+  "old": "self.permission(i).program_id() == &program_id[..]",
+  "new": "self.permission(i).program_id()[1..] == program_id[1..]",
+  "expected": "killed"
+ },
+ {
+  "id": "O6",
+  "file": "src/state.rs",
+  "description": "state: discriminator compared on 7 bytes",
+  "operator": "other",
+  "old": "self.discriminator(i) == &disc[..]",
+  "new": "self.discriminator(i)[..7] == disc[..7]",
+  "expected": "killed"
+ },
+ {
+  "id": "O7",
+  "file": "src/instructions/revoke_mandate.rs",
+  "description": "revoke: derives with the wrong bump",
+  "operator": "wrong-value",
+  "old": "mandate.agent(), &[bump]",
+  "new": "mandate.agent(), &[bump.wrapping_add(1)]",
+  "expected": "killed"
+ },
+ {
+  "id": "O8",
+  "file": "src/instructions/create_mandate.rs",
+  "description": "create: stores expiry + 1",
+  "operator": "wrong-value",
+  "old": "let expiry = expiry as i64;",
+  "new": "let expiry = (expiry as i64).saturating_add(1);",
+  "expected": "killed"
+ },
+ {
+  "id": "O9",
+  "file": "src/instructions/add_permission.rs",
+  "description": "add: stores only the first discriminator",
+  "operator": "partial-compare",
+  "old": "mandate.append_permission(target_program, spend_limit, per_tx_limit, discriminators)?;",
+  "new": "mandate.append_permission(target_program, spend_limit, per_tx_limit, &discriminators[..1])?;",
+  "expected": "killed"
+ },
+ {
+  "id": "E2",
+  "file": "src/error.rs",
+  "description": "error code 18 renumbered",
+  "operator": "error-variant",
+  "old": "InvalidSigner = 18,",
+  "new": "InvalidSigner = 28,",
+  "expected": "killed"
+ }
+]

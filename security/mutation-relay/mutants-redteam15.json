@@ -1,0 +1,122 @@
+[
+ {
+  "id": "MU1",
+  "file": "programs/relay/src/ix/transfer.rs",
+  "description": "dest eq source",
+  "old": "if !cfg.is_recipient(destination.key()) || destination.key() == source.key() {",
+  "new": "if !cfg.is_recipient(destination.key()) {",
+  "expected": "equivalent"
+ },
+ {
+  "id": "MU2",
+  "file": "programs/relay/src/ix/transfer.rs",
+  "description": "no transfer delta",
+  "old": "    verify_deltas(source, destination, &pre, amount)?;\n",
+  "new": "    let _ = (&pre, verify_deltas as fn(&AccountInfo,&AccountInfo,&Pre,u64)->ProgramResult);\n",
+  "expected": "killed"
+ },
+ {
+  "id": "MU3",
+  "file": "programs/relay/src/ix/swap.rs",
+  "description": "no delegated drop check",
+  "old": "        || !delegated_ok\n",
+  "new": "        || false && !delegated_ok\n",
+  "expected": "killed"
+ },
+ {
+  "id": "MU4",
+  "file": "programs/relay/src/ix/swap.rs",
+  "description": "no out owner check",
+  "old": "if t.mint() != cfg.out_mint() || t.owner() != p.owner() {",
+  "new": "if t.mint() != cfg.out_mint() {",
+  "expected": "killed"
+ },
+ {
+  "id": "MU5",
+  "file": "programs/relay/src/checks.rs",
+  "description": "no stale guard",
+  "old": "    check_fresh(&p, mandate_data)?;\n",
+  "new": "    let _ = check_fresh;\n",
+  "expected": "killed"
+ },
+ {
+  "id": "MU7",
+  "file": "programs/relay/src/ix/swap.rs",
+  "description": "no amm executable",
+  "old": "if !a.amm_program.executable() || !amm_allowed(a.amm_program.key()) {",
+  "new": "if !amm_allowed(a.amm_program.key()) {",
+  "expected": "killed"
+ },
+ {
+  "id": "MU8",
+  "file": "programs/relay/src/ix/transfer.rs",
+  "description": "no source owner check",
+  "old": "            || t.owner() != p.owner()\n            || !t.delegate_is(a.authority.key())",
+  "new": "            || !t.delegate_is(a.authority.key())",
+  "expected": "killed"
+ },
+ {
+  "id": "MU9",
+  "file": "programs/relay/src/ix/swap.rs",
+  "description": "no in delta cap",
+  "old": "        .filter(|d| *d <= amount_in)\n        .ok_or(RelayError::BalanceDeltaViolation)?;",
+  "new": "        .ok_or(RelayError::BalanceDeltaViolation)?;",
+  "expected": "killed"
+ },
+ {
+  "id": "MU10",
+  "file": "programs/relay/src/ix/transfer.rs",
+  "description": "no src delegate check",
+  "old": "            || !t.delegate_is(a.authority.key())\n            || t.delegated_amount() < amount",
+  "new": "            || t.delegated_amount() < amount",
+  "expected": "killed"
+ },
+ {
+  "id": "MU11",
+  "file": "programs/relay/src/state.rs",
+  "description": "no distinct",
+  "old": "        self.validate_distinct(id)\n    }",
+  "new": "        let _ = id; Ok(())\n    }",
+  "expected": "killed"
+ },
+ {
+  "id": "MU12",
+  "file": "programs/relay/src/ix/swap.rs",
+  "description": "no out invariants",
+  "old": "        || !pre_out.invariants_hold(post_out, false)\n",
+  "new": "        || false\n",
+  "expected": "killed"
+ },
+ {
+  "id": "MU13",
+  "file": "programs/relay/src/ix/transfer.rs",
+  "description": "no recipient check",
+  "old": "if !cfg.is_recipient(destination.key()) || destination.key() == source.key() {",
+  "new": "if destination.key() == source.key() {",
+  "expected": "killed"
+ },
+ {
+  "id": "MU14",
+  "file": "programs/relay/src/checks.rs",
+  "description": "no mandate agent bind",
+  "old": "        || key_at(mandate_data, MANDATE_OFF_AGENT) != agent\n",
+  "new": "",
+  "expected": "killed"
+ },
+ {
+  "id": "MU15",
+  "file": "programs/relay/src/ix/transfer.rs",
+  "description": "no dest mint check",
+  "old": "        if t.mint() != cfg.budget_mint() {\n            return Err(RelayError::TokenAccountState.into());\n        }\n        t.amount()\n    };\n\n    Ok(Pre",
+  "new": "        t.amount()\n    };\n\n    Ok(Pre",
+  "expected": "killed"
+ },
+ {
+  "id": "MU16",
+  "file": "programs/relay/src/ix/swap.rs",
+  "description": "no floor",
+  "old": "        args.min_out,\n        cfg.floor_out(),\n        cfg.floor_in(),",
+  "new": "        args.min_out,\n        0,\n        1,",
+  "expected": "killed"
+ }
+]

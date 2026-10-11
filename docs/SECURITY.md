@@ -338,10 +338,18 @@ swapping an error variant, using a wrong offset or slot, skipping a write or a z
 built one at a time with `cargo build-sbf` into a private target directory and the suite was run
 against each binary.
 
-Limits of this claim. The mutation scripts and the per-mutant results are working files outside the
-repository, so the table above cannot be re-run from a clean checkout today (open item in
-[ROADMAP.md](ROADMAP.md)). The identity of the one equivalent mutant is not recorded in the repository.
-`cargo-mutants` was not used. A mutation score measures the suite against the mutants that were
+Where the evidence lives. The mutants (as exact old and new text), a portable runner, the per-mutant
+ledger and the equivalence proofs are in [`security/mutation-core/`](../security/mutation-core/README.md).
+The campaign behind the most recent numbers has 206 unique mutants (144 in round 1, 62 new in round 2):
+203 killed, 3 proven equivalent (`S18`, `V06`, `V08`), and 4 real test gaps (`C20`, `V10`, `W31`,
+`N-S31`) that were closed by new tests; the ledger is `security/mutation-core/results.csv` and agrees with
+`docs/data/core-metrics.json`. The 99-mutant set of the table above is in the same folder
+(`mutants-legacy99.json`, `results-legacy99.csv`); its one equivalent survivor is `R7`, the same edit in
+effect as `V06`. Reproduce a sample with
+`python3 security/mutation-core/run.py --ids X02,V08,N-S31` (a killed, an equivalent and a closed gap) or
+the whole campaign with `--all`. The first row of the table above (legacy suite, 93 mutants) needs the
+pre-rewrite test suite, which is not in the repository, and cannot be re-run. The full 206-mutant sweep
+was not re-run after the last tests were added. `cargo-mutants` was not used. A mutation score measures the suite against the mutants that were
 written, not against every possible bug.
 
 ### 8.2 Relay
@@ -349,10 +357,21 @@ written, not against every possible bug.
 | Experiment | Result | Notes |
 |---|---|---|
 | 15 hand-written mutants of `programs/relay/src`, run against the full relay suite plus the red-team suites | 14 killed, 1 survivor (MU1, judged equivalent) | Pass 1 (red-team and smoke suites only) killed 10; the full upstream suite, including host unit tests, killed 4 more (MU3, MU4, MU12, MU15). MU3 and MU12 are killed only by a host unit test (`ix::swap::tests::post_error_codes_and_order`). MU1 (drop `destination != source`) survives because `init_policy` distinctness keeps the source out of the recipient list and the exact-delta check (106) backs it up. |
-| Systematic campaign, 233 mutants defined | **Not finished at the time of writing.** Interim snapshot taken 2026-10-11 03:41 IST: 176 run, 144 killed, 32 survived, 57 not yet run. The survivors have not been triaged for equivalence. | Final numbers will be in `docs/data/relay-metrics.json` and [BENCHMARKS.md](BENCHMARKS.md). **No relay mutation score is claimed until the campaign finishes and the survivors are triaged.** |
+| Systematic campaign, 257 mutants (233 when this section was first written) | Finished. 211 killed by the suite as it stood (12 of them only by in-source unit tests), 6 equivalent (written proofs: `C02`, `L05`, `N22`, `V16`, `V17`, `X03`), 40 survivors. All 40 survivors are killed by `programs/relay/tests/witness.rs`, each run individually against its mutant. Score on the pre-witness suite: 211/251 = 84.1%; 251/251 of the non-equivalent mutants of this catalogue with `witness.rs`. | Mutants, runner, ledger and proofs: [`security/mutation-relay/`](../security/mutation-relay/README.md) (`results.csv`). `docs/data/relay-metrics.json` and [BENCHMARKS.md](BENCHMARKS.md) record 31 of the 40 killed and nine open (`G09`, `N10`, `N12`, `N13`, `S12`, `S41`, `S42`, `T07`, `T11`); the packaged runner kills all nine against the current `witness.rs`, so the gate file reflects an earlier witness version. The full 257-mutant sweep was **not** re-run with the final `witness.rs`. |
 
-The 32 interim survivors, so that nothing is hidden (ids are from the campaign's mutant table, which is
-not yet in the repository): `C02` (policy length check), `C07` (mandate length check), `C08` (mandate
+This is a statement about the sensitivity of the tests to these hand-written mutants, not evidence of the
+absence of bugs, and the 100% figure is a closed loop (survivors were closed by tests written for them).
+The mutants, witnesses and proofs were written by AI agents under the founder's direction. The earlier
+15-mutant survivor `MU1` is the same edit as the campaign's `T09`: judged equivalent in the first
+experiment because it is unreachable through the instruction interface, and killed in the campaign by
+the planted-policy witness `W11`. Reproduce a sample with
+`python3 security/mutation-relay/run.py --ids C01,V16,D04` (a killed, an equivalent and a closed survivor);
+`--ids D04 --without-witness` shows the survivor before `witness.rs`.
+
+History, kept so that nothing is hidden: the interim snapshot taken 2026-10-11 03:41 IST (233 mutants
+defined, 176 run, 144 killed, 32 survived, 57 not yet run) listed these 32 survivors, all of which are
+among the 46 first-pass survivors of the finished campaign (three of them, `C02`, `N22` and `L05`, are
+equivalent; the ids are those of the ledger above): `C02` (policy length check), `C07` (mandate length check), `C08` (mandate
 discriminator check), `C15`, `C16`, `C17` (policy-to-mandate, owner and agent bindings in
 `check_bindings`), `C20` (expiry compared on the low 4 bytes only), `C23`, `C24` (order of checks), `T07`
 (token program in {Token, Token-2022}), `T09` (destination != source), `T11`, `T12`, `T13` (transfer:
@@ -365,8 +384,9 @@ is not zero-filled before close).
 Many of these checks are repeated in a second place (for example `token_acct_ok` repeats a transfer
 check), which would make them equivalent. Others look like real test gaps: the binding checks `C15` to
 `C17`, and `D04` and `D05`, which seem to contradict invariant I8 ("after `init_policy` only `flags`
-bit 0 can change"). We have not confirmed either way. Until each one is explained or covered by a new
-test, treat them as open.
+bit 0 can change"). We had not confirmed either way at the time of that snapshot. Since then each of the
+32 has been explained or covered: three are proven equivalent, the other 29 are killed by witness tests
+(`D04` and `D05` by `w08_pause_preserves_strict_top_level`, which pins invariant I8).
 
 ## 9. Relay red team
 
@@ -413,9 +433,18 @@ counters, or any tracked account byte. The program was not changed; the behaviou
 red-team statement is narrowed accordingly: no non-Custom failure is reachable through instruction inputs;
 corrupting relay-owned policy bytes (which no instruction path allows) yields an atomic runtime revert.
 
-**Where the evidence lives.** The red-team suites and the run scripts are working files outside the
-repository (only the regression tests in `rt.rs` are in the repository). Committing the red-team harness
-is an open item. Spec-level attack tests (`tr.rs`, `sw.rs`, `re.rs`, ...) are in the repository and run in the normal test command.
+**Where the evidence lives.** The red-team suites, the fuzzers and the run script are in
+[`security/redteam-relay/`](../security/redteam-relay/README.md); the regression tests of the findings are
+in `programs/relay/tests/rt.rs` and `rt2.rs`. The harness is deliberately not under `programs/relay/tests`,
+so the default test command stays fast and does not run the heavy fuzz. Reproduce with
+`security/redteam-relay/run.sh` (smoke: attacks plus fuzz at `RT_ITERS=2000`, in a scratch copy of the repo
+with its own target directory), `RT_SEED` and `RT_ITERS` to choose the seed and the effort, and
+`security/redteam-relay/run.sh replay` (`RT_SEED=424242 RT_REPLAY_IT=145566`) for the RT-F7 case; the deep
+run is `security/redteam-relay/run.sh deep` (release build, `RT_ITERS=300000`). The replay variable
+`RT_REPLAY_IT` was added to the harness when it was packaged. The replay reproduces the fuzzer's mutation exactly (the stored bump is overwritten with 84) and then reverts; the runtime message is either "Could not create program address" or a PrivilegeEscalation, depending on the per-run random fixture keys, so the original log line is reproduced in only some replays (7 of 13 when measured). The raw logs of the earlier deep runs stay
+outside the repository; `security/redteam-relay/results-summary.md` records what they showed. The suite was
+written by AI agents under the founder's direction: it is a structured self-review, not an independent
+audit. Spec-level attack tests (`tr.rs`, `sw.rs`, `re.rs`, ...) are in the repository and run in the normal test command.
 
 ## 10. Honest limitations
 

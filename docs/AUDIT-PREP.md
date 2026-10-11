@@ -210,9 +210,16 @@ generated.
 
 - They run against the real compiled `.so` in LiteSVM, not a host mock. The relay's tests run it against
   classic `spl-token`, `p-token` and Token-2022 account shapes.
-- The core suite was shown to kill 98 of 99 hand-written mutants; the relay's has killed 14 of 15
-  hand-written mutants, with a larger campaign unfinished. See [SECURITY.md](SECURITY.md), section 8, for
-  the survivors and why the scripts are not yet in the repository.
+- The core suite was shown to kill 98 of 99 hand-written mutants, and 203 of 206 in the later campaign
+  (3 proven equivalent, 4 real gaps closed by tests). The relay's suite killed 211 of 257 in its campaign
+  (6 equivalent, 40 survivors, all 40 killed by `programs/relay/tests/witness.rs`), after an earlier 14
+  of 15. These are self-review results on hand-written mutants chosen by the authors' own AI agents, not an
+  independent audit and not a bug count. The mutants, runners, ledgers and equivalence proofs are in the
+  repository: `python3 security/mutation-core/run.py --ids X02,V08,N-S31` and
+  `python3 security/mutation-relay/run.py --ids C01,V16,D04` re-run a sample (`--all` the whole campaign;
+  see [../security/README.md](../security/README.md) and [SECURITY.md](SECURITY.md), section 8, for the
+  limits). The red-team harness is reproducible with `security/redteam-relay/run.sh` (see section 9 of
+  SECURITY.md).
 - LiteSVM is not the validator. A local validator end-to-end run exists
   (`scripts/localnet.sh`, `apps/demo`), not a mainnet-beta run.
 - The relay's swap has been run against the **mock** AMM. Behaviour against the real Raydium binary and
@@ -268,8 +275,10 @@ All of it is internal and AI-assisted; none of it substitutes for an independent
 3. **Delegation.** Is there any path for the authority PDA to sign something other than the pinned
    `TransferChecked` or swap CPIs?
 4. **Policy binding.** Are `mandate`, `policy`, `authority`, `owner`, `agent`, source and mint all bound so
-   that no attacker-authored mandate or policy can reach a victim's token account? Which of the
-   unresolved relay mutation survivors ([SECURITY.md](SECURITY.md) section 8.2) correspond to a real gap?
+   that no attacker-authored mandate or policy can reach a victim's token account? Do the
+   witness tests (`programs/relay/tests/witness.rs`) that closed the relay mutation survivors
+   ([SECURITY.md](SECURITY.md) section 8.2) pin everything that matters, and do any of the six
+   equivalence proofs (`security/mutation-relay/EQUIVALENT.md`) fail?
 5. **Generation binding.** Is the stored-expiry check (118) a sufficient generation guard given that the
    core has no nonce? Is there a sequence of revoke, create and init in one transaction that re-binds a
    stale policy to a different intent?

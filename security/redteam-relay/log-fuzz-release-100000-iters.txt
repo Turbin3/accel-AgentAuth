@@ -1,0 +1,229 @@
+    Finished `release` profile [optimized] target(s) in 48.10s
+running 5 tests
+---- FZ-03 random data Classic
+  Custom(100)                              96110
+  Custom(105)                              978
+  Custom(111)                              958
+  Custom(113)                              976
+  NotEnoughAccountKeys                     19
+  OK                                       959
+---- FZ-01 transfer state fuzz Classic (OK-with-mutation = 34035)
+  (internal-corruption-abnormal)           2
+  Custom(1)                                426
+  Custom(101)                              8390
+  Custom(102)                              9113
+  Custom(103)                              11411
+  Custom(104)                              318
+  Custom(105)                              21455
+  Custom(117)                              10717
+  Custom(118)                              433
+  Custom(14)                               282
+  Custom(16)                               203
+  Custom(6)                                465
+  Custom(7)                                533
+  Custom(8)                                149
+  Custom(9)                                89
+  InvalidAccountData                       1976
+  OK                                       34035
+  PrivilegeEscalation                      3
+  ProgramFailedToComplete                  2
+---- FZ-05 init config oracle Classic: accepted 22767, oracle-ok-but-rejected 0
+  Custom(100)                              53
+  Custom(113)                              77180
+  OK                                       22767
+---- FZ-04 random account lists Classic
+  Custom(101)                              3172
+  Custom(102)                              3680
+  Custom(103)                              3703
+  Custom(104)                              131
+  Custom(107)                              1602
+  Custom(108)                              8642
+  Custom(109)                              157
+  Custom(113)                              7051
+  Custom(117)                              2133
+  NotEnoughAccountKeys                     41622
+  OK                                       25629
+  PrivilegeEscalation                      966
+  ReadonlyDataModified                     399
+  ReadonlyLamportChange                    1113
+---- FZ-02 swap state fuzz Classic
+  Custom(1)                                295
+  Custom(101)                              2497
+  Custom(102)                              3370
+  Custom(103)                              3615
+  Custom(105)                              13250
+  Custom(106)                              611
+  Custom(11)                               603
+  Custom(110)                              6
+  Custom(111)                              36762
+  Custom(112)                              2038
+  Custom(114)                              1
+  Custom(117)                              3457
+  Custom(118)                              58
+  Custom(14)                               32
+  Custom(16)                               26
+  Custom(3)                                582
+  Custom(4)                                1073
+  Custom(6)                                129
+  Custom(7)                                7
+  Custom(7001)                             7993
+  Custom(7002)                             1192
+  Custom(7003)                             3556
+  Custom(7004)                             6935
+  Custom(9)                                8
+  InvalidAccountData                       533
+  MissingAccount                           593
+  NotEnoughAccountKeys                     593
+  OK                                       8378
+  PrivilegeEscalation                      601
+  ProgramFailedToComplete                  1206
+---- FZ-03 random data PToken
+  Custom(100)                              96037
+  Custom(105)                              1021
+  Custom(111)                              957
+  Custom(113)                              996
+  NotEnoughAccountKeys                     25
+  OK                                       964
+---- FZ-01 transfer state fuzz PToken (OK-with-mutation = 36070)
+  Custom(1)                                415
+  Custom(101)                              8407
+  Custom(102)                              9145
+  Custom(103)                              11482
+  Custom(104)                              309
+  Custom(105)                              21324
+  Custom(114)                              290
+  Custom(117)                              10984
+  Custom(118)                              164
+  Custom(16)                               504
+  Custom(4)                                6
+  Custom(6)                                144
+  Custom(7)                                526
+  Custom(8)                                137
+  Custom(9)                                93
+  OK                                       36070
+---- FZ-05 init config oracle Token2022: accepted 22571, oracle-ok-but-rejected 0
+  Custom(100)                              61
+  Custom(113)                              77368
+  OK                                       22571
+test fz05_init_policy_config_oracle ... ok
+---- FZ-04 random account lists PToken
+  Custom(101)                              3199
+  Custom(102)                              3761
+  Custom(103)                              3681
+  Custom(104)                              136
+  Custom(107)                              1501
+  Custom(108)                              8475
+  Custom(109)                              149
+  Custom(113)                              7051
+  Custom(117)                              2243
+  NotEnoughAccountKeys                     41776
+  OK                                       25632
+  PrivilegeEscalation                      1041
+  ReadonlyDataModified                     329
+  ReadonlyLamportChange                    1026
+---- FZ-03 random data Token2022
+  Custom(100)                              96103
+  Custom(105)                              970
+  Custom(111)                              990
+  Custom(113)                              956
+  NotEnoughAccountKeys                     32
+  OK                                       949
+test fz03_random_instruction_data ... ok
+test fz01_transfer_state_fuzz has been running for over 60 seconds
+test fz02_swap_state_fuzz has been running for over 60 seconds
+test fz04_random_account_lists has been running for over 60 seconds
+---- FZ-02 swap state fuzz PToken
+  Custom(1)                                283
+  Custom(101)                              2506
+  Custom(102)                              3340
+  Custom(103)                              3847
+  Custom(105)                              13539
+  Custom(106)                              602
+  Custom(11)                               582
+  Custom(110)                              6
+  Custom(111)                              36418
+  Custom(112)                              2244
+  Custom(117)                              3563
+  Custom(118)                              51
+  Custom(16)                               128
+  Custom(3)                                637
+  Custom(4)                                1186
+  Custom(6)                                32
+  Custom(7)                                9
+  Custom(7001)                             7904
+  Custom(7002)                             1153
+  Custom(7003)                             3534
+  Custom(7004)                             6912
+  Custom(9)                                6
+  InvalidAccountData                       178
+  MissingAccount                           618
+  NotEnoughAccountKeys                     600
+  OK                                       8302
+  PrivilegeEscalation                      606
+  ProgramFailedToComplete                  1214
+---- FZ-01 transfer state fuzz Token2022 (OK-with-mutation = 36067)
+  Custom(1)                                417
+  Custom(101)                              8407
+  Custom(102)                              9143
+  Custom(103)                              11469
+  Custom(104)                              308
+  Custom(105)                              21341
+  Custom(117)                              10983
+  Custom(118)                              164
+  Custom(14)                               289
+  Custom(16)                               510
+  Custom(4)                                6
+  Custom(6)                                144
+  Custom(7)                                523
+  Custom(8)                                139
+  Custom(9)                                90
+  OK                                       36067
+test fz01_transfer_state_fuzz ... ok
+---- FZ-04 random account lists Token2022
+  Custom(101)                              3145
+  Custom(102)                              3703
+  Custom(103)                              3701
+  Custom(104)                              137
+  Custom(107)                              1433
+  Custom(108)                              8666
+  Custom(109)                              148
+  Custom(113)                              7091
+  Custom(117)                              2191
+  NotEnoughAccountKeys                     42021
+  OK                                       25350
+  PrivilegeEscalation                      1001
+  ReadonlyDataModified                     329
+  ReadonlyLamportChange                    1084
+test fz04_random_account_lists ... ok
+---- FZ-02 swap state fuzz Token2022
+  Custom(1)                                290
+  Custom(101)                              2506
+  Custom(102)                              3342
+  Custom(103)                              3828
+  Custom(105)                              13550
+  Custom(106)                              608
+  Custom(11)                               581
+  Custom(110)                              6
+  Custom(111)                              36418
+  Custom(112)                              2222
+  Custom(117)                              3565
+  Custom(118)                              51
+  Custom(14)                               29
+  Custom(16)                               131
+  Custom(3)                                632
+  Custom(4)                                1180
+  Custom(6)                                33
+  Custom(7)                                9
+  Custom(7001)                             7932
+  Custom(7002)                             1142
+  Custom(7003)                             3533
+  Custom(7004)                             6905
+  Custom(9)                                6
+  InvalidAccountData                       179
+  MissingAccount                           614
+  NotEnoughAccountKeys                     591
+  OK                                       8295
+  PrivilegeEscalation                      611
+  ProgramFailedToComplete                  1211
+test fz02_swap_state_fuzz ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 88.17s

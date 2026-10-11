@@ -1,0 +1,16 @@
+id,status,killed_by,note,pass1
+MU1,equivalent,,judged equivalent in this pass (see README). The systematic campaign mutant T09 is the same edit: it survived the pre-existing suite and is killed by the planted-policy witness W11,survived
+MU2,killed,fz01_transfer_state_fuzz (redteam_fuzz.rs),,killed
+MU3,killed,unit: ix::swap::tests::post_error_codes_and_order (host unit test only),,survived pass 1 (red-team and smoke suites only); killed by the full upstream suite
+MU4,killed,"tests/sw.rs::sw05_out_account_must_be_the_pinned_owner_account (classic, ptoken)",,survived pass 1 (red-team and smoke suites only); killed by the full upstream suite
+MU5,killed,revoked_and_recreated_mandate_is_refused (smoke.rs); rt05_stale_policy_rebinding_same_expiry (redteam_attacks.rs),,killed
+MU7,killed,rt15_amm_executable_flag_and_replacement (redteam_attacks2.rs),,killed
+MU8,killed,rt17_phished_approve_cannot_be_used_through_attacker_mandate (redteam_attacks2.rs),,killed
+MU9,killed,swap_malicious_amm_modes_are_caught (smoke.rs),,killed
+MU10,killed,rt11_second_mandate_same_source_fails_closed (redteam_attacks.rs),,killed
+MU11,killed,fz05_init_policy_config_oracle (redteam_fuzz.rs),,killed
+MU12,killed,unit: ix::swap::tests::post_error_codes_and_order (host unit test only),,survived pass 1 (red-team and smoke suites only); killed by the full upstream suite
+MU13,killed,fz04_random_account_lists (redteam_fuzz.rs); rt07_close_and_reinit_same_tx; rt26_substitution_rows,,killed
+MU14,killed,rt09_attacker_own_mandate_pinning_victim_source (redteam_attacks.rs),,killed
+MU15,killed,"tests/tr.rs::tr_23_allowlisted_destination_of_a_different_mint (classic, ptoken)",,survived pass 1 (red-team and smoke suites only); killed by the full upstream suite
+MU16,killed,fz02_swap_state_fuzz (redteam_fuzz.rs); rt12_swap_hostile_modes; swap_malicious_amm_modes_are_caught,,killed

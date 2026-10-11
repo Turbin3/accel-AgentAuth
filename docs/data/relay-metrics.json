@@ -723,7 +723,7 @@
       "ids": [],
       "note": "The nine mutants that survived the first witness batch (G09, N10, N12, N13, S12, S41, S42, T07, T11) were killed by later witness tests W15 to W21 (security/mutation-relay/results.csv). Six mutants are proven equivalent (security/mutation-relay/EQUIVALENT.md)."
     },
-    "caveat": "The score describes the tests' sensitivity to these mutants, not the absence of bugs. The sweep predates the RT-F3/F4 fixes and the later tests."
+    "caveat": "The score describes the tests' sensitivity to these mutants, not the absence of bugs. The sweep ran on the relay source as it is in the repository (the RT-F3/F4 fixes are included); it predates the witness tests, which were verified mutant by mutant instead of by a new full sweep."
   },
   "compute_units": {
     "method": "LiteSVM, programs/relay/tests/fe.rs (fe02_*), run with --nocapture; total transaction CU as reported by LiteSVM (includes verify CPI, Token CPI, and for swap the mock AMM, which is cheaper than real Raydium CPMM).",

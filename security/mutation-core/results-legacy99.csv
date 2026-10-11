@@ -1,0 +1,100 @@
+id,status,killed_by,note,first_pass
+C1,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::create_requires_owner_signature,,killed
+C2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/poc_regressions.rs::fixed_owner_cannot_be_its_own_agent,,killed
+C3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::create_rejects_wrong_pda_address,,killed
+C4,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+C5,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+C6,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+C7,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+C8,killed,tests/regression_lifecycle.rs::program_owned_zero_husk_is_adopted,,killed
+C9,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+C10,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+C11,killed,tests/error_matrix.rs::each_tag_reaches_its_own_handler; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+C12,killed,tests/regression_cu.rs::compute_units_per_instruction; tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create,,killed
+C13,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+C14,killed,tests/error_matrix.rs::each_tag_reaches_its_own_handler; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+R2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::two_owners_with_one_agent_are_independent,,killed
+R3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::revoke_checks_the_address_against_the_stored_bump,,killed
+R4,killed,tests/regression_cu.rs::compute_units_per_instruction; tests/regression_lifecycle.rs::revoke_accepts_legacy_mandates_without_a_stored_bump,,killed
+R5,killed,tests/error_matrix.rs::each_tag_reaches_its_own_handler; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+R6,killed,tests/poc_regressions.rs::verify_after_revoke_in_the_same_transaction_fails_with_14; tests/regression_lifecycle.rs::revoke_plus_refund_in_one_transaction_does_not_brick_the_pair,,killed
+R7,equivalent,,same edit as core mutant V06 (see EQUIVALENT.md),survived
+R8,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::revoke_authorization_and_shape,,killed
+M1,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+M2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+M3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+M4,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_verify.rs::verify_rejects_accounts_that_are_not_initialised_mandates,,killed
+M5,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::two_owners_with_one_agent_are_independent,,killed
+M6,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+M7,killed,src unit: instructions::tests::data_parsers_reject_short_and_trailing_input; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+M8,killed,src unit: instructions::tests::dispatch_routes_each_tag; tests/error_matrix.rs::each_tag_reaches_its_own_handler,,killed
+M9,killed,src unit: instructions::tests::dispatch_routes_each_tag; tests/error_matrix.rs::each_tag_reaches_its_own_handler,,killed
+M10,killed,src unit: instructions::tests::dispatch_routes_each_tag; tests/error_matrix.rs::every_unknown_tag_is_rejected_with_code_1,,killed
+A1,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+A2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+A3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+A4,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::add_permission_requires_exact_data_length,,killed
+A5,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::add_permission_requires_exact_data_length,,killed
+A6,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+A7,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+A8,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::two_owners_with_one_agent_are_independent,,killed
+X1,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+X2,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+X3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract,,killed
+U1,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+U2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+U3,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+U4,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+U5,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract,,killed
+U6,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+S1,killed,tests/error_matrix.rs::each_tag_reaches_its_own_handler; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+S2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract,,killed
+S3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_lifecycle.rs::set_active_validates_input_and_caller,,killed
+V1,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+V2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/poc_regressions.rs::limitation_a_stranger_can_author_a_mandate_naming_a_victim_agent,,killed
+V3,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::two_mandates_for_one_owner_are_independent,,killed
+V4,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_verify.rs::verify_error_contract,,killed
+V5,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+V6,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::two_mandates_for_one_owner_are_independent,,killed
+V7,killed,tests/model_properties.rs::long_sequences_hold_the_invariants; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+V8,killed,tests/regression_verify.rs::call_count_saturates_instead_of_reverting,,killed
+V9,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+V10,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_verify.rs::verify_requires_exact_data_length,,killed
+V11,killed,tests/model_properties.rs::long_sequences_hold_the_invariants; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+V12,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+V13,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+V14,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/full_lifecycle.rs::two_mandates_for_one_owner_are_independent,,killed
+V15,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed
+V16,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+V17,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,killed
+T1,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/state_model.rs::find_and_allows_agree_with_the_model_on_random_probes,,killed
+T2,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/regression_verify.rs::only_the_matched_slot_is_charged,,killed
+T3,killed,tests/state_model.rs::append_remove_and_counters_match_a_vec_model; tests/state_unit.rs::swap_remove_out_of_range_is_not_found_and_changes_nothing,,killed
+T4,killed,src unit: state::tests::append_rejects_full_16; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+T5,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+T6,killed,tests/regression_verify.rs::a_paused_mandate_reports_not_active_before_anything_else; tests/state_unit.rs::only_the_byte_one_means_active,,killed
+T7,killed,src unit: state::tests::from_bytes_rejects_wrong_size_and_corrupt_length; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+T8,killed,src unit: state::tests::corrupt_discriminator_count_is_clamped; tests/regression_verify.rs::corrupt_headers_are_errors_not_panics,,killed
+T9,killed,src unit: state::tests::swap_remove_preserves_others; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+T10,killed,src unit: state::tests::initialize_wipes_and_writes_the_header; tests/regression_lifecycle.rs::program_owned_zero_husk_is_adopted,,killed
+T11,killed,tests/state_unit.rs::append_clears_a_dirty_slot_first,,killed
+T12,killed,src unit: state::tests::expiry_is_the_first_invalid_second; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+T13,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected; tests/state_unit.rs::find_permission_compares_every_byte_of_the_key,survived the first pass (31-of-32-byte key compare); killed in the second pass (results2) after more tests were added,survived
+T14,killed,src unit: state::tests::swap_remove_preserves_others; tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte,,killed
+K1,killed,tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program; tests/fuzz_program.rs::every_tag_survives_every_payload_length,,killed
+K2,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/full_lifecycle.rs::two_mandates_for_one_owner_are_independent,,killed
+K3,killed,src unit: state::tests::initialize_wipes_and_writes_the_header; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+K4,killed,tests/idl_conformance.rs::constants_match; tests/state_unit.rs::layout_constants_are_self_consistent,,killed
+K5,killed,tests/idl_conformance.rs::constants_match; tests/layout_v1.rs::v1_bytes_match_golden,,killed
+L1,killed,tests/error_matrix.rs::each_tag_reaches_its_own_handler; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed
+E1,killed,tests/error_matrix.rs::the_table_covers_every_error_code; tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program,,killed
+O1,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,
+O2,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,
+O3,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,
+O4,killed,tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction; tests/model_properties.rs::long_sequences_hold_the_invariants,,
+O5,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected; tests/state_unit.rs::find_permission_compares_every_byte_of_the_key,,
+O6,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_discriminator_is_detected; tests/state_unit.rs::allows_compares_all_eight_bytes,,
+O7,killed,tests/error_matrix.rs::each_tag_reaches_its_own_handler; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,
+O8,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code; tests/full_lifecycle.rs::a_mandate_lives_through_every_instruction,,
+O9,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,
+E2,killed,tests/error_matrix.rs::the_table_covers_every_error_code; tests/fuzz_program.rs::every_tag_survives_every_payload_length,,killed

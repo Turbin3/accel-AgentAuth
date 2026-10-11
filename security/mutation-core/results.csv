@@ -1,0 +1,207 @@
+id,status,killed_by,note,first_run,round,harness_mode
+S01,killed,src unit: state::tests::from_bytes_rejects_wrong_size_and_corrupt_length,,killed,1,full
+S02,killed,src unit: state::tests::from_bytes_rejects_wrong_size_and_corrupt_length,,killed,1,full
+S03,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,1,full
+S04,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,1,full
+S05,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,1,full
+S06,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,1,full
+S07,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,1,full
+S08,killed,src unit: state::tests::expiry_is_the_first_invalid_second,,killed,1,full
+S09,killed,tests/regression_verify.rs::a_paused_mandate_reports_not_active_before_anything_else,,killed,1,full
+S10,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_discriminator_is_detected; tests/error_matrix.rs::each_tag_reaches_its_own_handler,,killed,1,full
+S11,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+S12,killed,src unit: state::tests::append_rejects_full_16,,killed,1,full
+S13,killed,tests/state_unit.rs::append_clears_a_dirty_slot_first,,killed,1,full
+S14,killed,src unit: state::tests::permission_roundtrips,,killed,1,full
+S15,killed,src unit: state::tests::permission_roundtrips,,killed,1,full
+S16,killed,src unit: state::tests::permission_roundtrips,,killed,1,full
+S17,killed,tests/state_model.rs::append_remove_and_counters_match_a_vec_model,,killed,1,full
+S18,equivalent,,proof in EQUIVALENT.md,survived,1,full
+S19,killed,src unit: state::tests::swap_remove_preserves_others,,killed,1,full
+S20,killed,src unit: state::tests::swap_remove_preserves_others,,killed,1,full
+S21,killed,src unit: state::tests::corrupt_discriminator_count_is_clamped,,killed,1,full
+S22,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_discriminator_is_detected,,killed,1,full
+S23,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,killed,1,full
+S24,killed,src unit: state::tests::swap_remove_preserves_others,,killed,1,full
+K01,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+K02,killed,src unit: state::tests::append_rejects_full_16; src unit: state::tests::mandate_size_is_2136,,killed,1,full
+K03,killed,tests/fuzz_program.rs::random_and_mutated_instructions_never_crash_the_program; tests/fuzz_program.rs::every_tag_survives_every_payload_length,,killed,1,full
+K04,killed,src unit: state::tests::permission_roundtrips,,killed,1,full
+E01,killed,tests/error_matrix.rs::the_table_covers_every_error_code,,killed,1,full
+E02,killed,tests/idl_conformance.rs::error_codes_match,,killed,1,full
+L01,killed,tests/poc_regressions.rs::expiry_never_changes_through_any_instruction,,killed,1,so-only
+L02,killed,tests/regression_verify.rs::verify_requires_exact_data_length,,killed,1,so-only
+L03,killed,src unit: instructions::tests::dispatch_routes_each_tag,,killed,1,full
+L04,killed,src unit: instructions::tests::dispatch_routes_each_tag,,killed,1,full
+L05,killed,src unit: instructions::tests::dispatch_routes_each_tag,,killed,1,full
+X01,killed,src unit: instructions::tests::data_parsers_reject_short_and_trailing_input,,killed,1,full
+X02,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,
+X03,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X04,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X05,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X06,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X07,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X08,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X09,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,killed,1,full
+X10,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+X11,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,full
+C01,killed,tests/regression_lifecycle.rs::create_requires_owner_signature,,killed,1,so-only
+C02,killed,tests/poc_regressions.rs::fixed_owner_cannot_be_its_own_agent,,killed,1,so-only
+C03,killed,tests/regression_lifecycle.rs::create_requires_exact_data_length,,killed,1,so-only
+C04,killed,tests/regression_lifecycle.rs::create_rejects_wrong_pda_address,,killed,1,so-only
+C05,killed,tests/regression_lifecycle.rs::create_rejects_expiry_not_in_the_future,,killed,1,so-only
+C06,killed,tests/poc_regressions.rs::fixed_a_duration_passed_as_expiry_is_refused,,killed,1,so-only
+C07,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+C08,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+C09,killed,tests/poc_regressions.rs::creating_twice_in_one_transaction_fails_the_second_with_3,,killed,1,so-only
+C10,killed,tests/regression_lifecycle.rs::program_owned_accounts_of_the_wrong_shape_are_refused,,killed,1,so-only
+C11,killed,tests/regression_lifecycle.rs::program_owned_zero_husk_is_adopted,,killed,1,so-only
+C12,killed,tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create; tests/regression_lifecycle.rs::tiny_prefund_is_topped_up,,killed,1,so-only
+C13,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+C14,killed,tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create; tests/regression_lifecycle.rs::overfunded_pda_keeps_the_surplus_and_does_not_charge_the_owner_rent,,killed,1,so-only
+C15,killed,tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create; tests/regression_lifecycle.rs::overfunded_pda_keeps_the_surplus_and_does_not_charge_the_owner_rent,,killed,1,so-only
+C16,killed,tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create; tests/regression_lifecycle.rs::overfunded_pda_keeps_the_surplus_and_does_not_charge_the_owner_rent,,killed,1,so-only
+C17,killed,tests/regression_lifecycle.rs::account_owned_by_a_foreign_program_is_refused,,killed,1,so-only
+C18,killed,tests/poc_regressions.rs::donations_to_a_live_mandate_go_to_the_owner_on_revoke; tests/poc_regressions.rs::create_then_revoke_in_one_transaction_leaves_nothing_behind,,killed,1,so-only
+C19,killed,tests/poc_regressions.rs::expiry_never_changes_through_any_instruction; tests/poc_regressions.rs::limitation_a_millisecond_expiry_is_accepted_and_effectively_never_expires,,killed,1,so-only
+C20,killed,tests/mutation_survivors.rs::funded_husk_create_needs_no_system_program; tests/mutation_survivors.rs::funded_husk_create_skips_the_transfer_cpi_in_compute_units,closed after round 1 by tests/mutation_survivors.rs (round-2 re-run: killed),survived,1,so-only
+C21,killed,tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create; tests/regression_lifecycle.rs::program_owned_zero_husk_is_adopted,,killed,1,so-only
+C22,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+C23,killed,tests/regression_cu.rs::compute_units_per_instruction,,killed,1,so-only
+C24,killed,tests/poc_regressions.rs::expiry_never_changes_through_any_instruction,,killed,1,so-only
+C25,killed,tests/poc_regressions.rs::a_failing_instruction_rolls_back_earlier_verifies_in_the_same_transaction; tests/poc_regressions.rs::expiry_never_changes_through_any_instruction,,killed,1,so-only
+A01,killed,tests/regression_lifecycle.rs::add_permission_rules,,killed,1,so-only
+A02,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed,1,so-only
+A03,killed,tests/regression_lifecycle.rs::add_permission_rules,,killed,1,so-only
+A04,killed,tests/regression_lifecycle.rs::add_permission_requires_exact_data_length,,killed,1,so-only
+A05,killed,tests/regression_lifecycle.rs::add_permission_requires_exact_data_length,,killed,1,so-only
+A06,killed,tests/regression_lifecycle.rs::set_active_pauses_and_resumes_without_losing_state,,killed,1,so-only
+A07,killed,tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract,,killed,1,so-only
+A08,killed,tests/poc_regressions.rs::a_failing_instruction_rolls_back_earlier_verifies_in_the_same_transaction; tests/poc_regressions.rs::limitation_one_counter_is_shared_by_every_asset_reported_under_a_program,,killed,1,so-only
+A09,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+A10,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+R01,killed,tests/regression_lifecycle.rs::remove_permission_requires_exact_data_length,,killed,1,so-only
+R02,killed,tests/regression_lifecycle.rs::set_active_pauses_and_resumes_without_losing_state,,killed,1,so-only
+R03,killed,tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract,,killed,1,so-only
+R04,killed,tests/regression_lifecycle.rs::remove_permission_swaps_and_keeps_other_counters,,killed,1,so-only
+R05,killed,tests/regression_cu.rs::compute_units_per_instruction,,killed,1,so-only
+V01,killed,tests/regression_lifecycle.rs::revoke_authorization_and_shape,,killed,1,so-only
+V02,killed,tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract; tests/regression_lifecycle.rs::revoke_authorization_and_shape,,killed,1,so-only
+V03,killed,tests/regression_lifecycle.rs::revoke_checks_the_address_against_the_stored_bump,,killed,1,so-only
+V04,killed,tests/regression_lifecycle.rs::revoke_checks_the_address_against_the_stored_bump,,killed,1,so-only
+V05,killed,tests/regression_lifecycle.rs::revoke_accepts_legacy_mandates_without_a_stored_bump,,killed,1,so-only
+V06,equivalent,,proof in EQUIVALENT.md,survived,1,so-only
+V07,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+V08,equivalent,,proof in EQUIVALENT.md,survived,1,so-only
+V09,killed,tests/poc_regressions.rs::verify_after_revoke_in_the_same_transaction_fails_with_14,,killed,1,so-only
+V10,killed,tests/mutation_survivors.rs::revoke_with_an_on_curve_stored_bump_is_invalid_account_type,closed after round 1 by tests/mutation_survivors.rs (round-2 re-run: killed),survived,1,so-only
+V11,killed,tests/regression_lifecycle.rs::paused_mandate_can_still_be_revoked,,killed,1,so-only
+V12,killed,tests/poc_regressions.rs::donations_to_a_live_mandate_go_to_the_owner_on_revoke; tests/poc_regressions.rs::create_then_revoke_in_one_transaction_leaves_nothing_behind,,killed,1,so-only
+T01,killed,tests/regression_lifecycle.rs::set_active_validates_input_and_caller,,killed,1,so-only
+T02,killed,tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract; tests/regression_lifecycle.rs::set_active_validates_input_and_caller,,killed,1,so-only
+T03,killed,tests/regression_verify.rs::a_paused_mandate_reports_not_active_before_anything_else,,killed,1,so-only
+T04,killed,tests/poc_regressions.rs::expiry_never_changes_through_any_instruction,,killed,1,so-only
+T05,killed,tests/source_hygiene.rs::src_has_no_unsafe_or_panicking_shortcuts,,killed,1,so-only
+T06,killed,tests/regression_lifecycle.rs::set_active_validates_input_and_caller,,killed,1,so-only
+U01,killed,tests/regression_lifecycle.rs::update_permission_errors,,killed,1,so-only
+U02,killed,tests/regression_lifecycle.rs::set_active_pauses_and_resumes_without_losing_state,,killed,1,so-only
+U03,killed,tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract; tests/regression_lifecycle.rs::update_permission_errors,,killed,1,so-only
+U04,killed,tests/regression_lifecycle.rs::update_permission_keeps_the_spent_budget,,killed,1,so-only
+U05,killed,tests/regression_lifecycle.rs::update_permission_keeps_the_spent_budget,,killed,1,so-only
+U06,killed,tests/poc_regressions.rs::limitation_zero_limits_mean_unlimited_not_zero_budget,,killed,1,so-only
+U07,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed,1,so-only
+U08,killed,tests/poc_regressions.rs::limitation_zero_limits_mean_unlimited_not_zero_budget,,killed,1,so-only
+U09,killed,tests/regression_lifecycle.rs::update_permission_keeps_the_spent_budget,,killed,1,so-only
+W01,killed,tests/regression_verify.rs::verify_requires_exact_data_length,,killed,1,so-only
+W02,killed,tests/poc_regressions.rs::verify_after_revoke_in_the_same_transaction_fails_with_14,,killed,1,so-only
+W03,killed,tests/regression_verify.rs::verify_error_contract,,killed,1,so-only
+W04,killed,tests/regression_verify.rs::a_paused_mandate_reports_not_active_before_anything_else,,killed,1,so-only
+W05,killed,tests/regression_verify.rs::expiry_is_the_first_invalid_second,,killed,1,so-only
+W06,killed,tests/poc_regressions.rs::limitation_a_stranger_can_author_a_mandate_naming_a_victim_agent,,killed,1,so-only
+W07,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,killed,1,so-only
+W08,killed,tests/poc_regressions.rs::a_third_party_cannot_alter_a_mandate_by_naming_it,,killed,1,so-only
+W09,killed,tests/error_matrix.rs::a_one_byte_difference_in_a_stored_key_is_detected,,killed,1,so-only
+W10,killed,tests/regression_verify.rs::verify_error_contract,,killed,1,so-only
+W11,killed,tests/regression_verify.rs::only_the_matched_slot_is_charged; tests/regression_verify.rs::corrupt_headers_are_errors_not_panics,,killed,1,so-only
+W12,killed,tests/regression_verify.rs::only_the_matched_slot_is_charged; tests/regression_verify.rs::per_tx_and_lifetime_limits_hold_exactly_at_the_boundary,,killed,1,so-only
+W13,killed,tests/poc_regressions.rs::a_failing_instruction_rolls_back_earlier_verifies_in_the_same_transaction; tests/poc_regressions.rs::limitation_a_millisecond_expiry_is_accepted_and_effectively_never_expires,,killed,1,so-only
+W14,killed,tests/poc_regressions.rs::limitation_one_counter_is_shared_by_every_asset_reported_under_a_program; tests/poc_regressions.rs::scoped_keys_give_each_asset_its_own_budget,,killed,1,so-only
+W15,killed,tests/regression_verify.rs::unlimited_permission_cannot_be_wedged_by_a_huge_amount,,killed,1,so-only
+W16,killed,tests/regression_verify.rs::overflowing_request_on_a_limited_permission_is_over_the_limit_not_an_overflow,,killed,1,so-only
+W17,killed,tests/poc_regressions.rs::limitation_a_millisecond_expiry_is_accepted_and_effectively_never_expires; tests/poc_regressions.rs::limitation_zero_limits_mean_unlimited_not_zero_budget,,killed,1,so-only
+W18,killed,tests/regression_verify.rs::call_count_saturates_instead_of_reverting,,killed,1,so-only
+W19,killed,tests/poc_regressions.rs::scoped_keys_give_each_asset_its_own_budget; tests/poc_regressions.rs::two_verifies_in_one_transaction_accumulate,,killed,1,so-only
+W20,killed,tests/poc_regressions.rs::limitation_verify_is_satisfied_by_any_reported_pair_the_mandate_lists; tests/poc_regressions.rs::two_verifies_in_one_transaction_accumulate,,killed,1,so-only
+W21,killed,tests/poc_regressions.rs::two_verifies_in_one_transaction_accumulate; tests/poc_regressions.rs::limitation_verify_is_satisfied_by_any_reported_pair_the_mandate_lists,,killed,1,so-only
+W22,killed,tests/poc_regressions.rs::scoped_keys_give_each_asset_its_own_budget,,killed,1,so-only
+W23,killed,tests/poc_regressions.rs::limitation_a_stranger_can_author_a_mandate_naming_a_victim_agent,,killed,1,so-only
+W24,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+W25,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+W26,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+W27,killed,tests/poc_regressions.rs::limitation_zero_limits_mean_unlimited_not_zero_budget; tests/poc_regressions.rs::limitation_one_counter_is_shared_by_every_asset_reported_under_a_program,,killed,1,so-only
+W28,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,1,so-only
+W29,killed,tests/poc_regressions.rs::scoped_keys_give_each_asset_its_own_budget,,killed,1,so-only
+W30,killed,tests/regression_verify.rs::expiry_is_the_first_invalid_second,,killed,1,so-only
+W31,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,closed after round 1 by the combined-failure rows of tests/error_matrix.rs (round-2 re-run: killed),survived,1,so-only
+N-S25,killed,tests/state_unit.rs::from_bytes_requires_exact_size_and_sane_length,"killed only by host-side tests (tests/state_unit.rs); the deployed .so alone survives (see README, honest limits)",killed,2,full
+N-S26,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-S27,killed,src unit: state::tests::corrupt_discriminator_count_is_clamped,,killed,2,full
+N-S28,killed,src unit: state::tests::append_rejects_full_16; src unit: state::tests::swap_remove_preserves_others,,killed,2,full
+N-S29,killed,src unit: state::tests::swap_remove_preserves_others; src unit: state::tests::permission_roundtrips,,killed,2,full
+N-S30,killed,src unit: state::tests::permission_roundtrips,,killed,2,full
+N-S31,killed,tests/state_unit.rs::swap_remove_zeroes_every_byte_of_the_vacated_slot; tests/mutation_survivors.rs::remove_permission_wipes_all_128_bytes_of_the_vacated_slot,"survived round 2 (real gap). Closed afterwards by the two tests named in killed_by; verified on this mutant in a private clone, the full sweep was not re-run after that commit",survived,2,full
+N-S32,killed,src unit: state::tests::permission_roundtrips,,killed,2,full
+N-S33,killed,src unit: state::tests::permission_roundtrips,,killed,2,full
+N-S35,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,2,full
+N-S36,killed,src unit: state::tests::from_bytes_rejects_wrong_size_and_corrupt_length,,killed,2,full
+N-K05,killed,tests/idl_conformance.rs::constants_match,,killed,2,full
+N-K06,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-K07,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,2,full
+N-K08,killed,tests/idl_conformance.rs::header_and_slot_field_offsets_match,,killed,2,full
+N-K09,killed,src unit: state::tests::initialize_wipes_and_writes_the_header,,killed,2,full
+N-K10,killed,src unit: state::tests::permission_roundtrips,,killed,2,full
+N-K12,killed,src unit: state::tests::corrupt_discriminator_count_is_clamped,,killed,2,full
+N-E03,killed,tests/idl_conformance.rs::error_codes_match,,killed,2,full
+N-X12,killed,tests/error_matrix.rs::each_known_tag_with_no_payload_and_no_accounts_is_code_15; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-X13,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-X14,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-X15,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-X16,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-X17,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-X18,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,full
+N-C26,killed,tests/regression_lifecycle.rs::create_rejects_expiry_not_in_the_future,,killed,2,so-only
+N-C27,killed,tests/regression_lifecycle.rs::create_rejects_expiry_not_in_the_future,,killed,2,so-only
+N-C28,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-C29,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-C30,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-C31,killed,tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create; tests/regression_lifecycle.rs::tiny_prefund_is_topped_up,,killed,2,so-only
+N-C32,killed,tests/mutation_survivors.rs::underfunded_husk_create_still_needs_the_system_program; tests/mutation_survivors.rs::funded_husk_create_skips_the_transfer_cpi_in_compute_units,,killed,2,so-only
+N-C33,killed,tests/poc_regressions.rs::verify_after_revoke_in_the_same_transaction_fails_with_14,,killed,2,so-only
+N-C34,killed,tests/poc_regressions.rs::fixed_owner_cannot_be_its_own_agent,,killed,2,so-only
+N-C35,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-C36,killed,tests/poc_regressions.rs::creating_twice_in_one_transaction_fails_the_second_with_3,,killed,2,so-only
+N-A11,killed,tests/regression_lifecycle.rs::all_sixteen_permissions_with_eight_discriminators_each; tests/regression_lifecycle.rs::add_permission_rules,,killed,2,so-only
+N-A12,killed,tests/regression_lifecycle.rs::add_permission_rules,,killed,2,so-only
+N-A13,killed,tests/regression_lifecycle.rs::add_permission_rules,,killed,2,so-only
+N-A14,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-A15,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-A16,killed,tests/regression_verify.rs::unlimited_permission_cannot_be_wedged_by_a_huge_amount,,killed,2,so-only
+N-R06,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-R07,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-R08,killed,tests/regression_lifecycle.rs::remove_permission_swaps_and_keeps_other_counters,,killed,2,so-only
+N-V13,killed,tests/regression_lifecycle.rs::owner_instructions_share_one_error_contract; tests/regression_lifecycle.rs::revoke_authorization_and_shape,,killed,2,so-only
+N-V14,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-V15,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-T07,killed,tests/regression_lifecycle.rs::set_active_validates_input_and_caller,,killed,2,so-only
+N-T08,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-U10,killed,tests/regression_lifecycle.rs::update_permission_errors,,killed,2,so-only
+N-U11,killed,tests/poc_regressions.rs::expiry_never_changes_through_any_instruction; tests/poc_regressions.rs::limitation_zero_limits_mean_unlimited_not_zero_budget,,killed,2,so-only
+N-U12,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-U13,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed,2,so-only
+N-U14,killed,tests/model_properties.rs::random_sequences_match_the_model_byte_for_byte; tests/model_properties.rs::long_sequences_hold_the_invariants,,killed,2,so-only
+N-U15,killed,tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-W32,killed,tests/error_matrix.rs::each_known_tag_with_no_payload_and_no_accounts_is_code_15; tests/error_matrix.rs::every_instruction_times_every_failure_has_its_documented_code,,killed,2,so-only
+N-W33,killed,tests/regression_verify.rs::expiry_is_the_first_invalid_second,,killed,2,so-only
+N-W34,killed,tests/poc_regressions.rs::limitation_zero_limits_mean_unlimited_not_zero_budget,,killed,2,so-only
+N-W36,killed,tests/regression_verify.rs::verify_error_contract,,killed,2,so-only
+N-W37,killed,tests/poc_regressions.rs::a_third_party_cannot_alter_a_mandate_by_naming_it,,killed,2,so-only

@@ -222,6 +222,7 @@ packages/{sdk,cli,mcp,guard,registry}   TypeScript clients (scope @agentauth-sol
 apps/dashboard/            Mandate Studio (Next.js)
 apps/demo/                 localnet bootstrap, scripted attacker, contrast / scenario / attacks runners
 scripts/                   build-all.sh, test-all.sh, localnet.sh, devnet-deploy.sh (dry run by default)
+security/                  relay red-team harness, mutation mutants + runners + ledgers (self-review, reproducible; see security/README.md)
 docs/                      SPEC, ARCHITECTURE, INTEGRATING, SECURITY, DEMO, COMPARISON, DISCLOSURE, DEPLOY-DEVNET, ...
 keys/                      generated program keypairs (gitignored; back them up)
 ```

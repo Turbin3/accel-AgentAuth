@@ -9,9 +9,9 @@ statement less true, in order. See [SECURITY.md](SECURITY.md) for the limitation
 
 | Item | Why | Depends on |
 |---|---|---|
-| Commit the mutation scripts and the red-team harness into the repository | Today the 98-of-99 core mutation result and the relay red team cannot be re-run from a clean checkout ([SECURITY.md](SECURITY.md) sections 8 and 9) | Cleaning up the scripts (they refer to local paths) |
-| Finish the 233-mutant relay campaign and triage the interim survivors | Each survivor is either an equivalent mutant or a test gap; the binding checks (`C15` to `C17`) matter most | The campaign finishing; a decision per survivor |
-| Replay the one deep-fuzz case that ended in a runtime "Could not create program address" error (seed 424243, iteration 145,566) | Establish that it is only an error-code quality issue, then map it to a relay error or document it | Reproducing with the recorded seed |
+| ~~Commit the mutation scripts and the red-team harness into the repository~~ | Done: [`security/`](../security) (runners, mutant catalogues as data, per-mutant ledgers, red-team suites; smoke-run from the repository location) | none |
+| ~~Finish the relay mutation campaign and triage the interim survivors~~ | Done: 257 mutants, 6 proven equivalent, the 40 survivors killed by `programs/relay/tests/witness.rs`, each verified individually. Open: the full sweep has not been re-run with the final witness tests | A multi-hour run on a quiet machine |
+| ~~Replay the deep-fuzz case that ended in a runtime "Could not create program address" error~~ | Done (RT-F7): the fuzzer had corrupted the relay's own stored authority bump; atomic revert, no program change; pinned by `programs/relay/tests/rt2.rs` ([SECURITY.md](SECURITY.md) section 9) | none |
 | Measure swap compute units and behaviour against the real Raydium CP-Swap binary (`SW-15`) | Today only the mock AMM is tested; the real binary may differ | A dumped devnet binary and a devnet pool |
 | ~~Regenerate or retire the overview docx~~ | Done: moved to `docs/archive/pre-hackathon/` and marked superseded (it had drifted from the code: SPEC-15, MATH-14) | none |
 | Publish a verifiable build for each deployed program | Lets anyone tie deployed bytes to source ([AUDIT-PREP.md](AUDIT-PREP.md) section 4.4) | A public repository and a deployment |

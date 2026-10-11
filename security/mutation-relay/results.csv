@@ -1,0 +1,258 @@
+id,status,killed_by,note,first_run
+C01,killed,tests/tr.rs::tr_16_fake_policy_rows::ptoken; tests/tr.rs::tr_16_fake_policy_rows::classic,,killed
+C02,equivalent,,proof in EQUIVALENT.md,survived
+C03,killed,tests/tr.rs::tr_16_fake_policy_rows::classic; tests/tr.rs::tr_16_fake_policy_rows::ptoken,,killed
+C04,killed,tests/tr.rs::tr_16_fake_policy_rows::classic; tests/tr.rs::tr_16_fake_policy_rows::ptoken,,killed
+C05,killed,tests/tr.rs::tr_16_fake_policy_rows::classic; tests/tr.rs::tr_16_fake_policy_rows::ptoken,,killed
+C06,killed,tests/tr.rs::tr_15_attacker_owned_mandate_with_huge_limits::classic; tests/tr.rs::tr_15_attacker_owned_mandate_with_huge_limits::ptoken,,killed
+C07,killed,tests/witness.rs::w03_runtime_mandate_shape_rows::ptoken; tests/witness.rs::w03_runtime_mandate_shape_rows::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C08,killed,tests/witness.rs::w03_runtime_mandate_shape_rows::ptoken; tests/witness.rs::w03_runtime_mandate_shape_rows::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C09,killed,tests/tr.rs::tr_25_aliasing_table::classic; tests/tr.rs::tr_25_aliasing_table::ptoken,,killed
+C10,killed,tests/tr.rs::tr_17_agent_a_with_mandate_of_agent_b::ptoken; tests/tr.rs::tr_17_agent_a_with_mandate_of_agent_b::classic,,killed
+C11,killed,tests/common::st_ctx::set_paused_and_replay_helpers::ptoken; tests/common::st_ctx::set_paused_and_replay_helpers::classic,,killed
+C12,killed,tests/common::st_amm::strict_top_level_flag_rejects_the_proxy_path; tests/fe.rs::fe03_strict_top_level_refuses_both_actions_through_a_wrapper::classic,,killed
+C13,killed,tests/common::st_amm::strict_top_level_flag_rejects_the_proxy_path; tests/fe.rs::fe03_strict_top_level_refuses_both_actions_through_a_wrapper::ptoken,,killed
+C14,killed,tests/common::st_ctx::set_paused_and_replay_helpers::classic; tests/common::st_ctx::set_paused_and_replay_helpers::ptoken,,killed
+C15,killed,tests/witness.rs::w01_policy_header_bindings_one_field_at_a_time::ptoken; tests/witness.rs::w01b_policy_header_bindings_on_swap::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C16,killed,tests/witness.rs::w01_policy_header_bindings_one_field_at_a_time::classic; tests/witness.rs::w01_policy_header_bindings_one_field_at_a_time::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C17,killed,tests/witness.rs::w01_policy_header_bindings_one_field_at_a_time::classic; tests/witness.rs::w01b_policy_header_bindings_on_swap::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C18,killed,tests/tr.rs::tr_21_pin_substitution_table::ptoken; tests/tr.rs::tr_24_authority_is_another_mandates_pda::ptoken,,killed
+C19,killed,tests/common::st_ctx::raw_edit_helpers_drive_the_core_failure_paths::classic; tests/common::st_ctx::raw_edit_helpers_drive_the_core_failure_paths::ptoken,,killed
+C20,killed,tests/witness.rs::w02_stale_guard_sees_high_expiry_bytes::ptoken; tests/witness.rs::w02_stale_guard_sees_high_expiry_bytes::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C21,killed,tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::ptoken; tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::classic,,killed
+C22,killed,tests/common::st_ctx::fake_programs_are_rejected_before_any_cpi::ptoken; tests/common::st_ctx::fake_programs_are_rejected_before_any_cpi::classic,,killed
+C23,killed,tests/witness.rs::w10b_binding_beats_stale_guard::classic; tests/witness.rs::w10b_binding_beats_stale_guard::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+C24,killed,tests/witness.rs::w10a_paused_beats_invalid_mandate::classic; tests/witness.rs::w10a_paused_beats_invalid_mandate::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+T01,killed,tests/tr.rs::tr_27_wrong_data_length::ptoken; tests/tr.rs::tr_27_wrong_data_length::classic,,killed
+T02,killed,tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::classic; tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::ptoken,,killed
+T03,killed,tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::classic; tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::ptoken,,killed
+T04,killed,tests/common::st_ctx::fake_programs_are_rejected_before_any_cpi::classic; tests/common::st_ctx::fake_programs_are_rejected_before_any_cpi::ptoken,,killed
+T05,killed,tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::ptoken; tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::classic,,killed
+T06,killed,tests/tr.rs::tr_21_pin_substitution_table::classic; tests/tr.rs::tr_25_aliasing_table::ptoken,,killed
+T07,killed,tests/witness.rs::w19_fake_token_program_in_the_policy_is_103::classic; tests/witness.rs::w19_fake_token_program_in_the_policy_is_103::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+T08,killed,tests/common::st_ctx::error_attribution_names_the_raising_program::ptoken; tests/common::st_ctx::error_attribution_names_the_raising_program::classic,,killed
+T09,killed,tests/witness.rs::w11_destination_equal_to_source::ptoken; tests/witness.rs::w11_destination_equal_to_source::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+T10,killed,tests/smoke.rs::transfer_token2022_ata_shaped_accounts; tests/t22.rs::t22_mint_combinations_and_malformed_mints_are_103,,killed
+T11,killed,tests/witness.rs::w15_foreign_destination_owner_beats_frozen_source::classic; tests/witness.rs::w15_foreign_destination_owner_beats_frozen_source::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+T12,killed,tests/witness.rs::w04_source_account_mint_and_owner_fields::ptoken; tests/witness.rs::w04_source_account_mint_and_owner_fields::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+T13,killed,tests/witness.rs::w04_source_account_mint_and_owner_fields::classic; tests/witness.rs::w04_source_account_mint_and_owner_fields::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+T14,killed,tests/dl.rs::dl_05_owner_misapproved_the_agent_key::ptoken; tests/dl.rs::dl_05_owner_misapproved_the_agent_key::classic,,killed
+T15,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::classic,,killed
+T16,killed,tests/tr.rs::tr_23_allowlisted_destination_of_a_different_mint::classic; tests/tr.rs::tr_23_allowlisted_destination_of_a_different_mint::ptoken,,killed
+T17,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::ptoken,,killed
+T18,killed,tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::classic; tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::ptoken,,killed
+T19,killed,tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::ptoken,,killed
+T20,killed,tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::ptoken; tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::classic,,killed
+T21,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::ptoken; tests/ar.rs::ar_04_identical_signed_transaction_twice::ptoken,,killed
+T22,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::ptoken; tests/ar.rs::ar_04_identical_signed_transaction_twice::classic,,killed
+T23,killed,tests/common::st_ctx::transfer_smoke_moves_exactly_the_amount::ptoken; tests/common::st_ctx::transfer_smoke_moves_exactly_the_amount::classic,,killed
+T24,killed,tests/re.rs::tr31_token_moving_amount_plus_one_is_106; tests/tr.rs::tr_31_evil_token_moves_amount_plus_one,,killed
+T25,killed,tests/re.rs::tr32_token_crediting_amount_minus_one_is_106; tests/tr.rs::tr_32_evil_token_credits_amount_minus_one,,killed
+T26,killed,tests/re.rs::tr31_token_moving_amount_plus_one_is_106; tests/tr.rs::tr_31_evil_token_moves_amount_plus_one,,killed
+T27,killed,tests/re.rs::ar06_token_raising_the_source_balance_during_the_cpi_never_wraps,,killed
+T28,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::classic,,killed
+S01,killed,tests/sw.rs::sw20_frozen_accounts_and_zero_amount::ptoken; tests/sw.rs::sw20_frozen_accounts_and_zero_amount::classic,,killed
+S02,killed,tests/sw.rs::sw20_frozen_accounts_and_zero_amount::classic; tests/sw.rs::sw20_frozen_accounts_and_zero_amount::ptoken,,killed
+S03,killed,tests/fe.rs::fe09_exact_account_counts_for_every_instruction::classic; tests/fe.rs::fe09_exact_account_counts_for_every_instruction::ptoken,,killed
+S04,killed,tests/sw.rs::sw09_swap_disabled_is_110::ptoken; tests/sw.rs::sw09_swap_disabled_is_110::classic,,killed
+S05,killed,tests/smoke.rs::swap_against_mock_amm; tests/sw.rs::sw08_deadline_window_and_boundaries::classic,,killed
+S06,killed,tests/smoke.rs::swap_against_mock_amm; tests/sw.rs::sw08_deadline_window_and_boundaries::ptoken,,killed
+S07,killed,tests/sw.rs::sw08_deadline_window_and_boundaries::ptoken; tests/sw.rs::sw08_deadline_window_and_boundaries::classic,,killed
+S08,killed,tests/common::st_ctx::a_consistent_look_alike_pool_is_rejected_by_the_pins; tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102,,killed
+S09_in_account,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_lookalike_substitutions_are_102::ptoken,,killed
+S09_out_account,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_lookalike_substitutions_are_102::ptoken,,killed
+S09_amm_program,killed,tests/sw.rs::sw04_amm_program_replaced_by_another_executable_is_102::classic; tests/sw.rs::sw04_amm_program_replaced_by_another_executable_is_102::ptoken,,killed
+S09_amm_authority,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102::classic,,killed
+S09_amm_config,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102::ptoken,,killed
+S09_pool_state,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102::ptoken,,killed
+S09_input_vault,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_lookalike_substitutions_are_102::ptoken,,killed
+S09_output_vault,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102::classic,,killed
+S09_in_token_program,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_lookalike_substitutions_are_102::ptoken,,killed
+S09_out_token_program,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_lookalike_substitutions_are_102::classic,,killed
+S09_in_mint,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_lookalike_substitutions_are_102::classic,,killed
+S09_out_mint,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102::classic,,killed
+S09_observation_state,killed,tests/common::st_ctx::every_swap_pin_replacement_is_rejected_with_102; tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102::classic,,killed
+S10,killed,tests/witness.rs::w12_amm_program_not_executable::ptoken; tests/witness.rs::w12_amm_program_not_executable::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S11,killed,tests/sw.rs::sw04_policy_seeded_with_a_non_allowlisted_amm_is_103::classic; tests/sw.rs::sw04_policy_seeded_with_a_non_allowlisted_amm_is_103::ptoken,,killed
+S12,killed,tests/witness.rs::w20_fake_swap_token_programs_in_the_policy_are_103::ptoken; tests/witness.rs::w20_fake_swap_token_programs_in_the_policy_are_103::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S13,killed,tests/t22.rs::t22_mint_with_any_extension_is_103_on_swap_input_and_output_mint,,killed
+S14,killed,tests/t22.rs::t22_mint_with_any_extension_is_103_on_swap_input_and_output_mint,,killed
+S15,killed,tests/witness.rs::w05_swap_account_mint_and_owner_fields::classic; tests/witness.rs::w05_swap_account_mint_and_owner_fields::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S16,killed,tests/witness.rs::w05_swap_account_mint_and_owner_fields::classic; tests/witness.rs::w05_swap_account_mint_and_owner_fields::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S17,killed,tests/sw.rs::sw20_swap_input_state_guards_are_105::classic; tests/sw.rs::sw20_swap_input_state_guards_are_105::ptoken,,killed
+S18,killed,tests/sw.rs::sw20_swap_input_state_guards_are_105::ptoken; tests/sw.rs::sw20_swap_input_state_guards_are_105::classic,,killed
+S19,killed,tests/sw.rs::sw20_swap_input_state_guards_are_105::classic; tests/sw.rs::sw20_swap_input_state_guards_are_105::ptoken,,killed
+S20,killed,tests/sw.rs::sw05_out_account_must_be_the_pinned_owner_account::classic; tests/sw.rs::sw05_out_account_must_be_the_pinned_owner_account::ptoken,,killed
+S21,killed,tests/witness.rs::w05_swap_account_mint_and_owner_fields::ptoken; tests/witness.rs::w05_swap_account_mint_and_owner_fields::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S22,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/dl.rs::core_07_remove_token_permission_keeps_swap::ptoken,,killed
+S23,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool,,killed
+S24,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool,,killed
+S25,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/dl.rs::core_07_remove_token_permission_keeps_swap::ptoken,,killed
+S26,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/dl.rs::core_07_remove_token_permission_keeps_swap::ptoken,,killed
+S27,killed,tests/rt.rs::rt_f5_swap_cpi_account_lists_are_exactly_the_pinned_accounts::classic; tests/rt.rs::rt_f5_swap_cpi_account_lists_are_exactly_the_pinned_accounts::ptoken,,killed
+S28,killed,tests/smoke.rs::swap_against_mock_amm; tests/sw.rs::sw07_agent_can_raise_the_floor_never_lower_it::ptoken,,killed
+S29,killed,tests/sw.rs::sw07_min_out_zero_cannot_lower_the_floor::ptoken; tests/sw.rs::sw07_min_out_zero_cannot_lower_the_floor::classic,,killed
+S30,killed,tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool; tests/re.rs::re01_pull_extra_is_106::classic,,killed
+S31,killed,tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool; tests/re.rs::re08_underpay_is_112::ptoken,,killed
+S32,killed,unit: ix::swap::tests::post_error_codes_and_order,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+S33,killed,tests/re.rs::re13_token_rewriting_the_close_authority_of_in_account_is_119,,killed
+S34,killed,unit: ix::swap::tests::post_error_codes_and_order,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+S35,killed,tests/witness.rs::w13b_output_account_delegate_may_never_be_cleared,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S36,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool,,killed
+S37,killed,tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool; tests/re.rs::re07_noop_ok_is_112::classic,,killed
+S38,killed,tests/re.rs::re13_token_rewriting_the_close_authority_of_in_account_is_119,,killed
+S39,killed,tests/common::st_ctx::pool_modes_can_be_flipped_on_the_pinned_pool; tests/re.rs::re01_pull_extra_is_106::ptoken,,killed
+S40,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/smoke.rs::swap_against_mock_amm,,killed
+S41,killed,tests/witness.rs::w21_mixed_token_programs_swap,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+S42,killed,tests/witness.rs::w21_mixed_token_programs_swap,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+A01,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/ar.rs::ar_02_floor_overflow_through_swap_is_114::ptoken,,killed
+A02,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/common::st_amm::mock_slippage_error_is_attributed_to_the_mock,,killed
+A03,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/sw.rs::sw12_floor_math_equals_u128_reference_on_boundaries_and_random_inputs,,killed
+A04,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/sw.rs::sw12_floor_math_equals_u128_reference_on_boundaries_and_random_inputs,,killed
+A05,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/sw.rs::sw12_floor_math_equals_u128_reference_on_boundaries_and_random_inputs,,killed
+A06,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/ar.rs::ar_02_floor_overflow_through_swap_is_114::ptoken,,killed
+A07,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/ar.rs::ar_02_floor_overflow_through_swap_is_114::classic,,killed
+A08,killed,tests/ar.rs::ar_02_floor_math_u64_max_operands; tests/sw.rs::sw12_floor_math_equals_u128_reference_on_boundaries_and_random_inputs,,killed
+K01,killed,tests/witness.rs::w06b_swap_token_accounts_owned_by_a_foreign_program::ptoken; tests/witness.rs::w06b_swap_token_accounts_owned_by_a_foreign_program::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+K02,killed,tests/t22.rs::t22_170_byte_account_is_accepted_only_under_token_2022,,killed
+K03,killed,tests/t22.rs::t22_08_170_byte_accounts_of_the_wrong_shape_are_105,,killed
+K04,killed,tests/t22.rs::t22_08_170_byte_accounts_of_the_wrong_shape_are_105,,killed
+K05,killed,tests/t22.rs::t22_08_170_byte_accounts_of_the_wrong_shape_are_105; tests/t22.rs::t22_06_accounts_longer_than_170_bytes_are_105_source_and_destination,,killed
+K06,killed,tests/t22.rs::t22_06_accounts_longer_than_170_bytes_are_105_source_and_destination,,killed
+K07,killed,tests/sw.rs::sw20_frozen_accounts_and_zero_amount::classic; tests/sw.rs::sw20_frozen_accounts_and_zero_amount::ptoken,,killed
+K08,killed,tests/t22.rs::t22_mint_combinations_and_malformed_mints_are_103; tests/tr.rs::tr_28_mint_uninitialised_or_foreign::ptoken,,killed
+K09,killed,tests/smoke.rs::transfer_token2022_ata_shaped_accounts; tests/t22.rs::t22_mint_combinations_and_malformed_mints_are_103,,killed
+K10,killed,tests/t22.rs::t22_mint_combinations_and_malformed_mints_are_103; tests/tr.rs::tr_28_mint_uninitialised_or_foreign::ptoken,,killed
+K11,killed,unit: token::tests::delegate_none_tag_is_not_a_match,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K12,killed,unit: token::tests::invariants_detect_every_forbidden_change,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K13,killed,unit: token::tests::invariants_detect_every_forbidden_change,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K14,killed,unit: token::tests::invariants_detect_every_forbidden_change,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K15,killed,unit: token::tests::invariants_detect_every_forbidden_change,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K16,killed,tests/re.rs::re13_token_rewriting_the_close_authority_of_in_account_is_119,,killed
+K17,killed,unit: ix::swap::tests::post_allows_delegate_clear_on_input_at_zero; unit: ix::swap::tests::post_error_codes_and_order,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K18,killed,unit: ix::swap::tests::post_allows_delegate_clear_on_input_at_zero; unit: token::tests::delegate_clear_only_at_zero_delegated_and_only_when_allowed,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K19,killed,tests/witness.rs::w13a_input_delegate_cannot_be_repointed_when_delegation_hits_zero,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+K20,killed,tests/re.rs::re13_token_rewriting_the_close_authority_of_in_account_is_119; tests/sw.rs::sw18_swap_and_transfer_in_one_transaction_share_the_delegation::classic,,killed
+K21,killed,unit: token::tests::invariants_detect_every_forbidden_change,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+K22,killed,tests/sw.rs::sw18_swap_and_transfer_in_one_transaction_share_the_delegation::ptoken; tests/sw.rs::sw18_swap_and_transfer_in_one_transaction_share_the_delegation::classic,,killed
+N01,killed,tests/pl.rs::pl_12_init_data_length::ptoken; tests/pl.rs::pl_12_init_data_length::classic,,killed
+N02,killed,tests/fe.rs::fe09_init_policy_requires_exactly_four_accounts,,killed
+N03,killed,tests/pl.rs::pl_02_owner_not_signer::ptoken; tests/pl.rs::pl_02_owner_not_signer::classic,,killed
+N04,killed,tests/pl.rs::pl_11_wrong_system_program::ptoken; tests/pl.rs::pl_11_wrong_system_program::classic,,killed
+N05,killed,tests/pl.rs::pl_08_fake_mandate_rows::ptoken; tests/pl.rs::pl_08_fake_mandate_rows::classic,,killed
+N06,killed,tests/pl.rs::pl_08_fake_mandate_rows::classic; tests/pl.rs::pl_08_fake_mandate_rows::ptoken,,killed
+N07,killed,tests/pl.rs::pl_08_fake_mandate_rows::classic; tests/pl.rs::pl_08_fake_mandate_rows::ptoken,,killed
+N08,killed,tests/fe.rs::fe05_relay_binary_is_small_and_has_no_std_formatting_or_panic_machinery; tests/pl.rs::pl_08_fake_mandate_rows::ptoken,,killed
+N09,killed,tests/pl.rs::pl_03_signer_is_not_the_mandate_owner::classic; tests/pl.rs::pl_03_signer_is_not_the_mandate_owner::ptoken,,killed
+N10,killed,tests/witness.rs::w18_agent_equals_owner_is_reported_first::classic; tests/witness.rs::w18_agent_equals_owner_is_reported_first::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+N11,killed,tests/pl.rs::pl_10_policy_not_the_derived_pda::classic; tests/pl.rs::pl_10_policy_not_the_derived_pda::ptoken,,killed
+N12,killed,tests/witness.rs::w16_policy_pda_must_be_fresh::ptoken; tests/witness.rs::w16_policy_pda_must_be_fresh::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+N13,killed,tests/witness.rs::w16_policy_pda_must_be_fresh::classic; tests/witness.rs::w16_policy_pda_must_be_fresh::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+N14,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/inv.rs::inv_03_mutated_reserved_and_canonical_bytes_are_rejected,,killed
+N15,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/common::st_ctx::production_relay_build_rejects_the_mock_amm_but_test_amm_build_accepts_it,,killed
+N16,killed,tests/common::st_ctx::production_relay_build_rejects_the_mock_amm_but_test_amm_build_accepts_it; tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing,,killed
+N17,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::ptoken,,killed
+N18,killed,tests/common::st_amm::strict_top_level_flag_rejects_the_proxy_path; tests/fe.rs::fe03_strict_top_level_refuses_both_actions_through_a_wrapper::ptoken,,killed
+N19,killed,tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::ptoken,,killed
+N20,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::classic,,killed
+N21,killed,tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction::ptoken; tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction::classic,,killed
+N22,equivalent,,proof in EQUIVALENT.md,survived
+N23,killed,tests/pl.rs::pl_07_prefunded_policy_pda,,killed
+N24,killed,tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction::classic; tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction::ptoken,,killed
+N25,killed,tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction::classic; tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction::ptoken,,killed
+N26,killed,tests/pl.rs::pl_07_prefunded_policy_pda,,killed
+N27,killed,tests/pl.rs::pl_01_init_policy_happy_path_swap_enabled::ptoken; tests/pl.rs::pl_01_init_policy_happy_path_swap_enabled::classic,,killed
+N28,killed,tests/pl.rs::pl_06_init_policy_twice::ptoken; tests/pl.rs::pl_06_init_policy_twice::classic,,killed
+D01,killed,tests/pl.rs::pl_14_set_paused_authorisation::ptoken; tests/pl.rs::pl_14_set_paused_authorisation::classic,,killed
+D02,killed,tests/pl.rs::pl_14_set_paused_authorisation::classic; tests/pl.rs::pl_14_set_paused_authorisation::ptoken,,killed
+D03,killed,tests/rt.rs::rt_f4_set_paused_readonly_policy_is_a_relay_error::ptoken; tests/rt.rs::rt_f4_set_paused_readonly_policy_is_a_relay_error::classic,,killed
+D04,killed,tests/witness.rs::w08_pause_preserves_strict_top_level::ptoken; tests/witness.rs::w08_pause_preserves_strict_top_level::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+D05,killed,tests/witness.rs::w08_pause_preserves_strict_top_level::classic; tests/witness.rs::w08_pause_preserves_strict_top_level::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+D06,killed,tests/pl.rs::pl_19_set_paused_bad_byte::classic; tests/pl.rs::pl_19_set_paused_bad_byte::ptoken,,killed
+D07,killed,tests/witness.rs::w08_pause_preserves_strict_top_level::ptoken; tests/witness.rs::w08_pause_preserves_strict_top_level::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+D08,killed,tests/common::st_ctx::set_paused_and_replay_helpers::classic; tests/common::st_ctx::set_paused_and_replay_helpers::ptoken,,killed
+L01,killed,tests/pl.rs::pl_16_close_policy_by_stranger::ptoken; tests/pl.rs::pl_16_close_policy_by_stranger::classic,,killed
+L02,killed,tests/pl.rs::pl_16_close_policy_by_stranger::ptoken; tests/pl.rs::pl_16_close_policy_by_stranger::classic,,killed
+L03,killed,tests/rt.rs::rt_f4_close_policy_readonly_accounts_is_a_relay_error::ptoken; tests/rt.rs::rt_f4_close_policy_readonly_accounts_is_a_relay_error::classic,,killed
+L04,killed,tests/rt.rs::rt_f4_close_policy_readonly_accounts_is_a_relay_error::classic; tests/rt.rs::rt_f4_close_policy_readonly_accounts_is_a_relay_error::ptoken,,killed
+L05,equivalent,,proof in EQUIVALENT.md,survived
+L06,killed,tests/witness.rs::w09_close_then_init_in_one_transaction::classic; tests/witness.rs::w09_close_then_init_in_one_transaction::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+L07,killed,tests/common::st_ctx::unwind_in_one_transaction_stops_the_agent::classic; tests/common::st_ctx::unwind_in_one_transaction_stops_the_agent::ptoken,,killed
+L08,killed,tests/pl.rs::pl_15_close_policy_by_owner::ptoken; tests/pl.rs::pl_15_close_policy_by_owner::classic,,killed
+X01,killed,tests/fe.rs::fe09_exact_account_counts_for_every_instruction::classic; tests/fe.rs::fe09_exact_account_counts_for_every_instruction::ptoken,,killed
+X02,killed,tests/pl.rs::pl_18_unknown_tags_and_empty_data::classic; tests/pl.rs::pl_18_unknown_tags_and_empty_data::ptoken,,killed
+X03,equivalent,,proof in EQUIVALENT.md,survived
+X04,killed,tests/common::st_ctx::set_paused_and_replay_helpers::classic; tests/common::st_ctx::set_paused_and_replay_helpers::ptoken,,killed
+Y01,killed,tests/common::st_ctx::production_relay_build_rejects_the_mock_amm_but_test_amm_build_accepts_it; tests/conformance.rs::amm_allowlist_follows_features,,killed
+Y02,killed,tests/rt.rs::rt_f3_in_mint_token_2022_native_refused; tests/rt.rs::rt_f3_budget_mint_token_2022_native_refused,,killed
+Y03,killed,tests/common::st_ctx::fixture_has_the_documented_shape::token2022; tests/fe.rs::fe02_transfer_cu_gates_and_measurements::token2022,,killed
+Y04,killed,tests/conformance.rs::amm_allowlist_follows_features,,killed
+E01,killed,tests/ar.rs::ar_05_two_transfers_in_one_transaction::ptoken; tests/ar.rs::ar_05_two_transfers_in_one_transaction::classic,,killed
+E02,killed,tests/common::st_amm::swap_smoke_through_the_relay; tests/sw.rs::sw01_happy_path_output_lands_in_owner_account::ptoken,,killed
+V01,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V02,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V03,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V04,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V05,killed,tests/witness.rs::w07_recipient_array_boundary,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+V06,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V07,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/inv.rs::inv_03_mutated_reserved_and_canonical_bytes_are_rejected,,killed
+V08,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/inv.rs::inv_03_mutated_reserved_and_canonical_bytes_are_rejected,,killed
+V09,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V10,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/inv.rs::inv_03_mutated_reserved_and_canonical_bytes_are_rejected,,killed
+V11,killed,tests/common::st_ctx::production_relay_build_rejects_the_mock_amm_but_test_amm_build_accepts_it; tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing,,killed
+V12,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V13,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V14,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V15,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V16,equivalent,,proof in EQUIVALENT.md,survived
+V17,equivalent,,proof in EQUIVALENT.md,survived
+V18,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/conformance.rs::golden_config_is_a_layout_vector_not_a_valid_config,,killed
+V19,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V20,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V21,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V22,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V23,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V24,killed,unit: state::tests::valid_configs_pass,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+V25,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/inv.rs::inv_03_mutated_reserved_and_canonical_bytes_are_rejected,,killed
+V26,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V27,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V28,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V29,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V30,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V31,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V32,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V33,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V34,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V35,killed,tests/common::st_ctx::in_is_source_shares_the_source_account; tests/conformance.rs::golden_config_is_a_layout_vector_not_a_valid_config,,killed
+V36,killed,tests/common::st_ctx::every_invalid_config_row_is_rejected_with_113_and_creates_nothing; tests/pl.rs::pl_05_invalid_config_table,,killed
+V37,killed,tests/witness.rs::w14_maximal_valid_config_is_accepted,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+V38,killed,tests/witness.rs::w07_recipient_array_boundary,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+V39,killed,unit: state::tests::is_recipient_respects_len,killed only by in-source unit tests; no LiteSVM test fails,killed (unit tests only)
+V40,killed,tests/ar.rs::ar_05_two_transfers_in_one_transaction::ptoken; tests/ar.rs::ar_05_two_transfers_in_one_transaction::classic,,killed
+V41,killed,tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::ptoken; tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount::ptoken,,killed
+V42,killed,tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::ptoken; tests/ar.rs::ar_01_counter_near_u64_max_unlimited_permission::classic,,killed
+V43,killed,tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit::classic; tests/ar.rs::ar_04_identical_signed_transaction_twice::ptoken,,killed
+G01,killed,tests/witness.rs::w01_policy_header_bindings_one_field_at_a_time::ptoken; tests/witness.rs::w01_policy_header_bindings_one_field_at_a_time::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G02,killed,tests/tr.rs::tr_21_pin_substitution_table::classic; tests/tr.rs::tr_21_pin_substitution_table::ptoken,,killed
+G03,killed,tests/witness.rs::w06_token_accounts_owned_by_a_foreign_program::ptoken; tests/witness.rs::w06_token_accounts_owned_by_a_foreign_program::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G04,killed,tests/witness.rs::w04_source_account_mint_and_owner_fields::ptoken; tests/witness.rs::w04_source_account_mint_and_owner_fields::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G05,killed,tests/witness.rs::w05_swap_account_mint_and_owner_fields::classic; tests/witness.rs::w05_swap_account_mint_and_owner_fields::ptoken,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G06,killed,tests/witness.rs::w03_runtime_mandate_shape_rows::ptoken; tests/witness.rs::w03_runtime_mandate_shape_rows::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G07,killed,tests/pl.rs::pl_06_init_policy_twice::ptoken; tests/pl.rs::pl_06_init_policy_twice::classic,,killed
+G08,killed,tests/witness.rs::w06b_swap_token_accounts_owned_by_a_foreign_program::ptoken; tests/witness.rs::w06b_swap_token_accounts_owned_by_a_foreign_program::classic,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G09,killed,tests/witness.rs::w21_mixed_token_programs_swap,survived the pre-existing suite; killed by programs/relay/tests/witness.rs (run with --test witness),survived
+G10,killed,tests/dl.rs::dl_05_owner_misapproved_the_agent_key::classic; tests/dl.rs::dl_05_owner_misapproved_the_agent_key::ptoken,,killed
+ERR01,killed,tests/common::st_ctx::error_attribution_names_the_raising_program::ptoken; tests/common::st_ctx::error_attribution_names_the_raising_program::classic,,killed
+ERR02,killed,tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::ptoken; tests/common::st_ctx::one_field_corruption_changes_exactly_that_outcome::classic,,killed
+ERR03,killed,tests/common::st_ctx::raw_edit_helpers_drive_the_core_failure_paths::classic; tests/common::st_ctx::raw_edit_helpers_drive_the_core_failure_paths::ptoken,,killed
+ERR04,killed,tests/dl.rs::core_09_revoke_then_transfer::classic; tests/dl.rs::core_09_revoke_then_transfer::ptoken,,killed
+ERR05,killed,tests/sw.rs::sw09_swap_disabled_is_110::classic; tests/sw.rs::sw09_swap_disabled_is_110::ptoken,,killed
+ERR06,killed,tests/pl.rs::pl_03_signer_is_not_the_mandate_owner::ptoken; tests/pl.rs::pl_03_signer_is_not_the_mandate_owner::classic,,killed
+ERR07,killed,tests/re.rs::tr31_token_moving_amount_plus_one_is_106; tests/re.rs::tr32_token_crediting_amount_minus_one_is_106,,killed
+ERR08,killed,tests/smoke.rs::swap_against_mock_amm; tests/sw.rs::sw08_deadline_window_and_boundaries::classic,,killed
+ERR09,killed,tests/pl.rs::pl_16_close_policy_by_stranger::classic; tests/pl.rs::pl_16_close_policy_by_stranger::ptoken,,killed
+ERR10,killed,tests/pl.rs::pl_14_set_paused_authorisation::classic; tests/pl.rs::pl_14_set_paused_authorisation::ptoken,,killed
+ERR11,killed,tests/sw.rs::sw20_frozen_accounts_and_zero_amount::classic; tests/sw.rs::sw20_frozen_accounts_and_zero_amount::ptoken,,killed
+ERR12,killed,tests/pl.rs::pl_02_owner_not_signer::ptoken; tests/pl.rs::pl_02_owner_not_signer::classic,,killed
+R01,killed,tests/re.rs::tr32_token_crediting_amount_minus_one_is_106; tests/tr.rs::tr_32_evil_token_credits_amount_minus_one,,killed
+R02,killed,tests/ar.rs::ar_06_evil_token_raises_the_source_balance; tests/re.rs::ar06_token_raising_the_source_balance_during_the_cpi_never_wraps,,killed
