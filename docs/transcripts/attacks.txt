@@ -1,0 +1,824 @@
+# command: pnpm --filter @agentauth-sol/demo attacks --fast
+# date: 2026-10-11 (UTC)
+# environment: local solana-test-validator (AA_LOCALNET_INSTANCE=6), mock AMM, mock DUSD funds, test-amm relay build; unaudited devnet prototype
+# run: pass 2 of 2 against the same ledger (pass 1 exited 0)
+# exit code: 0
+
+====================================================================================================
+ AgentAuth attack suite: SCRIPTED compromised agent
+ Local validator only. Unaudited devnet prototype. Every attacker below is a SCRIPT. Each attack is
+ landed on chain (skipPreflight) with only keys an agent or stranger could hold, through the real
+ instructions.
+ Pass criteria: the documented error, and afterwards balances, SPL delegation, pool reserves and
+ mandate counters are exactly as before. Hard enforcement exists only for the relay transfer and
+ the pinned swap; the other rejections come from AgentAuth itself, the Token program, the runtime
+ or the mock AMM, and are named as such.
+====================================================================================================
+--- Fixture: a fresh victim, a fresh agent, one mandate with a relay policy -----------------------
+  fact      victim OWNER FbHU...6acQ holds 200 DUSD; delegated 50 DUSD to the relay authority A6mM...t1S5
+  fact      AGENT GL4X56M218YWyrXgNDDc2Ez1AbThWMus3XAPkijWfS2L (the compromised key, throwaway)
+  fact      mandate: Token/TransferChecked 20 DUSD lifetime, 5 per call; mock AMM/swap 10 / 5; relay policy pays only ACME and swaps only on the pinned pool
+--- Group 1: account substitution and confused deputy (relay transfer, RELAY-SPEC 15.1) -----------
+> AT-01  A01  fake mandate: a token account in the mandate slot [SCRIPTED compromised agent]
+  attempt   relay transfer whose mandate account is a Token-program account the attacker controls
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 117 InvalidMandate at instruction 0: The mandate is not a live AgentAuth
+            mandate for this owner and agent (also: revoked).
+  why       the mandate must be owned by AgentAuth, 2136 bytes, with the right discriminator
+  expected  relay 117 InvalidMandate (matched)
+  tx        3vLsuj9H...VL4gKe5F  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/3vLsuj9HByPerfiHcBPakDDisKe6cHXRhz5jibhs2x8ZtWP6w9TDqfFjGxxi6aVFf71JBhTFdnBY9dtAVL4gKe5F?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 1 | blocked 1 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-02  A01  fake mandate: a system account in the mandate slot [SCRIPTED compromised agent]
+  attempt   relay transfer whose mandate account is the attacker's wallet
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 117 InvalidMandate at instruction 0: The mandate is not a live AgentAuth
+            mandate for this owner and agent (also: revoked).
+  why       same check, different fake
+  expected  relay 117 InvalidMandate (matched)
+  tx        EZQSWYvy...ritDShPV  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/EZQSWYvySdSbCJAwVQUXpxrdJF3kd8rDTXZFueJztoJVM7vrSxmapTnRk11ngB3ugUBuD99znp38rD6ritDShPV?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 2 | blocked 2 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-03  A02  fake AgentAuth program [SCRIPTED compromised agent]
+  attempt   relay transfer whose agentauth_program account is the mock AMM (a program that would
+            answer Ok)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 103 WrongProgram at instruction 0: A program id or account owner is not
+            the expected one, or a mint is not an initialised extension-free mint.
+  why       the relay CPIs to its compiled AgentAuth id and refuses any other account in that slot
+  expected  relay 103 WrongProgram (matched)
+  tx        2r9c3Vmj...e3d4i4xA  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2r9c3VmjwX8k3t2b15JExyM4b4obTCdQSyMqoRQvFoHYVsdHmW5MZCxRnSfBxrVjBue9UFU8UEEY9t5ne3d4i4xA?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 3 | blocked 3 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-04  A03  fake Token program [SCRIPTED compromised agent]
+  attempt   relay transfer whose token_program account is the mock AMM
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       token_program is pinned in the policy
+  expected  relay 102 AccountMismatch (matched)
+  tx        5jH1hdXu...2sXiMNMR  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5jH1hdXuok91Zm9gy8zL3nwyrEb7JUukmrMWxkKTiSER9PfoKc9YfshZzbxrH7EeYZe4aAk16YvW8prv2sXiMNMR?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 4 | blocked 4 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-05  A04  fake policy: the mandate account in the policy slot [SCRIPTED compromised agent]
+  attempt   relay transfer whose policy account is the (AgentAuth-owned) mandate
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 101 InvalidPolicy at instruction 0: The policy account is missing or
+            malformed (owner program, length, discriminator, version or flags).
+  why       the policy must be owned by the relay with the right length, discriminator and version
+  expected  relay 101 InvalidPolicy (matched)
+  tx        63yBdZAU...HWDHwbvN  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/63yBdZAUwsPfYij1pLZLD3z5dYt3DWBB5KZ7EVwCWfNFgTmBcbpVSu3iPkP7rdBg1CTPo6fUhERdmB8VHWDHwbvN?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 5 | blocked 5 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-setup  The attacker builds a REAL mandate + relay policy of their own that names the victim's token account as source [SCRIPTED compromised agent]
+  attempt   create_mandate, add_permission(Token, unlimited), init_policy(source = victim DUSD
+            account, recipients = [MALLORY]) signed by a fresh attacker-owned wallet
+  signer    ATTACKER OWNER 5zsj...dHEp (a stranger; allowed to create mandates of its own)
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        fzM5NgNb...xwZETxLP
+  explorer  https://explorer.solana.com/tx/fzM5NgNbx2z9n9kBRkkDxZW2FUU2GXppsYiUJRAZXJCnFuuNYRmfxye4TGoWk3CMkEckW5s99bTZKRDxwZETxLP?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-setup  Attacker policy: init_policy pinning the victim account as source [SCRIPTED compromised agent]
+  attempt   relay init_policy by the attacker owner (the relay does not know whose token account it
+            is)
+  signer    ATTACKER OWNER 5zsj...dHEp
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        2eTGFjHD...XGXvu1cj
+  explorer  https://explorer.solana.com/tx/2eTGFjHDSeuTdcWdFvjTQm4CAMJR97mp1MRZdbNKRvz5dPFnaDxArFDJUs26NbJUzHVHwM8i3bjbpEbNXGXvu1cj?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-06  A05  cross-mandate mixing: the attacker mandate and policy under the victim agent key [SCRIPTED compromised agent]
+  attempt   agent key signs a relay transfer whose mandate, policy and authority are the ATTACKER's
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 117 InvalidMandate at instruction 0: The mandate is not a live AgentAuth
+            mandate for this owner and agent (also: revoked).
+  why       the mandate's agent field is not the signer
+  expected  relay 117 InvalidMandate (matched)
+  tx        5Nj1dA46...JW7mU8xY  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5Nj1dA46f9Bg5NaTd3MrECoUnSzLpXA6Bcis3YaY4UzJaDn3w5EagLvVkKHzaQJwDUnL7XuXTTBNA1gRJW7mU8xY?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 6 | blocked 6 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-07  A06  attacker mandate + policy pinning the VICTIM's source account [SCRIPTED compromised agent]
+  attempt   the attacker's own agent key calls relay transfer 5 DUSD from the victim account to
+            MALLORY under the attacker's own, valid mandate
+  signer    ATTACKER AGENT 4ZF2...B75Z (valid agent of the attacker's own mandate)
+  result    BLOCKED relay 105 TokenAccountState at instruction 0: A token account has the wrong
+            layout, mint, owner, delegate, state (frozen) or too little delegated amount or balance.
+  why       the victim never delegated to the attacker mandate's authority PDA: the source delegate
+            is not that PDA
+  expected  relay 105 TokenAccountState (matched)
+  tx        5dC6VRAx...3Rtnei92  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5dC6VRAxhmrguAQ56KKD755YpddjvvAAQcEmTQperYiyT6EqLDYXCoMeYLusRMjuDRndf6GypEsrGCn93Rtnei92?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 7 | blocked 7 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-08  A07  source substitution within the same owner [SCRIPTED compromised agent]
+  attempt   relay transfer with the owner's DOUT account as source
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       source is pinned in the policy
+  expected  relay 102 AccountMismatch (matched)
+  tx        2rYS44zT...HNEsk2ap  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2rYS44zTQB7daefp21UwfxUKJ3gQkLsy2aSgQWGrgKDnMPnxhPDuySaesyM1vAzQR4yQ1GU7CaEaTeMRHNEsk2ap?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 8 | blocked 8 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-09  A08  mint substitution [SCRIPTED compromised agent]
+  attempt   relay transfer with the DOUT mint in the mint slot
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       budget_mint is pinned in the policy
+  expected  relay 102 AccountMismatch (matched)
+  tx        coxDTMsn...R1EPS3BM  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/coxDTMsnWryXMW6DfE1bkHz1gVVyeKViSKrNYbgPAfJ9LMBMfU2VHBEwdykTFkkrM1ZknDVqK8rqgcsR1EPS3BM?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 9 | blocked 9 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-10  A09  authority PDA substitution [SCRIPTED compromised agent]
+  attempt   relay transfer with the agent's own address as the authority
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       authority is pinned and derived from the mandate: a wrong PDA cannot be signed for
+  expected  relay 102 AccountMismatch (matched)
+  tx        4KekJMGP...D2BW1GjR  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4KekJMGPy2s5jZeP51aQDeXLR9AvXUoisP6aSLVY5CgSZxvcXf4G2NCAvxrEQSiUmK2EjsAD96cQ4mWZD2BW1GjR?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 10 | blocked 10 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-11  A10  aliasing: mandate == policy [SCRIPTED compromised agent]
+  attempt   relay transfer where the mandate slot holds the policy address
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 117 InvalidMandate at instruction 0: The mandate is not a live AgentAuth
+            mandate for this owner and agent (also: revoked).
+  why       a relay-owned account is not a mandate
+  expected  relay 117 InvalidMandate (matched)
+  tx        49T5TjVC...7aLUK6b5  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/49T5TjVCjXNGDFw7fYiy62wpQM8783jvvVxG4UMiwCcNQf7U4p5eo5eq1yRt7pvrEgqM3oSzA5T4Uh5y7aLUK6b5?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 11 | blocked 11 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-12  A10  aliasing: owner == agent [SCRIPTED compromised agent]
+  attempt   relay transfer where the owner slot holds the agent's own address
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 117 InvalidMandate at instruction 0: The mandate is not a live AgentAuth
+            mandate for this owner and agent (also: revoked).
+  why       the mandate names a different owner
+  expected  relay 117 InvalidMandate (matched)
+  tx        2vpVxo5y...BCFhLYMf  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2vpVxo5yxianx5JRwR4BHUAoWyJPf3Btnn9DLC31E5dwbiQoV2nNrGKodMRLBqq9KCF3zoF7kSuXCBgFBCFhLYMf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 12 | blocked 12 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-13  A10  aliasing: destination == source [SCRIPTED compromised agent]
+  attempt   relay transfer whose destination is the owner's own source account
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 104 RecipientNotAllowed at instruction 0: The destination token account is
+            not on the policy allowlist (or equals the source).
+  why       destination must be an allowlisted account and never the source
+  expected  relay 104 RecipientNotAllowed (matched)
+  tx        2HJTbARg...ckTrgNQt  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2HJTbARgb5vMq45PxPVSHEcA3AwL4RK4dkzVvUcwhPNMzafsDu7Dmb5rFZgAGVdhtGWtyY48FES8EWTwckTrgNQt?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 13 | blocked 13 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-14  A11  missing account [SCRIPTED compromised agent]
+  attempt   relay transfer with the last account (agentauth_program) left out
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED runtime -1 NotEnoughAccountKeys at instruction 0: The instruction was sent with
+            fewer accounts than the program requires.
+  why       exact account count: the relay refuses any count other than 10 with the standard
+            NotEnoughAccountKeys error
+  expected  runtime -1 NotEnoughAccountKeys (matched)
+  tx        348su3Vu...Mcq7N5mQ  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/348su3VujexDZpRHPs54JnB5YHrGjCr9jYVgr8Fphvr9C4MSrKcecJafghzrwQQn3pV5ZTLeyvfynUd7Mcq7N5mQ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 14 | blocked 14 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-15  A11  extra account [SCRIPTED compromised agent]
+  attempt   relay transfer with one account too many
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED runtime -1 NotEnoughAccountKeys at instruction 0: The instruction was sent with
+            fewer accounts than the program requires.
+  why       exact account count: 11 accounts are refused like 9 (the relay does not tolerate extra
+            accounts)
+  expected  runtime -1 NotEnoughAccountKeys (matched)
+  tx        4PWvuguC...gxPSsMHv  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4PWvuguCK3rjeLeeCCmJVVuKpMVXwJ8p5Hyax4oeLeFrVejnPmtNhPdw38BRPXE3xvUTugqTZY7pM6gfgxPSsMHv?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 15 | blocked 15 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-16  C-sig  call the relay without signing as the agent [SCRIPTED compromised agent]
+  attempt   a stranger submits the agent's relay transfer with the signer flag removed, paying the
+            fee itself
+  signer    STRANGER FGfA...uDTv (no agent key)
+  result    BLOCKED relay 107 AgentNotSigner at instruction 0: The agent did not sign.
+  why       the agent account must sign
+  expected  relay 107 AgentNotSigner (matched)
+  tx        4rRFz83K...7EMKoW9N  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4rRFz83KSnS6jUaNbv3PLfAmtjNHdYepbcCLViLRJDBbLY8knQZa744fwxpcQHsZt4dwStTJcx2Z5uKn7EMKoW9N?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 16 | blocked 16 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-17  A05  a stranger's key in the agent slot [SCRIPTED compromised agent]
+  attempt   a stranger signs as 'agent' of the victim's mandate and policy
+  signer    STRANGER FGfA...uDTv
+  result    BLOCKED relay 117 InvalidMandate at instruction 0: The mandate is not a live AgentAuth
+            mandate for this owner and agent (also: revoked).
+  why       the signer is not the mandate agent
+  expected  relay 117 InvalidMandate (matched)
+  tx        5uRwCJ4k...qjiiozUA  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5uRwCJ4kmUM6jWNRDEkS9KGA6DK4qZB7pgNcuFKDjaP5WfnEXLSuMnk7dp9DMNgDfYgfH6rprrVDcAbiqjiiozUA?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 17 | blocked 17 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+--- Group 2: destination, swap pins, parameters (RELAY-SPEC 15.2) ---------------------------------
+> AT-18  B01  pay the attacker's token account [SCRIPTED compromised agent]
+  attempt   relay transfer of 5 DUSD to MALLORY
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 104 RecipientNotAllowed at instruction 0: The destination token account is
+            not on the policy allowlist (or equals the source).
+  why       recipient allowlist of exact token accounts
+  expected  relay 104 RecipientNotAllowed (matched)
+  tx        5dRrkGHM...WyfjUE61  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5dRrkGHMTDyySno7KbUqK4FEq95gLqLtDiUzToiJ9CEWmq2Six5swywkaAiXrdLKTLjCPG5wKArkm2pHWyfjUE61?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 18 | blocked 18 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-19  E02  zero amount [SCRIPTED compromised agent]
+  attempt   relay transfer with amount 0 (hand-built data)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 100 InvalidInstructionData at instruction 0: Unknown or empty instruction
+            tag, wrong data length, zero amount, or a bad paused byte.
+  why       amount must be positive
+  expected  relay 100 InvalidInstructionData (matched)
+  tx        LJAuuRKN...fywBiXqg  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/LJAuuRKNPkXcnDHJ3VPVsDwTBNsoh946aCdvoD15Yto9FWLj1ixN88w2fBxARWfSxUNdeQjqhrXT7RFfywBiXqg?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 19 | blocked 19 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-20  A11  truncated instruction data [SCRIPTED compromised agent]
+  attempt   relay transfer with 4 data bytes
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 100 InvalidInstructionData at instruction 0: Unknown or empty instruction
+            tag, wrong data length, zero amount, or a bad paused byte.
+  why       data must be exactly 9 bytes
+  expected  relay 100 InvalidInstructionData (matched)
+  tx        4wQA3zvY...hCcjtyXh  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4wQA3zvYG8MusxdmQFGEsjNr9u44Rs5krgswk6hqyyU19QqSmmRp7jgCw2gSErtaZ633Mm44cVhykgCzhCcjtyXh?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 20 | blocked 20 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-21  B07  a relay tag that does not exist (Approve through the relay) [SCRIPTED compromised agent]
+  attempt   relay instruction tag 5
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 100 InvalidInstructionData at instruction 0: Unknown or empty instruction
+            tag, wrong data length, zero amount, or a bad paused byte.
+  why       the relay has no authority-changing instruction
+  expected  relay 100 InvalidInstructionData (matched)
+  tx        yqR641aP...bXo2tXM7  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/yqR641aP9uAb9jhDuKGuRWCbEQXmYVFbSKzbbuokbimMsuRe1US3vKvcm4LNni2fTUJZ4xj2wEDZNBXbXo2tXM7?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 21 | blocked 21 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-22  B03  swap output into the attacker account [SCRIPTED compromised agent]
+  attempt   relay swap with out_account = MALLORY DOUT
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       out_account is pinned
+  expected  relay 102 AccountMismatch (matched)
+  tx        5aqENdvf...KH293W3G  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5aqENdvfxxvG4EFZL89HWkmM3fzydAp2MYGCgafX33GnRazLxtJF8j8Y4iYT62nLwh7rQBz6y1AurjwWKH293W3G?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 22 | blocked 22 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-23  B04  look-alike pool: another pool_state [SCRIPTED compromised agent]
+  attempt   relay swap with an attacker-chosen pool_state account
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       pool, vaults, config, observation and authority are all pinned
+  expected  relay 102 AccountMismatch (matched)
+  tx        3X1wFmzd...fUykLNp4  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/3X1wFmzdKvZtVVdw4d58zWt81aprmBAYWiHxMySWuwaiygXsyr4KD7xNdosx8UixzBSu2kZG3v8BgEoPfUykLNp4?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 23 | blocked 23 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-24  B04  look-alike AMM program [SCRIPTED compromised agent]
+  attempt   relay swap with the Token program in the amm_program slot
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       amm_program is pinned (and must also be in the relay compiled allowlist)
+  expected  relay 102 AccountMismatch (matched)
+  tx        3qfwmkV5...2PhqKBuF  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/3qfwmkV5i9KyvCiU1sxrV43vjtAnkTpLcm5sgS7tMjsz5fyKtWTBtPB4JFcsqgyrPY6VcSuVYy9AyieQ2PhqKBuF?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 24 | blocked 24 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-25  B05  wrong direction [SCRIPTED compromised agent]
+  attempt   relay swap with the input and output mints swapped
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 102 AccountMismatch at instruction 0: A passed account differs from the
+            key pinned in the policy (or a PDA / mandate binding), or set_paused / close_policy
+            received the policy (or, for close_policy, the owner) read-only.
+  why       mints and vaults are pinned: one direction only
+  expected  relay 102 AccountMismatch (matched)
+  tx        2wecU4jB...AxEvbpwv  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2wecU4jBcjErGvFE7XgkKv5RrT8im7nGEajFoqqwtspv4t1WTXnCgLkuAXzU6KC7UpQvdwt7boziSZ3RAxEvbpwv?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 25 | blocked 25 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-26  E02  swap deadline in the past [SCRIPTED compromised agent]
+  attempt   relay swap with deadline_slot = current slot - 1
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 111 DeadlineExpired at instruction 0: The swap deadline is in the past or
+            further than max_deadline_slots ahead.
+  why       a stale signed swap cannot be executed later
+  expected  relay 111 DeadlineExpired (matched)
+  tx        4oSLKq38...XBtDAiWn  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4oSLKq38wsD3YGdd3qoytVnw98d7FJpYrfxanyC288hX5U3VCFVdkj8e2SrxNxuUr4SZrYryALQMVDAzXBtDAiWn?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 26 | blocked 26 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-27  E02  swap deadline far in the future [SCRIPTED compromised agent]
+  attempt   relay swap with deadline_slot = current slot + 5000 (the policy allows 150)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 111 DeadlineExpired at instruction 0: The swap deadline is in the past or
+            further than max_deadline_slots ahead.
+  why       max_deadline_slots bounds how long a signed swap stays valid
+  expected  relay 111 DeadlineExpired (matched)
+  tx        4VexvTjS...JXJfrya1  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4VexvTjSQCv2yEUpYWrrCnkrb336UdDWEMKUg5fh9j4aq6YYzWqewBhHxc47Dgav4nQtSq2fPPpFMB4yJXJfrya1?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 27 | blocked 27 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+--- Group 3: the agent key against the owner's token account (RELAY-SPEC 15.2 B06/B07) ------------
+> AT-28  B06  use the delegation directly with the agent key [SCRIPTED compromised agent]
+  attempt   raw TransferChecked of 40 DUSD from the victim account to MALLORY, authority = the agent
+            key
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED token 4 OwnerMismatch at instruction 0: The authority is not the token account
+            owner or delegate.
+  why       raised by the TOKEN program: the delegate is a PDA only the relay can sign for, and the
+            agent is not the owner
+  expected  token 4 OwnerMismatch (matched)
+  tx        2U8txFou...WEBg9i3g  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2U8txFou2pA9Rr1q5QGWehwhF3LBam95SwXDHNME4afr76qv3iRGD9HQgFtCFwU5CX2X6psizEqUpjaDWEBg9i3g?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 28 | blocked 28 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-29  B07  Approve: make MALLORY a delegate [SCRIPTED compromised agent]
+  attempt   raw Token.Approve(delegate = MALLORY, 1000 DUSD) on the victim account
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED token 4 OwnerMismatch at instruction 0: The authority is not the token account
+            owner or delegate.
+  why       Token validates Approve against the account owner
+  expected  token 4 OwnerMismatch (matched)
+  tx        LU1RAjt5...kUW7aXTC  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/LU1RAjt5YYRkjZUgWfKYw3Umx56ipiWLh7ZuqkR5pLjesaAX8pkegpwBpe1kBj6WgQ4Q6GhCJ5QbSCkkUW7aXTC?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 29 | blocked 29 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-30  B07  SetAuthority: hand the account to MALLORY [SCRIPTED compromised agent]
+  attempt   raw Token.SetAuthority(AccountOwner -> MALLORY)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED token 4 OwnerMismatch at instruction 0: The authority is not the token account
+            owner or delegate.
+  why       same check
+  expected  token 4 OwnerMismatch (matched)
+  tx        2tdVc6YE...JhB3SX1F  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2tdVc6YEBa7mtQisFw3AZJrxNco3GFQsEyrEJkJ8qSRcPp1aqbo2nNbAEGQ5tDE8EEhziJF5EoUTVRSYJhB3SX1F?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 30 | blocked 30 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-31  B07  Revoke: strip the relay delegation [SCRIPTED compromised agent]
+  attempt   raw Token.Revoke on the victim account signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED token 4 OwnerMismatch at instruction 0: The authority is not the token account
+            owner or delegate.
+  why       only the owner can revoke
+  expected  token 4 OwnerMismatch (matched)
+  tx        9JsZq57F...G5tibe7z  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/9JsZq57FujYA7wUrw14Tm2t5AedtERiRKTAbKRHW6sKTtXXsF3dEakwyWsQxrKzw3vRaPD3oy1RK3w1G5tibe7z?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 31 | blocked 31 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-32  B07  CloseAccount: close the empty DOUT account to the agent [SCRIPTED compromised agent]
+  attempt   raw Token.CloseAccount(victim DOUT -> agent) signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED token 4 OwnerMismatch at instruction 0: The authority is not the token account
+            owner or delegate.
+  why       only the owner (or close authority) can close
+  expected  token 4 OwnerMismatch (matched)
+  tx        2gbtg5Sm...MsCqmybp  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2gbtg5Sm4AWU9QucNxYd9jLen4sRfQU7UP63SJ4TgR7WXyu43Q3i3sfuTTwH7j26UYp8dWV5Sp9LoZEPMsCqmybp?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 32 | blocked 32 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+--- Group 4: AgentAuth itself and owner-only instructions -----------------------------------------
+> AT-33  C-core  ask the mandate about an instruction it does not list [SCRIPTED compromised agent]
+  attempt   AgentAuth.verify(Token, Approve discriminator, 0)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 7 DiscriminatorNotAllowed at instruction 0: The instruction
+            discriminator is not in the permission slot's allow-list.
+  why       the mandate gates by (program, instruction); this is the standard other programs call,
+            not what protects the Token program
+  expected  agent_auth 7 DiscriminatorNotAllowed (matched)
+  tx        2i5aU3yw...JLan1kFa  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2i5aU3ywT54ayTPBk2Jxcx9SeSxtE5GLx1JLEBnNES7iP4hjCsy3yQ7ysHzQDGQkXbDLaD2RugKJ3G2yJLan1kFa?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 33 | blocked 33 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-34  C-core  ask the mandate about a program it does not list [SCRIPTED compromised agent]
+  attempt   AgentAuth.verify(system-owned random program id, any discriminator, 0)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 6 ProgramNotAllowed at instruction 0: The mandate has no permission
+            slot for that program id.
+  why       no permission slot for that program
+  expected  agent_auth 6 ProgramNotAllowed (matched)
+  tx        jFJX9BSw...k481MciL  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/jFJX9BSwmq6YXMsBLuQmuBqnXDTy1JvkTP1i5fdGvJk8HmeFaYH31Yf5oLxSpXhoPW3aWbMpyvmjrmBk481MciL?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 34 | blocked 34 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-35  C-core  a stranger calls verify on the victim mandate [SCRIPTED compromised agent]
+  attempt   AgentAuth.verify signed by a key that is not the mandate agent
+  signer    STRANGER FGfA...uDTv
+  result    BLOCKED agent_auth 17 UnknownAgent at instruction 0: The agent account is not the
+            mandate agent.
+  why       verify requires the mandate agent to sign
+  expected  agent_auth 17 UnknownAgent (matched)
+  tx        5YAFTW8B...1cVN4Fgr  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5YAFTW8B5y8MxJDv433uFY2GxKXnA2svUBxyziA21gnWJysgXQa5EiLMxgQdfodmrjadvPXL2Zr2x4Uy1cVN4Fgr?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 35 | blocked 35 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-36  B07  the agent widens its own mandate [SCRIPTED compromised agent]
+  attempt   AgentAuth.add_permission(Token, unlimited, [Approve]) on the victim mandate, signed by
+            the agent as if it were the owner
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 2 NotOwner at instruction 0: The signer or owner account is not the
+            mandate owner.
+  why       only the mandate owner can change permissions
+  expected  agent_auth 2 NotOwner (matched)
+  tx        59MUgasT...nEbQFFsV  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/59MUgasTFVSL5TtuCjSB1zso5PXqoUdnpaMTw4w9npq54gyAxMYfeVA55tNMTwW7i6nn57PLeEYBibEgnEbQFFsV?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 36 | blocked 36 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-37  B07  the agent raises its own limits [SCRIPTED compromised agent]
+  attempt   AgentAuth.update_permission(Token, lifetime 1000000 DUSD) signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 2 NotOwner at instruction 0: The signer or owner account is not the
+            mandate owner.
+  why       owner-only
+  expected  agent_auth 2 NotOwner (matched)
+  tx        2e7kU7kp...KNYQdj2o  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2e7kU7kpn2bvpHwE4Sk2aBaWFMvwA7HhAsaCee1pvRwaNYqX9VWfqMvRJd7j97tUWcRUuKNiz1b5jryXKNYQdj2o?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 37 | blocked 37 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-38  B07  the agent reactivates / pauses the mandate [SCRIPTED compromised agent]
+  attempt   AgentAuth.set_active(true) signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 2 NotOwner at instruction 0: The signer or owner account is not the
+            mandate owner.
+  why       owner-only
+  expected  agent_auth 2 NotOwner (matched)
+  tx        2KfU5T1i...BW9XeX9H  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2KfU5T1i9KRBMCNH67fGp2B3JPiG11XKFeoAEtGY4sv8NgkEBQoDVxTDj8B7YE72SSVhjtFZj4Ldz1nGBW9XeX9H?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 38 | blocked 38 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-39  B07  the agent revokes the mandate (denial of service on itself and the owner) [SCRIPTED compromised agent]
+  attempt   AgentAuth.revoke_mandate signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 2 NotOwner at instruction 0: The signer or owner account is not the
+            mandate owner.
+  why       owner-only
+  expected  agent_auth 2 NotOwner (matched)
+  tx        4yLqgkz4...StPe6MEj  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4yLqgkz4uxD84cH79Dv4BdM46uqp6esaSDgEgUJVXp4dimJnwTMm86Ucqu54s2RAEq4dmTAuS4xa9Ff3StPe6MEj?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 39 | blocked 39 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-40  B07  the agent un-pauses the relay [SCRIPTED compromised agent]
+  attempt   relay set_paused(0) signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 109 NotPolicyOwner at instruction 0: The signer is not the owner recorded
+            in the mandate / policy.
+  why       only the policy owner can pause or resume
+  expected  relay 109 NotPolicyOwner (matched)
+  tx        2xfVGzyH...arFQyVZf  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2xfVGzyHeCAx9iGFh9qGoP39Rn3yE4BSspGdJRqkmWcq8kxfuL2Bb6uCJwwZBwgYA3RPMuW3q5XJDRgWarFQyVZf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 40 | blocked 40 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-41  B07  the agent closes the policy [SCRIPTED compromised agent]
+  attempt   relay close_policy signed by the agent
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 109 NotPolicyOwner at instruction 0: The signer is not the owner recorded
+            in the mandate / policy.
+  why       only the policy owner can close it
+  expected  relay 109 NotPolicyOwner (matched)
+  tx        5GKbHXnt...yDErxkQ1  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5GKbHXnt1etZEaVWkPN7bPU28m34VhYaaaz2DDaDtPF4qXSH5HBzPDmXj46LzZxRMVDzUVX27Y5z8VhSyDErxkQ1?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 41 | blocked 41 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-42  E11  the agent re-initialises the policy with its own recipients [SCRIPTED compromised agent]
+  attempt   relay init_policy (recipients = [MALLORY]) signed by the agent for the victim mandate
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 109 NotPolicyOwner at instruction 0: The signer is not the owner recorded
+            in the mandate / policy.
+  why       the signer is not the mandate owner (and the policy already exists: config is immutable)
+  expected  relay 109 NotPolicyOwner (matched)
+  tx        XYXigijw...U3NYvHoC  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/XYXigijwD8C1qNe78HeMuWyejdN2WMVJYzWHKzxFnQbAmaxw62SL2taCgRAEcZAzXdywvaRCwR5MNesU3NYvHoC?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 42 | blocked 42 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+--- Group 5: CPI depth, accounting, replay (RELAY-SPEC 15.3 / 15.5) -------------------------------
+> AT-43  C04  wrap the relay transfer in a CPI (call depth) [SCRIPTED compromised agent]
+  attempt   mock AMM proxy instruction forwarding a relay transfer: the relay runs one level deep
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 115 NotTopLevel at instruction 0: The policy requires top-level calls
+            (STRICT_TOP_LEVEL) but this was a CPI.
+  why       the policy sets STRICT_TOP_LEVEL, so the relay refuses to run inside another program
+  expected  relay 115 NotTopLevel (matched)
+  tx        54KHF3Ru...AELie725  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/54KHF3RuyBchrwfKz3MipGA2DPeg8RGyEvtjrDtyphm5emY48du95QkJueNGviWPaL33E8Tvzx99w269AELie725?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 43 | blocked 43 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-44  E08  over-budget split in ONE transaction [SCRIPTED compromised agent]
+  attempt   five relay transfers of 5 DUSD to ACME in one transaction (25 > the 20 DUSD lifetime
+            limit)
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 9 SpendLimitExceeded at instruction 4: spend_total + amount would
+            exceed the permission's lifetime limit.
+  why       lifetime cap bites at the fifth instruction (index 4) and the whole transaction reverts:
+            nothing lands
+  expected  agent_auth 9 SpendLimitExceeded (matched)
+  tx        3J4V2mtv...Auexj1Bd  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/3J4V2mtvMgHEmYnfycbE3EFSfLJvzBKvGMM1Ujm2CSYa3FRGzBrubSXUvV31UJXToqtHr9rLxQMedbRtAuexj1Bd?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 44 | blocked 44 | allowed 0 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 0 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+--- Replay of a captured transaction (E05) --------------------------------------------------------
+> AT-replay-1  E05  The legitimate payment (the transaction an attacker will capture)
+  attempt   relay transfer of 1 DUSD to ACME, signed once
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        i1FPQyuM...VeYu7TGe
+  explorer  https://explorer.solana.com/tx/i1FPQyuMFcTQoVJczSugzEQDsy7LVsEyVNTF5dzou3LnDMXAiFwkTM27KfS8kxHMQNtXLwyG9RWBRkCVeYu7TGe?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 45 | blocked 44 | allowed 1 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 1 DUSD
+> AT-45  E05  Replay the identical signed transaction [SCRIPTED compromised agent]
+  attempt   the same wire bytes submitted again
+  signer    ANYONE who captured the transaction (no key needed)
+  result    REJECTED Transaction simulation failed | This transaction has already been processed
+  why       the cluster rejects a duplicate signature; swaps additionally carry a deadline
+  expected  rejected: "already been processed" (matched)
+  tx        i1FPQyuM...VeYu7TGe  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/i1FPQyuMFcTQoVJczSugzEQDsy7LVsEyVNTF5dzou3LnDMXAiFwkTM27KfS8kxHMQNtXLwyG9RWBRkCVeYu7TGe?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 46 | blocked 45 | allowed 1 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 1 DUSD
+  state     exactly one 1 DUSD payment landed; the replay changed nothing (verified)
+--- Group 6: owner controls the attacks must respect (state changes by the OWNER, then the agent tries) ---
+> AT-own-1  Owner pauses the relay policy
+  attempt   relay set_paused(1)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        NrhWpttR...8RAnWts9
+  explorer  https://explorer.solana.com/tx/NrhWpttRFV6z5xEZoWBkL8xYXG9VaJZ94bRqZfUWVtMbRH2gMFcP7wabf34u9byDwcHQouPYZhwSZH58RAnWts9?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-46  D-ctl  pay while the relay policy is paused [SCRIPTED compromised agent]
+  attempt   relay transfer of 1 DUSD to ACME
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 116 Paused at instruction 0: The relay policy is paused.
+  why       reversible kill switch
+  expected  relay 116 Paused (matched)
+  tx        5zpWDzfq...KWcWfPmY  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5zpWDzfq2Ui1ot8Ftc3Y8gPy3pKofvqhy8fkeoNGU8KAWZmH2HW7eQgcoFJ7Auxo8P5ipbmYYJP12SfxKWcWfPmY?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 47 | blocked 46 | allowed 1 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 1 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-own-2  Owner resumes the relay policy
+  attempt   relay set_paused(0)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        5d9NpZYn...XzEn4Qvf
+  explorer  https://explorer.solana.com/tx/5d9NpZYncaoHTRkFy44nF99xxn6SYB8rJd4QmowFsnj3ZPjXGGMvpvTpNFQYidk7UXGxd335UUesZgM2XzEn4Qvf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-own-3  Owner deactivates the mandate (core kill switch)
+  attempt   AgentAuth set_active(false)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        Z42hMw4s...nRZf9W9C
+  explorer  https://explorer.solana.com/tx/Z42hMw4sViPsLRiykJNotdkdYNnp5qkYXuvEemQw28Q2XCCVS2SNouFhQ1dC3ZEAGP4e6JHZitHwtB3nRZf9W9C?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-47  D-ctl  pay while the mandate is inactive [SCRIPTED compromised agent]
+  attempt   relay transfer of 1 DUSD to ACME
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED agent_auth 4 NotActive at instruction 0: The mandate is paused.
+  why       the core mandate is paused
+  expected  agent_auth 4 NotActive (matched)
+  tx        5KhxDQbd...ub66rQd6  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/5KhxDQbdwjqEgYaMj4Ays4apQJ8pT3JCqY75QFab6FVok8cdzZBH7t4hSm2HXTqVxFsMtnNgH4izCqM2ub66rQd6?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 48 | blocked 47 | allowed 1 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 1 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-own-4  Owner reactivates the mandate
+  attempt   AgentAuth set_active(true)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        2axPChZf...uGuMBxdG
+  explorer  https://explorer.solana.com/tx/2axPChZffurn2XFVoMXduZAup9fYyJwcPvj1CweGzhY6PYLx5DRXUCKLXb4rTjG2KqenEqbWMouMYcYcuGuMBxdG?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-own-5  Owner revokes ONLY the SPL delegation
+  attempt   Token.Revoke on the source account (mandate and policy untouched)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        3CsBoAow...GgyvgkQe
+  explorer  https://explorer.solana.com/tx/3CsBoAowYZ8D7sS4csgeFKPgssEZhnp1c7RBW8ZKVJQXxp3kEQvRQ4BbuRxfDToSibY4KMRKA8tLxGyMGgyvgkQe?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-48  B10  pay after only the delegation was revoked [SCRIPTED compromised agent]
+  attempt   relay transfer of 1 DUSD to ACME
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 105 TokenAccountState at instruction 0: A token account has the wrong
+            layout, mint, owner, delegate, state (frozen) or too little delegated amount or balance.
+  why       either half alone (mandate or delegation) kills the agent
+  expected  relay 105 TokenAccountState (matched)
+  tx        3f8JHRja...H8f4aAyu  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/3f8JHRjad35M79K4ka1tbdwEmtb9qVXRbg5nfMFrGpAEodj5nAvTavND8vmFTmQUT5LiLHG51oazFmJ9H8f4aAyu?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 49 | blocked 48 | allowed 1 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 1 DUSD
+  state     balances, delegation, pool and mandate counters unchanged (verified)
+> AT-own-6  Owner re-approves the 50 DUSD delegation
+  attempt   Token.Approve(relay authority, 50 DUSD)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        3Rp5jtYJ...PjjTkx6Q
+  explorer  https://explorer.solana.com/tx/3Rp5jtYJnEGgr9DRsGgb2XX9vsWUjWNMzhVjirpGSePe75ZzE2cnoGxqvvT5B4QtxGnNFy6ir6hF79uFPjjTkx6Q?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+--- Group 7: stale policy after a re-created mandate (A12) ----------------------------------------
+> AT-stale-1  Owner revokes the mandate but leaves the policy and delegation in place, then creates a new mandate with a different expiry
+  attempt   revoke_mandate; create_mandate(expiry + 1h); add_permission(Token) in one transaction
+  signer    OWNER GxWU...XABT
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        Zh6tNAuG...616Sm2yk
+  explorer  https://explorer.solana.com/tx/Zh6tNAuGYKrav8arbhxLJ21cFga3adi8QiSHTaXqfmoRApUGuhrVWbsEhXmMaucM2RnG3P3dbr51Z2W616Sm2yk?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-49  A12  Use the old policy with the re-created mandate [SCRIPTED compromised agent]
+  attempt   relay transfer of 1 DUSD to ACME with the OLD policy (its recorded mandate expiry
+            differs from the live mandate)
+  signer    AGENT GMis...exXq (compromised key of the second victim)
+  result    BLOCKED relay 118 StalePolicy at instruction 0: The policy's mandate_expiry differs from
+            the live mandate's expiry.
+  why       the policy remembers the mandate expiry it was created for; a re-created mandate does
+            not silently re-bind it
+  expected  relay 118 StalePolicy (matched)
+  tx        2YQvkQA2...HnfAVjKP  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/2YQvkQA2uU9Gf5sWjd6EoyPGdDDP9KTbEPJWExbQCgWMhL2734TbhyP2KXSix8jXQTuzfoEGCrBxVn57HnfAVjKP?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 50 | blocked 49 | allowed 1 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 1 DUSD
+> AT-stale-2  One-transaction unwind
+  attempt   One owner-signed transaction: SPL Revoke per delegated account, revoke_mandate,
+            close_policy. (377 bytes of 1232 allowed)
+  signer    OWNER GxWU...XABT
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        3AZo1BgE...ZXUGBHuZ
+  explorer  https://explorer.solana.com/tx/3AZo1BgEsGRwhC1fknox3D8ggY1smtdLP8dXG1feCZM7EkuvXyXWWA9THQxYbSK4kTbSTSJN5wtSVkrVZXUGBHuZ?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+--- Group 8: an accepted, documented limitation (L4) and pre-funded PDA griefing (E06) ------------
+> AT-50  L4  Two payments of 5 DUSD in ONE transaction (per_tx_limit is 5) [SCRIPTED compromised agent]
+  attempt   two relay transfers of 5 DUSD in a single transaction, lifetime limit 10
+  signer    AGENT 6NDj...b1qz (third mandate)
+  result    ALLOWED transaction succeeded
+  why       ACCEPTED, DISCLOSED LIMIT L4: per_tx_limit is per verify call, not per Solana
+            transaction. The loss stays bounded by the lifetime limit (10) and goes only to the
+            allowlisted payee.
+  expected  success (matched)
+  tx        4K9sud6B...c2MNwY3u
+  explorer  https://explorer.solana.com/tx/4K9sud6B6NdNtqr8kCvkn4X8dWfXiYfY8D8E2wh5DCAkMHzDBegxQTbCgcPJEYuYrYdcnqKTrbLeoTMxc2MNwY3u?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 51 | blocked 49 | allowed 2 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 11 DUSD
+> AT-51  E08  One more DUSD after the lifetime limit is spent [SCRIPTED compromised agent]
+  attempt   relay transfer of 1 DUSD to ACME
+  signer    AGENT 6NDj...b1qz
+  result    BLOCKED agent_auth 9 SpendLimitExceeded at instruction 0: spend_total + amount would
+            exceed the permission's lifetime limit.
+  why       the lifetime counter is the real bound
+  expected  agent_auth 9 SpendLimitExceeded (matched)
+  tx        4x3Xi89r...GYSBWPgH  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/4x3Xi89ri1nsqA4yCHB6uSuC3LoZhVwpE1BFTrFkFac9jbpqnYXWyGo8MX9uvRqZjXoTte89ykuyWvHBGYSBWPgH?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 52 | blocked 50 | allowed 2 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 11 DUSD
+> AT-l4-unwind  One-transaction unwind
+  attempt   One owner-signed transaction: SPL Revoke per delegated account, revoke_mandate,
+            close_policy. (377 bytes of 1232 allowed)
+  signer    OWNER FNmx...U1Zq
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        2zkMJin2...Kz7azJay
+  explorer  https://explorer.solana.com/tx/2zkMJin2JtRTxWZMKerSW2v61Sa5cKutS5579iUNEMpPJrJkqEs2ThWxc8KVz3XbTaBSDL8u4c9H2tioKz7azJay?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-grief-1  E06  MALLORY pre-funds the mandate PDA the owner is about to create [SCRIPTED compromised agent]
+  attempt   System transfer of 0.001 SOL to the not-yet-created mandate address Czbm...oJzf
+  signer    MALLORY FGfA...uDTv
+  result    ALLOWED transaction succeeded
+  why       a classic griefing move: System CreateAccount would fail on a funded address
+  expected  success (matched)
+  tx        4RMg9xca...a5qDo83Z
+  explorer  https://explorer.solana.com/tx/4RMg9xcaVFxyU1cQi4okxAP57SHTcHQYBXyweG4foxPD9zhx9E5NQY11F4fkuaB4oDZBaBfP7XJDXgfka5qDo83Z?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-52  E06  create_mandate on the pre-funded PDA
+  attempt   AgentAuth create_mandate for a fresh agent whose mandate address was pre-funded
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  why       NEUTRALISED: the hardened core tops up, allocates and assigns the pre-funded address
+            instead of failing
+  expected  success (matched)
+  tx        4827yvNY...ETSrYT9A
+  explorer  https://explorer.solana.com/tx/4827yvNY7XwWo23jVGWjpSPEmVkxaaANwCBmNosfaoQT8t4u35cDiNJo47dGPH6p8q69V9u6D9epwbuoETSrYT9A?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-grief-2  E06  MALLORY pre-funds the policy PDA [SCRIPTED compromised agent]
+  attempt   System transfer of 0.001 SOL to the not-yet-created policy address 56BB...7DXh
+  signer    MALLORY FGfA...uDTv
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        rBnadWFy...UBiDasC1
+  explorer  https://explorer.solana.com/tx/rBnadWFySjQ1Jfs3sKkmQVXzqg3tzjo4NwFo7vviDfaC1DKje6Mvg1sg7kyNhF6yNe6fnxypXgVL4a3UBiDasC1?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-53  E06  init_policy on the pre-funded PDA
+  attempt   relay init_policy for that mandate
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  why       NEUTRALISED: the relay creates the policy on a funded address too
+  expected  success (matched)
+  tx        3YrWhJ3o...DWdaNdXN
+  explorer  https://explorer.solana.com/tx/3YrWhJ3oCRqxNDt5fSuU9JreoxWu4WPfppERaj8fM83ujQfJQV6guTbKgNXxBch51NwcNwRfzoYJuJ9VDWdaNdXN?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-grief-3  Cleanup: close the griefing fixtures
+  attempt   revoke_mandate and close_policy for the extra agent (no delegation was created for it)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        5AzMk5ZS...DAiGyjGf
+  explorer  https://explorer.solana.com/tx/5AzMk5ZSp5VSUSm14u5W7iSLk8HG9iazjtSsoBfWWm2MNC2ZvzVqAeCbcGTF5AShorfG8Hon3H5aVakFDAiGyjGf?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+--- Finish: the owner unwinds, the agent is locked out --------------------------------------------
+> AT-unwind  One-transaction unwind
+  attempt   One owner-signed transaction: SPL Revoke per delegated account, revoke_mandate,
+            close_policy. (377 bytes of 1232 allowed)
+  signer    OWNER FbHU...6acQ
+  result    ALLOWED transaction succeeded
+  expected  success (matched)
+  tx        4MvmpWt7...pDAf1fhU
+  explorer  https://explorer.solana.com/tx/4MvmpWt7AXFyLaXpUFN54GnY6DwcQFs1Hz697FUTnq4gfB2RYrnXnnKzE7P1hNgSMoSTTgTQBMLKFC6JpDAf1fhU?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+> AT-54  D-ctl  The compromised agent retries after the unwind [SCRIPTED compromised agent]
+  attempt   relay transfer of 1 DUSD to ACME
+  signer    AGENT GL4X...fS2L (compromised key)
+  result    BLOCKED relay 101 InvalidPolicy at instruction 0: The policy account is missing or
+            malformed (owner program, length, discriminator, version or flags).
+  why       the policy is closed
+  expected  relay 101 InvalidPolicy (matched)
+  tx        3ayZLWY7...QP272jzL  (landed and failed: the fee is paid, nothing else moves)
+  explorer  https://explorer.solana.com/tx/3ayZLWY7MA5Bfv4mYMg4oWKju5yPWfrbQqf69EiiBePQeCBb4FpzWTgHm8ekaxA97w1nvsxGeJ79xmzDQP272jzL?cluster=custom&customUrl=http%3A%2F%2F127.0.0.1%3A8959
+  scoreboard [attack suite]  attempted 53 | blocked 51 | allowed 2 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 11 DUSD
+--- Result table (SCRIPTED attacks) ---------------------------------------------------------------
+  id     ref     attack                                                                            class           outcome                                         protected state unchanged
+  -----  ------  --------------------------------------------------------------------------------  --------------  ----------------------------------------------  -------------------------
+  AT-01  A01     fake mandate: a token account in the mandate slot                                 BLOCKED         relay 117 InvalidMandate                        yes                      
+  AT-02  A01     fake mandate: a system account in the mandate slot                                BLOCKED         relay 117 InvalidMandate                        yes                      
+  AT-03  A02     fake AgentAuth program                                                            BLOCKED         relay 103 WrongProgram                          yes                      
+  AT-04  A03     fake Token program                                                                BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-05  A04     fake policy: the mandate account in the policy slot                               BLOCKED         relay 101 InvalidPolicy                         yes                      
+  AT-06  A05     cross-mandate mixing: the attacker mandate and policy under the victim agent key  BLOCKED         relay 117 InvalidMandate                        yes                      
+  AT-07  A06     attacker mandate + policy pinning the VICTIM's source account                     BLOCKED         relay 105 TokenAccountState                     yes                      
+  AT-08  A07     source substitution within the same owner                                         BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-09  A08     mint substitution                                                                 BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-10  A09     authority PDA substitution                                                        BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-11  A10     aliasing: mandate == policy                                                       BLOCKED         relay 117 InvalidMandate                        yes                      
+  AT-12  A10     aliasing: owner == agent                                                          BLOCKED         relay 117 InvalidMandate                        yes                      
+  AT-13  A10     aliasing: destination == source                                                   BLOCKED         relay 104 RecipientNotAllowed                   yes                      
+  AT-14  A11     missing account                                                                   BLOCKED         runtime -1 NotEnoughAccountKeys                 yes                      
+  AT-15  A11     extra account                                                                     BLOCKED         runtime -1 NotEnoughAccountKeys                 yes                      
+  AT-16  C-sig   call the relay without signing as the agent                                       BLOCKED         relay 107 AgentNotSigner                        yes                      
+  AT-17  A05     a stranger's key in the agent slot                                                BLOCKED         relay 117 InvalidMandate                        yes                      
+  AT-18  B01     pay the attacker's token account                                                  BLOCKED         relay 104 RecipientNotAllowed                   yes                      
+  AT-19  E02     zero amount                                                                       BLOCKED         relay 100 InvalidInstructionData                yes                      
+  AT-20  A11     truncated instruction data                                                        BLOCKED         relay 100 InvalidInstructionData                yes                      
+  AT-21  B07     a relay tag that does not exist (Approve through the relay)                       BLOCKED         relay 100 InvalidInstructionData                yes                      
+  AT-22  B03     swap output into the attacker account                                             BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-23  B04     look-alike pool: another pool_state                                               BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-24  B04     look-alike AMM program                                                            BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-25  B05     wrong direction                                                                   BLOCKED         relay 102 AccountMismatch                       yes                      
+  AT-26  E02     swap deadline in the past                                                         BLOCKED         relay 111 DeadlineExpired                       yes                      
+  AT-27  E02     swap deadline far in the future                                                   BLOCKED         relay 111 DeadlineExpired                       yes                      
+  AT-28  B06     use the delegation directly with the agent key                                    BLOCKED         token 4 OwnerMismatch                           yes                      
+  AT-29  B07     Approve: make MALLORY a delegate                                                  BLOCKED         token 4 OwnerMismatch                           yes                      
+  AT-30  B07     SetAuthority: hand the account to MALLORY                                         BLOCKED         token 4 OwnerMismatch                           yes                      
+  AT-31  B07     Revoke: strip the relay delegation                                                BLOCKED         token 4 OwnerMismatch                           yes                      
+  AT-32  B07     CloseAccount: close the empty DOUT account to the agent                           BLOCKED         token 4 OwnerMismatch                           yes                      
+  AT-33  C-core  ask the mandate about an instruction it does not list                             BLOCKED         agent_auth 7 DiscriminatorNotAllowed            yes                      
+  AT-34  C-core  ask the mandate about a program it does not list                                  BLOCKED         agent_auth 6 ProgramNotAllowed                  yes                      
+  AT-35  C-core  a stranger calls verify on the victim mandate                                     BLOCKED         agent_auth 17 UnknownAgent                      yes                      
+  AT-36  B07     the agent widens its own mandate                                                  BLOCKED         agent_auth 2 NotOwner                           yes                      
+  AT-37  B07     the agent raises its own limits                                                   BLOCKED         agent_auth 2 NotOwner                           yes                      
+  AT-38  B07     the agent reactivates / pauses the mandate                                        BLOCKED         agent_auth 2 NotOwner                           yes                      
+  AT-39  B07     the agent revokes the mandate (denial of service on itself and the owner)         BLOCKED         agent_auth 2 NotOwner                           yes                      
+  AT-40  B07     the agent un-pauses the relay                                                     BLOCKED         relay 109 NotPolicyOwner                        yes                      
+  AT-41  B07     the agent closes the policy                                                       BLOCKED         relay 109 NotPolicyOwner                        yes                      
+  AT-42  E11     the agent re-initialises the policy with its own recipients                       BLOCKED         relay 109 NotPolicyOwner                        yes                      
+  AT-43  C04     wrap the relay transfer in a CPI (call depth)                                     BLOCKED         relay 115 NotTopLevel                           yes                      
+  AT-44  E08     over-budget split in ONE transaction                                              BLOCKED         agent_auth 9 SpendLimitExceeded                 yes                      
+  AT-45  E05     replay of a captured transaction                                                  BLOCKED         runtime: already processed                      yes                      
+  AT-46  D-ctl   pay while the relay policy is paused                                              BLOCKED         relay 116 Paused                                yes                      
+  AT-47  D-ctl   pay while the mandate is inactive                                                 BLOCKED         agent_auth 4 NotActive                          yes                      
+  AT-48  B10     pay after only the delegation was revoked                                         BLOCKED         relay 105 TokenAccountState                     yes                      
+  AT-49  A12     old policy re-activates after revoke + re-create                                  BLOCKED         relay 118 StalePolicy                           yes                      
+  AT-50  E08/L4  split a spend inside one transaction (within the lifetime limit)                  ACCEPTED LIMIT  succeeded: 10 DUSD to ACME, the lifetime limit  see note                 
+  AT-51  E08     spend after the lifetime limit                                                    BLOCKED         agent_auth 9 SpendLimitExceeded                 yes                      
+  AT-52  E06     pre-funded mandate PDA (griefing create_mandate)                                  NEUTRALISED     create_mandate still succeeds                   yes                      
+  AT-53  E06     pre-funded policy PDA (griefing init_policy)                                      NEUTRALISED     init_policy still succeeds                      yes                      
+  AT-54  D-ctl   agent after the one-transaction unwind                                            BLOCKED         relay 101 InvalidPolicy                         yes                      
+  54 attacks: 51 blocked with the documented error, 2 neutralised (the owner's creation still
+  succeeded), 1 accepted and disclosed limitation (L4).
+  22 distinct rejection outcomes across AgentAuth, the relay, the Token program, the mock AMM and
+  the runtime.
+  scoreboard  attempted 53 | blocked 51 | allowed 2 | funds lost to the attacker 0 DUSD/DOUT | moved to the allowlisted payee within the budget 11 DUSD
+  54 table rows; the scoreboard counts 53 agent- or stranger-signed attempts (the two counts are
+  not one-to-one: owner-side transactions such as the pre-funded-PDA creations are table-only, and
+  a few scoreboard attempts have no row of their own). The L4 split is the only accepted spend: it
+  moved value to the allowlisted payee, not to the attacker.
+  Honest limits: this suite shows what an agent key (or a stranger) can and cannot do through the
+  real instructions on a local validator. It does not prove absence of bugs; the programs are
+  unaudited. The L4 row is real: a mandate does not stop an agent from spending its budget quickly
+  on its allowlisted payee.
+attacks: PASSED (70 transactions, every outcome as expected)
