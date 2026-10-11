@@ -282,7 +282,7 @@ triple_token!(
     }
 );
 
-dual_token!(
+triple_token!(
     fe02_policy_lifecycle_cu,
     with | b | b.with_swap().no_policy(),
     |ctx| {
@@ -632,4 +632,24 @@ fn fe03_direct_call_heights_and_cpi_shapes() {
             InstructionError::CallDepth
         ))
     ));
+}
+
+// =====================================================================================
+// Rent figures from the LiteSVM runtime (Rent::default), used by the docs
+// =====================================================================================
+
+#[test]
+fn fe_rent_figures_come_from_the_runtime() {
+    let ctx = Ctx::builder(Flavor::Classic).with_swap().build();
+    for (what, len) in [
+        ("relay policy", policy::POLICY_LEN),
+        ("core mandate", aa::MANDATE_LEN),
+        ("SPL token account", 165),
+        ("Token-2022 mint (base)", 82),
+    ] {
+        let lamports = ctx.svm.rent(len);
+        measure(&format!("rent-exempt minimum, {what} ({len} B)"), lamports);
+        // the runtime formula: (128 + len) * 3480 * 2
+        assert_eq!(lamports, (128 + len as u64) * 3480 * 2);
+    }
 }

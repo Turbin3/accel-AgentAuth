@@ -1,0 +1,918 @@
+{
+  "generated": "2026-10-11",
+  "scope": "relay workstream gate: agent_auth_relay, mock_amm, gated_example, agent-auth-cpi on top of the hardened core. Unaudited devnet prototype. All numbers are LiteSVM measurements.",
+  "gates": {
+    "fmt": "cargo fmt --all --check: clean",
+    "clippy": "cargo clippy --workspace --all-targets -- -D warnings: clean; cargo clippy -p agent-auth-relay --all-targets --features test-amm -- -D warnings: clean",
+    "build_sbf": "bash scripts/build-all.sh: OK (agent_auth, agent_auth_relay default features, agent_auth_relay test-amm into deploy-localnet, mock_amm, gated_example, evil_token, 2 cpi fixtures). The .so files came from an incremental build of the current source (cargo reuse; the toolchain fingerprint decides what rebuilds).",
+    "tests": "cargo test -p agent-auth-relay --no-fail-fast with every *_SO exported and AGENT_AUTH_ALLOW_SKIP unset: green"
+  },
+  "tests": {
+    "relay": {
+      "passed": 529,
+      "failed": 0,
+      "ignored": 2,
+      "ignored_detail": "2 real-Raydium gated rows in sw.rs (need a mainnet fixture)",
+      "per_suite": {
+        "unittests": 40,
+        "ar": 16,
+        "common/main": 64,
+        "conformance": 11,
+        "dl": 40,
+        "fe": 29,
+        "inv": 8,
+        "pl": 38,
+        "re": 39,
+        "rt": 22,
+        "rt2": 14,
+        "smoke": 10,
+        "sw": 58,
+        "t22": 12,
+        "tr": 67,
+        "uw": 16,
+        "witness": 45
+      },
+      "token_programs": "Almost every Token-touching test runs through dual_token! (classic spl-token + p-token); the CU, token-2022 and t22 suites add Token-2022 (triple_token!). Flavours are separate #[test] fns (::classic, ::ptoken, ::token2022)."
+    },
+    "core_root_crate": {
+      "passed": 141,
+      "failed": 0,
+      "ignored": 8
+    },
+    "mock_amm": {
+      "passed": 59,
+      "detail": "19 unit + 40 mode tests"
+    },
+    "gated_example": {
+      "passed": 21
+    },
+    "agent_auth_cpi": {
+      "passed": 27,
+      "detail": "9 unit + 14 e2e + 4 doctests"
+    },
+    "evil_token": {
+      "passed": 1
+    },
+    "sdk_subset_run_for_p0_rows": {
+      "passed": 145,
+      "files": "golden, errors, misc, builders (vitest 5.0.3)"
+    },
+    "non_vacuity": "A missing .so panics (checked by running tr_01 with AGENT_AUTH_RELAY_SO=/nonexistent.so: test FAILS in common/svm.rs require_so). Every `else { return }` in the relay tests is a try_build() that returns None only when AGENT_AUTH_ALLOW_SKIP=1."
+  },
+  "p0_coverage": {
+    "matrix": "design/TEST-MATRIX.md",
+    "p0_rows": 75,
+    "rows_without_any_test": [],
+    "rows_partial_or_deviating": [
+      "CORE-01",
+      "E2E-01",
+      "E2E-02",
+      "SDK-01",
+      "SDK-03"
+    ],
+    "table": [
+      {
+        "id": "AR-03",
+        "tests": [
+          "programs/relay/tests/ar.rs::ar_03_split_transfers_bounded_by_delegated_amount",
+          "programs/relay/tests/ar.rs::ar_03_split_transfers_bounded_by_lifetime_limit"
+        ],
+        "runs_all_ok": 4,
+        "status": "covered"
+      },
+      {
+        "id": "AR-05",
+        "tests": [
+          "programs/relay/tests/ar.rs::ar_05_two_transfers_in_one_transaction"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "CORE-01",
+        "tests": [
+          "tests/regression_lifecycle.rs::prefunded_pda_does_not_block_create",
+          "tests/regression_lifecycle.rs::tiny_prefund_is_topped_up",
+          "tests/mutation_survivors.rs::funded_husk_create_needs_no_system_program"
+        ],
+        "status": "covered (fixed-binary half only)",
+        "note": "Part (a), the pre-fix reproducer built from commit 7677fef, is not an automated test; only the fixed behaviour is pinned."
+      },
+      {
+        "id": "CORE-04",
+        "tests": [
+          "root crate: cargo test (141 passed, 0 failed, 8 ignored incl. layout.rs + fixtures/golden_mandate.bin)"
+        ],
+        "status": "covered"
+      },
+      {
+        "id": "CORE-06",
+        "tests": [
+          "programs/relay/tests/dl.rs::core_06_expired_mandate",
+          "programs/relay/tests/dl.rs::core_06_inactive_mandate_seeded",
+          "programs/relay/tests/dl.rs::core_06_no_token_slot",
+          "programs/relay/tests/dl.rs::core_06_slot_without_transfer_checked"
+        ],
+        "runs_all_ok": 8,
+        "status": "covered"
+      },
+      {
+        "id": "CORE-07",
+        "tests": [
+          "programs/relay/tests/dl.rs::core_07_remove_token_permission_keeps_swap"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "CORE-08",
+        "tests": [
+          "programs/relay/tests/dl.rs::core_08_readd_token_with_other_discriminator"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "CORE-09",
+        "tests": [
+          "programs/relay/tests/dl.rs::core_09_revoke_then_transfer"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "CORE-10",
+        "tests": [
+          "programs/relay/tests/dl.rs::core_10_recreated_mandate_with_new_expiry_is_stale"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "CORE-12",
+        "tests": [
+          "programs/relay/tests/dl.rs::core_12_relay_constants_equal_core_constants"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "DL-01",
+        "tests": [
+          "programs/relay/tests/dl.rs::dl_01_agent_raw_transfer_checked_is_refused"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "DL-02",
+        "tests": [
+          "programs/relay/tests/dl.rs::dl_02_agent_raw_approve_is_refused"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "DL-03",
+        "tests": [
+          "programs/relay/tests/dl.rs::dl_03_agent_raw_set_authority_is_refused"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "E2E-01",
+        "tests": [
+          "programs/relay/tests/sw.rs::e2e01_demo_script_beats_1_to_3_and_5_to_8"
+        ],
+        "runs_all_ok": 1,
+        "status": "PARTIAL",
+        "note": "Replays DEMO-SCRIPT beats 1-3 and 5-8 on LiteSVM. Beat 4 (gated_example second integrator) is not in the replay; it is covered separately by programs/gated-example/tests/gated.rs (GE-01..03). The TEST-MATRIX wording \"beats 1-12\" does not match the 8-beat script."
+      },
+      {
+        "id": "E2E-02",
+        "tests": [
+          "programs/relay/tests/sw.rs::e2e::e2e01_demo_script_beats_1_to_3_and_5_to_8 (Beat 1: hot-wallet control agent drained in one transaction)"
+        ],
+        "status": "covered inside e2e01",
+        "note": "No separate E2E-02 test exists; the control beat is step 1 of the E2E-01 replay."
+      },
+      {
+        "id": "FE-01",
+        "tests": [
+          "programs/relay/tests/fe.rs::fe01_onboarding_and_init_policy_sizes",
+          "programs/relay/tests/fe.rs::fe01_transfer_and_swap_sizes_with_compute_budget_instructions",
+          "programs/relay/tests/fe.rs::fe01_transfer_and_swap_transaction_sizes",
+          "programs/relay/tests/fe.rs::fe01_unwind_transaction_sizes",
+          "programs/relay/tests/fe.rs::fe01_unwind_with_a_single_revoke"
+        ],
+        "runs_all_ok": 9,
+        "status": "covered"
+      },
+      {
+        "id": "FE-02",
+        "tests": [
+          "programs/relay/tests/fe.rs::fe02_policy_lifecycle_cu",
+          "programs/relay/tests/fe.rs::fe02_strict_top_level_flag_costs_few_cu",
+          "programs/relay/tests/fe.rs::fe02_transfer_cu_gates_and_measurements"
+        ],
+        "runs_all_ok": 6,
+        "status": "covered"
+      },
+      {
+        "id": "FE-04",
+        "tests": [
+          "programs/relay/src/error.rs::tests::codes_are_contiguous_and_unique",
+          "programs/relay/tests/conformance.rs::errors_match_idl"
+        ],
+        "status": "covered"
+      },
+      {
+        "id": "FE-06",
+        "tests": [
+          "programs/relay/tests/conformance.rs::policy_layout_matches_idl",
+          "conformance.rs::instructions_match_idl",
+          "conformance.rs::golden_policy_round_trips",
+          "conformance.rs::golden_init_data_matches_policy_config"
+        ],
+        "status": "covered"
+      },
+      {
+        "id": "FE-07",
+        "tests": [
+          "packages/sdk/test/golden.test.ts (init_policy, transfer, swap, verify data byte-for-byte; vitest, 145 tests passed across golden/errors/misc/builders)",
+          "programs/relay/tests/conformance.rs::golden_verify_data"
+        ],
+        "status": "covered"
+      },
+      {
+        "id": "GE-01",
+        "tests": [
+          "programs/gated-example/tests/gated.rs::ge01_within_per_tx_succeeds_and_books_the_counters"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "GE-02",
+        "tests": [
+          "programs/gated-example/tests/gated.rs::ge02_over_per_tx_limit_is_agentauth_8_and_changes_nothing"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "GE-03",
+        "tests": [
+          "programs/gated-example/tests/gated.rs::ge03_no_permission_and_after_remove_permission_is_agentauth_6"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "INV-01",
+        "tests": [
+          "programs/relay/tests/inv.rs::inv_01_audit_has_teeth",
+          "programs/relay/tests/inv.rs::inv_01_cpi_audit_over_every_relay_instruction"
+        ],
+        "runs_all_ok": 3,
+        "status": "covered"
+      },
+      {
+        "id": "PL-01",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_01_init_policy_happy_path_swap_enabled"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-02",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_02_owner_not_signer"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-03",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_03_signer_is_not_the_mandate_owner"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-04",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_04_amm_program_not_in_allowlist"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "PL-05",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_05_invalid_config_table"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "PL-06",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_06_init_policy_twice"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-07",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_07_prefunded_policy_pda"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "PL-08",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_08_fake_mandate_rows"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-09",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_09_mandate_agent_equals_owner"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-13",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_13_pause_blocks_transfer_and_swap"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-14",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_14_set_paused_authorisation"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "PL-15",
+        "tests": [
+          "programs/relay/tests/pl.rs::pl_15_close_policy_by_owner"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "RE-01",
+        "tests": [
+          "programs/relay/tests/re.rs::re01_pull_extra_is_106"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "RE-02",
+        "tests": [
+          "programs/relay/tests/re.rs::re02_burn_in_cannot_reach_the_burn_at_all"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "RE-03",
+        "tests": [
+          "programs/relay/tests/re.rs::re03_approve_attacker_is_refused_by_the_token_program"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "RE-06",
+        "tests": [
+          "programs/relay/tests/re.rs::re06_redirect_output_is_stopped_by_the_token_program"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "RE-07",
+        "tests": [
+          "programs/relay/tests/re.rs::re07_noop_ok_is_112"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "RE-11",
+        "tests": [
+          "programs/relay/tests/re.rs::re11_consistent_lookalike_pool_is_102"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "SDK-01",
+        "tests": [
+          "packages/sdk/test/misc.test.ts \"mandate, policy, authority\" PDAs"
+        ],
+        "status": "covered with a deviation",
+        "note": "Vectors come from `solana find-program-derived-address`, not exported from the Rust tests as TEST-MATRIX says."
+      },
+      {
+        "id": "SDK-02",
+        "tests": [
+          "packages/sdk/test/errors.test.ts (log-based attribution to relay/AgentAuth/Token, unknown program => unknown)"
+        ],
+        "status": "covered"
+      },
+      {
+        "id": "SDK-03",
+        "tests": [
+          "packages/sdk/test/builders.test.ts \"init_policy refuses invalid configs with relay code 113 before encoding\""
+        ],
+        "status": "PARTIAL",
+        "note": "The SDK validator rejects only a subset of the PL-05 rows (9 recipients, duplicates, recipient==source, bad token program, wSOL budget mint, agent==owner, PDA-as-recipient). It does not yet mirror every PL-05 row and does not refuse the Token-2022 native mint. Owned by the SDK workstream."
+      },
+      {
+        "id": "SW-01",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw01_happy_path_output_lands_in_owner_account"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "SW-02",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw02_verify_books_amount_in_on_the_amm_slot_only"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "SW-03",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw03_each_pinned_account_replaced_one_at_a_time_is_102",
+          "programs/relay/tests/sw.rs::sw03_lookalike_substitutions_are_102"
+        ],
+        "runs_all_ok": 4,
+        "status": "covered"
+      },
+      {
+        "id": "SW-04",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw04_amm_program_replaced_by_another_executable_is_102",
+          "programs/relay/tests/sw.rs::sw04_policy_seeded_with_a_non_allowlisted_amm_is_103",
+          "programs/relay/tests/sw.rs::sw04_production_relay_build_rejects_the_mock_amm"
+        ],
+        "runs_all_ok": 5,
+        "status": "covered"
+      },
+      {
+        "id": "SW-05",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw05_out_account_must_be_the_pinned_owner_account"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "SW-07",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw07_agent_can_raise_the_floor_never_lower_it",
+          "programs/relay/tests/sw.rs::sw07_min_out_zero_cannot_lower_the_floor"
+        ],
+        "runs_all_ok": 4,
+        "status": "covered"
+      },
+      {
+        "id": "SW-08",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw08_deadline_window_and_boundaries"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "SW-12",
+        "tests": [
+          "programs/relay/tests/sw.rs::sw12_floor_math_equals_u128_reference_on_boundaries_and_random_inputs",
+          "programs/relay/tests/sw.rs::sw12_floor_overflow_is_114_on_chain_and_nothing_moves",
+          "programs/relay/tests/sw.rs::sw12_floor_with_a_product_above_u64_uses_the_wide_path_on_chain"
+        ],
+        "runs_all_ok": 4,
+        "status": "covered"
+      },
+      {
+        "id": "TR-01",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_01_happy_path_classic_token"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "TR-02",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_02_happy_path_ptoken"
+        ],
+        "runs_all_ok": 1,
+        "status": "covered"
+      },
+      {
+        "id": "TR-05",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_05_delegation_spent_to_zero_clears_delegate"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-06",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_06_per_tx_limit_boundary"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-07",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_07_lifetime_budget_boundary"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-11",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_11_recipient_not_allowlisted"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-13",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_13_fake_agentauth_program"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-14",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_14_fake_token_program"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-15",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_15_attacker_owned_mandate_with_huge_limits"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-16",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_16_fake_policy_rows"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-17",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_17_agent_a_with_mandate_of_agent_b"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-19",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_19_attacker_policy_pinning_a_victims_account"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-20",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_20_source_delegated_to_another_mandates_authority"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-21",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_21_pin_substitution_table"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-25",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_25_aliasing_table"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-26",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_26_wrong_account_count"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-29",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_29_agent_not_a_signer"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "TR-33",
+        "tests": [
+          "programs/relay/tests/tr.rs::tr_33_source_without_delegate"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "UW-01",
+        "tests": [
+          "programs/relay/tests/uw.rs::uw_01_revoke_mandate_only"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "UW-02",
+        "tests": [
+          "programs/relay/tests/uw.rs::uw_02_token_revoke_only"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "UW-03",
+        "tests": [
+          "programs/relay/tests/uw.rs::uw_03_close_policy_only"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      },
+      {
+        "id": "UW-04",
+        "tests": [
+          "programs/relay/tests/uw.rs::uw_04_single_transaction_unwind"
+        ],
+        "runs_all_ok": 2,
+        "status": "covered"
+      }
+    ],
+    "method": "Test names matched to row ids by prefix (pl_05_*, tr_21_*, core_07_*, ...) and each match verified as `ok` in the log of this gate run; the 9 rows whose tests do not carry the id in their name were mapped by hand."
+  },
+  "mutation": {
+    "method": "Hand-written source mutants of programs/relay/src applied one at a time to a scratch copy, built with cargo build-sbf and run against the relay suite (tooling is being packaged under security/; the campaign ran outside the repository).",
+    "total": 257,
+    "round1": {
+      "killed": 211,
+      "survived": 46,
+      "proven_equivalent": 6,
+      "survived_non_equivalent": 40,
+      "score_excluding_equivalent": "211/251 = 84.1%"
+    },
+    "equivalent_mutants": [
+      "C02",
+      "N22",
+      "X03",
+      "V16",
+      "V17",
+      "L05"
+    ],
+    "witness_tests": {
+      "file": "programs/relay/tests/witness.rs",
+      "killed_of_the_40": 31,
+      "method": "Each witness test was run against its mutant individually (the witness test binary only); the full suite is green on the real source (529 relay tests). The full 257-mutant sweep was NOT re-run after the witness tests were added.",
+      "score_after_witness_tests": "242/251 = 96.4%"
+    },
+    "open_survivors": {
+      "count": 9,
+      "ids": [
+        "G09",
+        "N10",
+        "N12",
+        "N13",
+        "S12",
+        "S41",
+        "S42",
+        "T07",
+        "T11"
+      ],
+      "note": "Open, not proven equivalent. Each is a check that another layer also enforces (token program pinned by the policy, owner program re-checked by token_acct_ok, out token program only differs when in and out use different Token programs, agent != owner already refused by create_mandate, system-owned and empty-data checks on the policy account also fail in create_account). Listed so a reviewer can decide whether to add a witness test or remove the redundant check."
+    },
+    "caveat": "The score describes the tests' sensitivity to these mutants, not the absence of bugs. The sweep predates the RT-F3/F4 fixes and the later tests."
+  },
+  "compute_units": {
+    "method": "LiteSVM, programs/relay/tests/fe.rs (fe02_*), run with --nocapture; total transaction CU as reported by LiteSVM (includes verify CPI, Token CPI, and for swap the mock AMM, which is cheaper than real Raydium CPMM).",
+    "rows": [
+      {
+        "scenario": "transfer",
+        "token_program": "classic spl-token",
+        "cu": 10649
+      },
+      {
+        "scenario": "transfer",
+        "token_program": "p-token",
+        "cu": 4508
+      },
+      {
+        "scenario": "transfer",
+        "token_program": "Token-2022",
+        "cu": 6160
+      },
+      {
+        "scenario": "swap (mock AMM)",
+        "token_program": "classic spl-token",
+        "cu": 24881
+      },
+      {
+        "scenario": "swap (mock AMM)",
+        "token_program": "p-token",
+        "cu": 12162
+      },
+      {
+        "scenario": "swap (mock AMM)",
+        "token_program": "Token-2022",
+        "cu": 15445
+      },
+      {
+        "scenario": "init_policy (swap enabled)",
+        "token_program": "classic spl-token",
+        "cu": "8476 to 15976 (12 runs; median about 11476)"
+      },
+      {
+        "scenario": "init_policy (swap enabled)",
+        "token_program": "p-token",
+        "cu": "8476 to 14476 (12 runs; median about 9976)"
+      },
+      {
+        "scenario": "init_policy (swap enabled)",
+        "token_program": "Token-2022",
+        "cu": "8492 to 15992 (12 runs; median about 11492)"
+      },
+      {
+        "scenario": "set_paused",
+        "token_program": "any (no token CPI)",
+        "cu": 459
+      },
+      {
+        "scenario": "close_policy",
+        "token_program": "any (no token CPI)",
+        "cu": 564
+      },
+      {
+        "scenario": "transfer + swap in one tx",
+        "token_program": "classic spl-token",
+        "cu": 35530
+      },
+      {
+        "scenario": "transfer + swap in one tx",
+        "token_program": "p-token",
+        "cu": 16670
+      },
+      {
+        "scenario": "transfer + swap in one tx",
+        "token_program": "Token-2022",
+        "cu": 21605
+      },
+      {
+        "scenario": "unwind (2 Revokes + revoke_mandate + close_policy)",
+        "token_program": "classic spl-token",
+        "cu": 7718
+      },
+      {
+        "scenario": "unwind (2 Revokes + revoke_mandate + close_policy)",
+        "token_program": "p-token",
+        "cu": 2582
+      }
+    ],
+    "notes": [
+      "transfer and set_paused/close_policy are deterministic across 12 runs. init_policy varies with the random keys of each run because it calls find_program_address twice on-chain (about 1,500 CU per extra bump candidate); the range is what 12 runs produced, not a bound.",
+      "Relay's own CU for a transfer excluding verify and Token CPIs: 3912 (classic, p-token), 3917 (Token-2022).",
+      "STRICT_TOP_LEVEL adds 115 CU to a transfer (p-token).",
+      "TEST-MATRIX FE-02 gates: transfer <= 15,000 classic and <= 8,000 p-token: both met."
+    ]
+  },
+  "transaction_sizes_bytes": {
+    "method": "legacy transactions serialized by the LiteSVM harness (fe.rs fe01_*), signatures included, 1232-byte limit",
+    "rows": [
+      {
+        "tx": "transfer",
+        "bytes": 476,
+        "with_SetComputeUnitLimit": 516,
+        "gate": 520
+      },
+      {
+        "tx": "swap (mock AMM)",
+        "bytes": 757,
+        "with_SetComputeUnitLimit": 797,
+        "gate": 900
+      },
+      {
+        "tx": "init_policy",
+        "bytes": 1072,
+        "gate": 1232
+      },
+      {
+        "tx": "onboarding tx1 (fee payer, create_mandate, 2 permissions, 2 Approve)",
+        "bytes": 579,
+        "variant_3_permissions_1_approve": 595,
+        "gate": 800
+      },
+      {
+        "tx": "unwind (2 Revokes + revoke_mandate + close_policy)",
+        "bytes": 415,
+        "single_revoke_variant": 377,
+        "gate": 450
+      }
+    ]
+  },
+  "binary_sizes_bytes": {
+    "agent_auth.so": 36472,
+    "agent_auth_relay.so (default features, devnet build)": 64032,
+    "agent_auth_relay.so (test-amm, localnet/test only)": 64104,
+    "mock_amm.so": 42600,
+    "gated_example.so": 25904,
+    "evil_token.so (test only)": 12384,
+    "relay_gate": "fe05 asserts <= 65536 and no std/fmt/panic strings; the relay has 1,504 bytes of headroom."
+  },
+  "rent_lamports": {
+    "source": "LiteSVM runtime minimum_balance_for_rent_exemption, test fe.rs::fe_rent_figures_come_from_the_runtime (asserts (128+len)*3480*2)",
+    "rows": [
+      {
+        "account": "relay policy (944 B)",
+        "lamports": 7461120,
+        "sol": 0.00746112
+      },
+      {
+        "account": "core mandate (2136 B)",
+        "lamports": 15757440,
+        "sol": 0.01575744
+      },
+      {
+        "account": "SPL token account (165 B)",
+        "lamports": 2039280,
+        "sol": 0.00203928
+      },
+      {
+        "account": "Token-2022 mint base (82 B)",
+        "lamports": 1461600,
+        "sol": 0.0014616
+      }
+    ],
+    "note": "Onboarding rent for a fresh agent = mandate + policy = 23,218,560 lamports (about 0.0232 SOL), refunded to the owner by revoke_mandate and close_policy in the unwind."
+  },
+  "stack_depth": {
+    "direct transfer": 2,
+    "direct swap": 3,
+    "max wrappers in front of the relay": "transfer 3, swap 2 (CallDepth beyond that)"
+  },
+  "per_tx_limit_note": "per_tx_limit applies per verify call; 21 relay transfers fit one 1232-byte tx (rt_f1 test).",
+  "commands": [
+    "export PATH=\"$HOME/.cargo/bin:$PATH\"; cp -cR /private/tmp/aa-shared-target /private/tmp/aa-target-gate; export CARGO_TARGET_DIR=/private/tmp/aa-target-gate",
+    "cargo fmt --all --check",
+    "cargo clippy --workspace --all-targets -- -D warnings",
+    "cargo clippy -p agent-auth-relay --all-targets --features test-amm -- -D warnings",
+    "bash scripts/build-all.sh && source scripts/env.sh",
+    "cargo test -p agent-auth-relay --no-fail-fast",
+    "cargo test --workspace --exclude agent-auth-relay --no-fail-fast",
+    "cargo test -p agent-auth-relay --test fe -- --nocapture --test-threads=1   (all MEASURE lines)",
+    "cd packages/sdk && npx vitest run test/golden.test.ts test/errors.test.ts test/misc.test.ts test/builders.test.ts"
+  ],
+  "gate_edits": [
+    "programs/relay/tests/fe.rs: fe02_policy_lifecycle_cu now runs on Token-2022 too (dual_token! -> triple_token!); new test fe_rent_figures_come_from_the_runtime."
+  ]
+}
