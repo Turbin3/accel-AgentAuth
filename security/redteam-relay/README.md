@@ -4,7 +4,7 @@ An attacker-minded suite for the relay (`programs/relay`), written independently
 tests and run against the real compiled `.so` files in LiteSVM, in three flavours of the Token program
 (classic `spl-token`, `p-token`, Token-2022). This is the evidence behind
 [docs/SECURITY.md](../../docs/SECURITY.md) section 9. Read [../README.md](../README.md) first: it was
-written by AI agents under the founder's direction, so it is a structured self-review, not an
+written by AI agents under the submitting developer's direction, so it is a structured self-review, not an
 independent audit.
 
 Every test asserts the safe outcome, so a failing test is a finding.

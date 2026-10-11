@@ -65,7 +65,7 @@ devnet.
 
 | Version | Supported |
 |---|---|
-| `main` (current prototype, v0.1) | Yes: fixes land here |
+| the development branch holding the current prototype (v0.1) | Yes: fixes land here |
 | Anything else, including the baseline lineage that is deployed on devnet and any fork | No |
 
 There are no releases and nothing is published to crates.io or npm. When a release exists, this table

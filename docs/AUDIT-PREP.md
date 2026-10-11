@@ -257,7 +257,7 @@ upgrade authority; swap CU against real Raydium unmeasured.
 
 | Date | Event | Reference |
 |---|---|---|
-| 2026-10-10 | Baseline import | `ae67543` |
+| 2026-06-22 | Baseline: last pre-window commit of the capstone repository (not in-window work) | `ae67543` |
 | 2026-10-10/11 | Seven-lens review of the baseline core: 86 raw findings (23 medium, 38 low, 25 info) | [SECURITY.md](SECURITY.md) section 7 |
 | 2026-10-11 | Core hardening, ABI and layout locked | `cc6f1e6` |
 | 2026-10-11 | Relay, integrator crate, mock AMM | `b0e7923`, `8a15927`, `31f0200` |

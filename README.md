@@ -17,6 +17,8 @@ Solana authenticates keys; it does not say what a delegated key is allowed to do
 
 ## What is real today
 
+The core program and its first devnet deployment come from the capstone repository [Turbin3/accel-AgentAuth](https://github.com/Turbin3/accel-AgentAuth) (five GitHub accounts; most of its 42 commits are by three other contributors); everything after its last commit `ae67543` is in-window work. See [docs/DISCLOSURE.md](docs/DISCLOSURE.md) for the split with numbers.
+
 Status as of 2026-10-11. "Tests" are results of commands run on that day (see [Measured](#measured)); the full tables are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 | Piece | Path | Status | Tests run for this README |
@@ -261,7 +263,7 @@ What is different, narrowly: AgentAuth is a non-custodial, agent-keyed record wi
 
 ## Status and disclosure
 
-The core program (`src/`) and its first devnet deployment are **pre-existing work** from the team's earlier capstone repository ([Turbin3/accel-AgentAuth](https://github.com/Turbin3/accel-AgentAuth), five contributors, last pre-window commit `ae67543` on 2026-06-22), which this repository's history builds on. In-window work is: core hardening (tags 5 and 6, errors 19..22, real close on revoke, pre-funding robustness, a rewritten test suite), the relay, the integrator crate, the second integrator, the SDK, CLI, MCP server, guard, registry, dashboard, demo and attack suite, and these documents. The exact split, with commits, is in [docs/DISCLOSURE.md](docs/DISCLOSURE.md).
+The core program (`src/`) and its first devnet deployment are **pre-existing work** from the team's earlier capstone, [Turbin3/accel-AgentAuth](https://github.com/Turbin3/accel-AgentAuth) (five contributors; last pre-window commit `ae67543`, 2026-06-22). All commits after `ae67543` are in-window work. In-window work is: core hardening (tags 5 and 6, errors 19..22, real close on revoke, pre-funding robustness, a rewritten test suite), the relay, the integrator crate, the second integrator, the SDK, CLI, MCP server, guard, registry, dashboard, demo and attack suite, and these documents. The exact split, with commits, is in [docs/DISCLOSURE.md](docs/DISCLOSURE.md).
 
 The hardened core and the relay have not been deployed to devnet yet; the on-chain core program's bytes differ from the current build (read-only sha256 comparison on 2026-10-11) and the relay id has no account on devnet. See [docs/DEPLOY-DEVNET.md](docs/DEPLOY-DEVNET.md).
 

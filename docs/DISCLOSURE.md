@@ -1,22 +1,25 @@
 # Pre-existing and in-window work
 
-**Status: derived from the repository's git history and from public chain data; items marked "founder
-to confirm" are not yet confirmed.** This is a factual statement of what existed before the Crypto
-World's Fair window and what was built during it. It is meant for anyone who needs to know what in
-this repository is new. It is **not** text for a submission form. Lines marked "founder to confirm"
-need the founder's knowledge; they cannot be established from the repository alone.
+**Status: derived from the repository's git history and from public chain data.** This is a factual
+statement of what existed before the Crypto World's Fair window and what was built during it, for anyone who
+needs to know what in this repository is new. It is **not** text for a submission form.
 
 ## 1. Pre-existing work (the baseline)
 
 The baseline is the team's earlier capstone repository, public at
 <https://github.com/Turbin3/accel-AgentAuth> (default branch `main`, head `ae67543`, "devnet: use
-jupiter's real route discriminator", 2026-06-22). This repository's history is that history plus the
+jupiter's real route discriminator", 2026-06-22). This history is that history plus the
 in-window commits on top of it: `ae67543` is the last pre-window commit, and `git log ae67543..HEAD` lists
 everything done in the window (2026-09-14 to 2026-10-13).
 
 The capstone repository has 42 commits, dated 2026-06-14 to 2026-06-22. GitHub's contributor list
 (read 2026-10-12) shows five accounts: DivineUX23 (17 commits), AdemolaSam (9), xavierScript (8),
-VictoryG0D (7) and V1C70RYG0D (1). Those commits are not in-window work and are not the founder's alone.
+VictoryG0D (7) and V1C70RYG0D (1). Those commits are not in-window work and have several authors: 34 of
+the 42 commits (81%) were authored by DivineUX23, AdemolaSam and xavierScript, and 8 (19%) by the accounts
+VictoryG0D (git author name "Sumit Kumar", 7 commits) and V1C70RYG0D (git author name "VictoryGod", 1).
+By `git blame` at `ae67543`, the 973 lines of `src/` are Sumit Kumar 50%, DivineUX23 24%, AdemolaSam 16%
+and xavierScript 10%; the 2,098 lines of `tests/` are xavierScript 33%, DivineUX23 24%, AdemolaSam 24% and
+Sumit Kumar 19%. The baseline's design document and README roadmap are also the capstone's work.
 
 What the baseline contained (29 files):
 
@@ -39,12 +42,10 @@ Evidence for the dates, from sources other than the commit message:
 - **Commit dates.** `git log ae67543` runs from 2026-06-14 to 2026-06-22; the last pre-window commit is
   2026-06-22.
 
-Founder to confirm: who the five contributors are and which parts each wrote; whether the capstone was
-submitted to a program, grant or earlier event; whether the other contributors agree to this submission
-building on the shared work, and that no third party has rights or claims on the baseline (rules, section
-9). The baseline README declares the license as MIT but the capstone repository had no `LICENSE` file; the
-first in-window commit (`f9554f1`) adds the MIT `LICENSE` file, matching the declared license. The git
-author of every in-window commit is the same account (Sumit Kumar).
+This document does not attribute baseline authorship beyond those commit counts. The baseline README
+declares the license as MIT but the capstone repository had no `LICENSE` file; the first in-window commit
+adds the MIT `LICENSE` file, matching the declared license. The git author of every in-window commit is
+the same account (Sumit Kumar).
 
 ## 2. In-window work
 
@@ -88,6 +89,10 @@ overview images appear under their new path.
 
 ### What is new
 
+The baseline README roadmap listed a TypeScript SDK, a CLI and an MCP server as future phases, and the
+baseline design document named an execute relay as a deferred second-version idea. No code for any of
+them existed at `ae67543`; the implementations below are in-window work, built on those plans.
+
 - **The relay** (`programs/relay`, Pinocchio): `init_policy`, `set_paused`, `close_policy`, `transfer`,
   `swap`; an owner-written 944-byte policy; error codes 100 to 119. Entirely in-window.
 - **Test AMM and stubs** (`programs/mock-amm`, `programs/evil-token`) and the **second integrator**
@@ -114,7 +119,7 @@ program") and `326093f` (tests):
 - **Added:** instructions `set_active` (tag 5) and `update_permission` (tag 6); error codes 19 to 22.
 - **Tests:** the 41 legacy tests were replaced or rewritten (the commit message says legacy tests were
   updated "only where the contract intentionally changed" for the hardening commit, and the next commit
-  replaces the tautological ones). The current core suite runs 141 tests, 8 ignored
+  replaces the tests that did not exercise program code). The current core suite runs 141 tests, 8 ignored
   (`docs/data/core-metrics.json`, `cargo test` result lines, 2026-10-11).
 - **Not touched:** the overview `.docx`. It still describes the baseline and has drifted from the code
   (see SPEC-15 in [SECURITY.md](SECURITY.md)).
@@ -131,23 +136,21 @@ the long fuzz runs stay outside it (see `security/redteam-relay/results-summary.
 
 ## 3. How the in-window code was produced
 
-The in-window code, tests and documentation were developed with AI coding assistance (Claude) under the
-team's direction. The commit trailers say so: the commits carry a `Co-Authored-By: Claude Sonnet 5.5`
+The in-window code, tests and documentation were developed with AI coding assistance (Claude Code) under
+the direction of the submitting developer (git author Sumit Kumar). The commit trailers say so: the commits carry a `Co-Authored-By: Claude Sonnet 5.5`
 line. The security review lenses, the mutation experiments and the red team were also run with AI
 assistance, which is why [SECURITY.md](SECURITY.md) calls the review a structured self-review and not an
 independent audit.
 
-**Founder to confirm wording.** In particular: how the team wants to describe the division of work
-between the human team and the assistant (direction, review, acceptance of each change); whether the
-event's rules require a specific AI-use disclosure; and who the contributors are. All in-window commits
-have a single git author account (Sumit Kumar) and do not identify the team.
+All in-window commits have a single git author account (Sumit Kumar) and carry the AI assistance in their
+`Co-Authored-By` trailers; the git history does not identify any other person.
 
 ## 4. Third-party code and data
 
 - Dependencies are declared in `Cargo.toml` / `Cargo.lock` and `package.json` / `pnpm-lock.yaml`.
   Licenses were not audited for this page.
 - The mock AMM is described in its README as shaped like Raydium CP-Swap (account order and instruction
-  ABI) for testing. Founder to confirm that no Raydium source code was copied into it. A devnet pool
+  ABI) for testing. A search of its sources for licence headers or identical code found no Raydium source (2026-10-12). A devnet pool
   snapshot used as a test fixture is in `programs/relay/tests/raydium_fixture/devnet_pool.json`, fetched
   by `fetch_fixture.py` from public chain data. The relay's real-Raydium test (`SW-15`) is ignored
   unless a dumped devnet binary is supplied.
@@ -157,8 +160,10 @@ have a single git author account (Sumit Kumar) and do not identify the team.
 ## 5. Reproducing the numbers on this page
 
 ```sh
-git log --oneline ae67543..HEAD | wc -l
+git rev-list --count ae67543..233b994   # 41: the commits the table above counts (the branch head adds later commits)
 git diff --numstat ae67543..233b994      # per-file added/deleted lines; sum by directory
+git shortlog -sn ae67543                 # commit counts of the baseline
+git blame --line-porcelain ae67543 -- src/ tests/   # per-line authorship of the baseline (loop over the files)
 solana block-time 471094128 --url devnet # baseline deployment time
 solana program show AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if --url devnet
 unzip -p docs/archive/pre-hackathon/AgentAuthorizationProtocol_Overview.docx docProps/core.xml

@@ -6,7 +6,7 @@ Everything here exists so that a reviewer can re-run, from a clean checkout, the
 runner touches your working tree: every one of them works in a scratch copy of the repository.
 
 **Read this first.** The red-team harness, the mutants and the witness tests were written by AI agents
-under the founder's direction. This is a structured self-review, **not an independent audit**. The
+under the submitting developer's direction. This is a structured self-review, **not an independent audit**. The
 project is an unaudited devnet prototype.
 
 ## Map

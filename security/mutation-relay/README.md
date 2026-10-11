@@ -82,7 +82,7 @@ avoid a cold build, and delete that clone when you are done.
 
 ## Honest limits
 
-* Mutants were written by the same AI agents, under the founder's direction, that wrote the tests;
+* Mutants were written by the same AI agents, under the submitting developer's direction, that wrote the tests;
   not an independent sample, and `cargo-mutants` was not used.
 * The 40 `witness.rs` tests exist because mutants survived; the 100% on the non-equivalent catalogue is
   therefore a closed loop on this catalogue, not an out-of-sample result. Several witnesses plant

@@ -9,8 +9,9 @@ const SWAP_HEX: &str = include_str!("golden/swap_ix_data.hex");
 const VERIFY_HEX: &str = include_str!("golden/verify_ix_data.hex");
 const POLICY_BIN: &[u8] = include_bytes!("golden/policy_example.bin");
 
-/// Where the design package lives (only compared when the directory exists on this machine).
-const DESIGN_GOLDEN_DIR: &str = "/private/tmp/claude-501/-Users-victorygod-Projects-accel-AgentAuth-main/5cf9ddf9-ca8d-4299-b5e5-e93733eb7326/scratchpad/design/golden";
+/// Optional drift check against the design package's golden files: set `AA_DESIGN_GOLDEN_DIR` to the
+/// directory that holds them (the design package is not part of this repository).
+const DESIGN_GOLDEN_DIR_ENV: &str = "AA_DESIGN_GOLDEN_DIR";
 
 fn hex_decode(s: &str) -> Vec<u8> {
     let s = s.trim();
@@ -292,11 +293,14 @@ fn ix_ext_corrupts_exactly_one_thing() {
 
 #[test]
 fn local_golden_copies_equal_the_design_package() {
-    let dir = std::path::Path::new(DESIGN_GOLDEN_DIR);
-    if !dir.is_dir() {
-        eprintln!("design golden dir not present on this machine; skipping drift check");
+    let Some(dir) = std::env::var_os(DESIGN_GOLDEN_DIR_ENV).map(std::path::PathBuf::from) else {
+        eprintln!("{DESIGN_GOLDEN_DIR_ENV} not set; skipping the design-package drift check");
         return;
-    }
+    };
+    assert!(
+        dir.is_dir(),
+        "{DESIGN_GOLDEN_DIR_ENV} is set but is not a directory: {dir:?}"
+    );
     for (name, local) in [
         ("init_policy_ix_data.hex", INIT_HEX.as_bytes()),
         ("transfer_ix_data.hex", TRANSFER_HEX.as_bytes()),

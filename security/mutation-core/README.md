@@ -93,7 +93,7 @@ avoid a cold build of the dependency tree, and delete that clone when you are do
 
 ## Honest limits
 
-* 206 hand-written mutants chosen by the same AI agents under the founder's direction that wrote the
+* 206 hand-written mutants chosen by the same AI agents under the submitting developer's direction that wrote the
   tests' fixes; they are not an independent sample, and `cargo-mutants` was not used.
 * A killed mutant shows the suite is sensitive to that edit, nothing more. The equivalence proofs are
   informal arguments; `V06` and `V08` rely on pinocchio 0.9.3 `close()` semantics.

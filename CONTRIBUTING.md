@@ -96,7 +96,7 @@ Commits and pull requests:
 
 - Conventional-style subjects as in the history (`fix(relay): ...`, `test(core): ...`, `docs: ...`).
 - One logical change per commit; tests in the same commit as the behaviour.
-- Do not commit keypairs, `.env` files or anything under `keys/` (gitignored) or `founder/`.
+- Do not commit keypairs, `.env` files or anything under `keys/` (gitignored).
 - If an AI assistant wrote part of the change, say so in the pull request. You are still responsible for
   every line, including checking it against the claims above.
 

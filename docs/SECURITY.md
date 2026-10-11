@@ -288,7 +288,7 @@ Evidence names are test functions under `tests/` (`regression_lifecycle`, `regre
 | SPEC-4 | medium | Pre-funding blocks create_mandate | fixed | regression_lifecycle::prefunded_pda_does_not_block_create |
 | SPEC-5 | medium | Discriminator convention unusable for non-Anchor targets | documented | ABI locked; convention documented in the registry schema and agent-auth-cpi disc8 helpers; no per-permission mask was added |
 | SPEC-6 | low | Documented build fails when Homebrew cargo shadows rustup | fixed | scripts/build-all.sh puts rustup first on PATH |
-| SPEC-7 | low | Tests overstate coverage (empty bodies, tautologies) | fixed | legacy tests replaced (commit 326093f) |
+| SPEC-7 | low | The capstone tests overstate coverage (empty bodies, assertions on literals) | fixed | capstone tests replaced (commit 326093f) |
 | SPEC-8 | low | Integration tests pass silently without the .so | fixed | tests/common/integration.rs: a missing .so is a hard failure unless AGENT_AUTH_ALLOW_SKIP=1 |
 | SPEC-9 | low | Error-code contract inconsistent | fixed | error_matrix::every_instruction_times_every_failure_has_its_documented_code; tests/source_hygiene.rs::every_error_code_is_documented_in_the_contract_table |
 | SPEC-10 | low | README diagram uses wrong instruction numbers | docs | old README diagram superseded by docs/assets/diagrams/ |
@@ -306,7 +306,7 @@ Evidence names are test functions under `tests/` (`regression_lifecycle`, `regre
 | MEM-5 | low | state.rs panics on corrupt lengths | fixed | regression_verify::corrupt_headers_are_errors_not_panics |
 | MEM-6 | low | Inconsistent instruction-data length validation | fixed | regression_lifecycle::create_requires_exact_data_length, add_permission_requires_exact_data_length, remove_permission_requires_exact_data_length; regression_verify::verify_requires_exact_data_length |
 | MEM-7 | info | `active` write-once | fixed | regression_lifecycle::set_active_pauses_and_resumes… |
-| MEM-8 | info | Tautological security tests | fixed | legacy tests replaced (commit 326093f) |
+| MEM-8 | info | Security tests that assert on literals instead of program behaviour | fixed | capstone tests replaced (commit 326093f) |
 | MEM-9 | info | Results of append/remove discarded (`let _ =`) | fixed | tests/source_hygiene.rs::src_has_no_unsafe_or_panicking_shortcuts; no `let _ =` remains in src/ |
 | CPI-1 | info | CU estimate wrong for verify, right for a CPI caller | docs | CU for verify alone versus a CPI caller: docs/BENCHMARKS.md |
 | CPI-2 | medium | Confused deputy: integrator takes the AgentAuth id from the transaction | fixed (integrator side) | crates/agent-auth-cpi pins AGENT_AUTH_ID; crates/agent-auth-cpi/tests/e2e.rs::wrong_agentauth_program_is_rejected_before_any_cpi |
@@ -355,9 +355,11 @@ unobservable) or a gap in the tests.
 
 | Stage | Result | Source |
 |---|---|---|
-| Legacy suite (baseline `ae67543`) against 93 hand-written mutants | 31 of 93 killed (33%). A null program that returns Ok for every instruction passed 27 of 41 legacy tests; one that always fails passed 24 of 41. 24 of the 41 tests never called program code. | TESTS-2, review measurements |
+| Capstone suite (baseline `ae67543`) against 93 hand-written mutants | 31 of 93 killed (33%). A null program that returns Ok for every instruction passed 27 of 41 legacy tests; one that always fails passed 24 of 41. 24 of the 41 tests never called program code. | TESTS-2, review measurements |
 | Legacy suite plus 66 tests added by the review | 92 of 93 killed (one equivalent survivor) | review measurements |
 | Current suite (commit `326093f`) against 99 hand-written mutants | **98 killed, 1 equivalent** | commit message of `326093f` |
+
+The baseline suite was written by the capstone contributors (authorship split in [DISCLOSURE.md](DISCLOSURE.md)) as an integration and smoke suite for a program under development. The numbers above describe how sensitive it was to hand-written mutants, not the quality of their effort; its helpers and structure are the starting point of the replacement suite.
 
 What a mutant is: single-point edits such as deleting an owner-signer check, turning `>` into `>=`,
 swapping an error variant, using a wrong offset or slot, skipping a write or a zeroing. The mutants were
@@ -387,7 +389,7 @@ written, not against every possible bug.
 
 This is a statement about the sensitivity of the tests to these hand-written mutants, not evidence of the
 absence of bugs, and the 100% figure is a closed loop (survivors were closed by tests written for them).
-The mutants, witnesses and proofs were written by AI agents under the founder's direction. The earlier
+The mutants, witnesses and proofs were written by AI agents under the submitting developer's direction. The earlier
 15-mutant survivor `MU1` is the same edit as the campaign's `T09`: judged equivalent in the first
 experiment because it is unreachable through the instruction interface, and killed in the campaign by
 the planted-policy witness `W11`. Reproduce a sample with
@@ -471,7 +473,7 @@ with its own target directory), `RT_SEED` and `RT_ITERS` to choose the seed and 
 run is `security/redteam-relay/run.sh deep` (release build, `RT_ITERS=300000`). The replay variable
 `RT_REPLAY_IT` was added to the harness when it was packaged. The replay reproduces the fuzzer's mutation exactly (the stored bump is overwritten with 84) and then reverts; the runtime message is either "Could not create program address" or a PrivilegeEscalation, depending on the per-run random fixture keys, so the original log line is reproduced in only some replays (7 of 13 when measured). The raw logs of the earlier deep runs stay
 outside the repository; `security/redteam-relay/results-summary.md` records what they showed. The suite was
-written by AI agents under the founder's direction: it is a structured self-review, not an independent
+written by AI agents under the submitting developer's direction: it is a structured self-review, not an independent
 audit. Spec-level attack tests (`tr.rs`, `sw.rs`, `re.rs`, ...) are in the repository and run in the normal test command.
 
 ## 10. Honest limitations

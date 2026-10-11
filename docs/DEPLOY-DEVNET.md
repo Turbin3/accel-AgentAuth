@@ -1,6 +1,6 @@
 # Putting the hardened programs on devnet (runbook)
 
-AgentAuth is an unaudited devnet prototype. This document is a runbook for the founder. **Nothing in the repository deploys anything on its own.** `scripts/devnet-deploy.sh` is a dry run by default: it reads, checks and prints the exact commands. It sends transactions only with `--execute` and an interactive typed confirmation, and it makes a program non-upgradeable only with `--burn-authority` and a second typed confirmation.
+AgentAuth is an unaudited devnet prototype. This document is a runbook for the project owner. **Nothing in the repository deploys anything on its own.** `scripts/devnet-deploy.sh` is a dry run by default: it reads, checks and prints the exact commands. It sends transactions only with `--execute` and an interactive typed confirmation, and it makes a program non-upgradeable only with `--burn-authority` and a second typed confirmation.
 
 State of devnet, read-only, 2026-10-11 (`solana program show <id> -u devnet`):
 
@@ -57,7 +57,7 @@ The guard rails were also exercised: `--burn-authority` without `--execute` is r
 
 ## 2. Upgrading the existing core program
 
-The upgrade needs the **current upgrade-authority keypair**. The authority observed by read-only RPC is `8SRwaR9wr4n7a3tCWMgejAV5DAJnky8NXQTS8qWgsEyC`; the founder must hold the key for it (whether the team holds it is not known to this documentation). If it is lost the program cannot be upgraded and the hardened core can only go to a new program id, which would change the id baked into every client.
+The upgrade needs the **current upgrade-authority keypair**. The authority observed by read-only RPC is `8SRwaR9wr4n7a3tCWMgejAV5DAJnky8NXQTS8qWgsEyC`; whoever deploys must hold the key for it (who holds it is not known to this documentation). If it is lost the program cannot be upgraded and the hardened core can only go to a new program id, which would change the id baked into every client.
 
 ```sh
 # 1. keep the CURRENT on-chain binary so you can roll back while you still hold the authority
