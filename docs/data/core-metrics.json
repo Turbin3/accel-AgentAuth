@@ -1,0 +1,154 @@
+{
+  "generated": "2026-10-11",
+  "scope": "core program agent_auth (root crate), unaudited devnet prototype",
+  "gates": {
+    "fmt": "cargo fmt --check: clean",
+    "clippy": "cargo clippy --all-targets -- -D warnings: clean",
+    "build_sbf": "cargo build-sbf: OK",
+    "tests": "AGENT_AUTH_SO=<target>/deploy/agent_auth.so cargo test --no-fail-fast: all green"
+  },
+  "tests": {
+    "passed": 141,
+    "failed": 0,
+    "ignored": 8,
+    "ignored_detail": "6 devnet.rs (live network, not run), 1 layout.rs, 1 layout_v1.rs (golden-fixture writer)",
+    "per_suite": {
+      "lib (unit)": 11,
+      "error_matrix": 8,
+      "full_lifecycle": 3,
+      "fuzz_program": 3,
+      "idl_conformance": 5,
+      "layout": 1,
+      "layout_v1": 3,
+      "model_properties": 3,
+      "mutation_survivors": 8,
+      "poc_regressions": 19,
+      "regression_cu": 4,
+      "regression_lifecycle": 32,
+      "regression_verify": 13,
+      "source_hygiene": 5,
+      "state_model": 2,
+      "state_unit": 21,
+      "devnet": 0
+    },
+    "non_vacuity": "AGENT_AUTH_ALLOW_SKIP unset. Every early 'return' in tests is a let-else on a setup that panics when the .so is missing; confirmed by running regression_cu with AGENT_AUTH_SO=/nonexistent.so, which panics 'program binary not found'."
+  },
+  "mutation": {
+    "method": "Hand-written source mutants of src/ (guard deletions, comparison flips, error-variant swaps, dropped state writes, off-by-one and 31-of-32-byte key compares, constants/layout changes), applied one at a time to a pristine copy, built with cargo build-sbf and run against the full test suite with AGENT_AUTH_ALLOW_SKIP unset. A control run (unmutated source) passed and its .so was byte-identical to the baseline build.",
+    "round1": {
+      "total": 144,
+      "killed": 138,
+      "proven_equivalent": 3,
+      "survived_real_gaps": 3,
+      "survivors": [
+        "C20",
+        "V10",
+        "W31"
+      ],
+      "score_excluding_equivalent": "138/141 = 97.9%"
+    },
+    "round2": {
+      "total": 68,
+      "new_mutants": 62,
+      "rerun_of_round1": 6,
+      "killed": 64,
+      "proven_equivalent": 3,
+      "survived_real_gaps": 1,
+      "survivors": [
+        "N-S31"
+      ],
+      "score_excluding_equivalent": "64/65 = 98.5%"
+    },
+    "unique_mutants": 206,
+    "real_gaps_found": 4,
+    "real_gaps_closed": "All four were closed with targeted tests (tests/mutation_survivors.rs, tests/error_matrix.rs, tests/state_unit.rs). Each new test was verified to fail on its own mutant and pass on the real source, in a private clone. The full mutant sweep was NOT re-run after the last tests were added.",
+    "equivalent_mutants": [
+      "S18: swap_remove_permission `if idx != last` -> `if true` (self-copy no-op)",
+      "V06: revoke `account_data.fill(0)` removed (close() zeroes the data length)",
+      "V08: revoke `*mandate_lamports = 0` removed (close() zeroes lamports right after)"
+    ],
+    "caveat": "V06 and V08 rely on pinocchio 0.9.3 close() semantics. Mutation score is a statement about the tests' sensitivity to these mutants, not about the absence of bugs."
+  },
+  "compute_units": {
+    "method": "LiteSVM, tests/regression_cu.rs::compute_units_per_instruction",
+    "rows": [
+      {
+        "instruction": "create_mandate (fresh PDA, 60 random agents)",
+        "best": 3433,
+        "worst": 10933,
+        "ceiling": 25000
+      },
+      {
+        "instruction": "create_mandate (pre-funded PDA)",
+        "best": 6118,
+        "worst": 6118,
+        "ceiling": 25000
+      },
+      {
+        "instruction": "add_permission (1st slot / 16th slot, 8 discs)",
+        "best": 243,
+        "worst": 420,
+        "ceiling": 1200
+      },
+      {
+        "instruction": "verify (slot 1 / slot 16, 8th disc, limits)",
+        "best": 480,
+        "worst": 738,
+        "ceiling": 1200
+      },
+      {
+        "instruction": "verify failing: unknown program (scans 16)",
+        "best": 496,
+        "worst": 496,
+        "ceiling": 1200
+      },
+      {
+        "instruction": "update_permission (slot 1 / slot 16)",
+        "best": 204,
+        "worst": 339,
+        "ceiling": 1000
+      },
+      {
+        "instruction": "remove_permission (16 slots last / 15 slots first)",
+        "best": 228,
+        "worst": 338,
+        "ceiling": 1000
+      },
+      {
+        "instruction": "set_active (pause / resume)",
+        "best": 124,
+        "worst": 126,
+        "ceiling": 600
+      },
+      {
+        "instruction": "revoke_mandate (12 random agents)",
+        "best": 1802,
+        "worst": 1802,
+        "ceiling": 3000
+      },
+      {
+        "instruction": "revoke_mandate (legacy v0 mandate, bump search)",
+        "best": 3322,
+        "worst": 3322,
+        "ceiling": 20000
+      }
+    ]
+  },
+  "program_size_bytes": 36472,
+  "program_size_note": "target/deploy/agent_auth.so from this gate's build; the core-fix report quoted 36488, the 16-byte difference is from a later source state. Baseline v0.1 was 29608.",
+  "rent": {
+    "account_size_bytes": 2136,
+    "lamports": 15757440,
+    "sol": 0.01575744,
+    "formula": "(2136 + 128) * 3480 lamports/byte-year * 2 years (default rent-exempt minimum)",
+    "note": "Computed by hand; `solana rent 2136` needs a reachable RPC and failed offline."
+  },
+  "commands": [
+    "export PATH=\"$HOME/.cargo/bin:$PATH\"; export CARGO_TARGET_DIR=<per-agent copy of the shared target>",
+    "cargo fmt --check",
+    "cargo clippy --all-targets -- -D warnings",
+    "cargo build-sbf",
+    "AGENT_AUTH_SO=$CARGO_TARGET_DIR/deploy/agent_auth.so cargo test --no-fail-fast",
+    "AGENT_AUTH_SO=$CARGO_TARGET_DIR/deploy/agent_auth.so cargo test --test regression_cu -- --nocapture --test-threads=1"
+  ]
+}
