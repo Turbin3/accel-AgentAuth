@@ -49,12 +49,12 @@ the same account (Sumit Kumar).
 
 ## 2. In-window work
 
-Everything after `ae67543` is in-window work. At commit `233b994` there are 41 commits after the
+Everything after `ae67543` is in-window work. At commit `11c4019` there are 41 commits after the
 baseline, from 2026-10-10 (IST) to 2026-10-11 06:18 (IST). Output of
-`git diff --numstat ae67543..233b994`, summed by area. Lines are raw added and deleted lines, and
+`git diff --numstat ae67543..11c4019`, summed by area. Lines are raw added and deleted lines, and
 include generated and data files (lockfiles, IDL JSON, fixtures, mutation ledgers, transcripts), so
 they overstate hand-written code. Binary files (screenshots, rendered diagrams, `.bin` and `.so` fixtures) count as files with zero lines. Commits
-made after `233b994` (documentation fixes from the clean-clone check) are not included.
+made after `11c4019` (documentation fixes from the clean-clone check) are not included.
 
 | Area | Files | Lines added | Lines deleted |
 |---|---:|---:|---:|
@@ -109,8 +109,8 @@ them existed at `ae67543`; the implementations below are in-window work, built o
 
 ### What changed in the pre-existing core program
 
-The core program was modified in place, not rewritten. In commit `cc6f1e6` ("harden the AgentAuth
-program") and `326093f` (tests):
+The core program was modified in place, not rewritten. In commit `c9e390c` ("harden the AgentAuth
+program") and `b46d184` (tests):
 
 - **Preserved:** the `verify` ABI (tag 3, 49 bytes), the 2136-byte account layout and error codes 1 to 18.
 - **Fixed:** pre-funded-PDA griefing in `create_mandate`; `revoke_mandate` is now a real close; one error
@@ -137,13 +137,12 @@ the long fuzz runs stay outside it (see `security/redteam-relay/results-summary.
 ## 3. How the in-window code was produced
 
 The in-window code, tests and documentation were developed with AI coding assistance (Claude Code) under
-the direction of the submitting developer (git author Sumit Kumar). The commit trailers say so: the commits carry a `Co-Authored-By: Claude Sonnet 5.5`
-line. The security review lenses, the mutation experiments and the red team were also run with AI
-assistance, which is why [SECURITY.md](SECURITY.md) calls the review a structured self-review and not an
-independent audit.
+the direction of the submitting developer (git author Sumit Kumar). The security review lenses, the
+mutation experiments and the red team were also run with AI assistance, which is why
+[SECURITY.md](SECURITY.md) calls the review a structured self-review and not an independent audit.
 
-All in-window commits have a single git author account (Sumit Kumar) and carry the AI assistance in their
-`Co-Authored-By` trailers; the git history does not identify any other person.
+The commits are authored by that single git account and carry no co-author trailer for the assistant, so
+this section is the record of the AI assistance; the git history does not identify any other person.
 
 ## 4. Third-party code and data
 
@@ -160,8 +159,8 @@ All in-window commits have a single git author account (Sumit Kumar) and carry t
 ## 5. Reproducing the numbers on this page
 
 ```sh
-git rev-list --count ae67543..233b994   # 41: the commits the table above counts (the branch head adds later commits)
-git diff --numstat ae67543..233b994      # per-file added/deleted lines; sum by directory
+git rev-list --count ae67543..11c4019   # 41: the commits the table above counts (the branch head adds later commits)
+git diff --numstat ae67543..11c4019      # per-file added/deleted lines; sum by directory
 git shortlog -sn ae67543                 # commit counts of the baseline
 git blame --line-porcelain ae67543 -- src/ tests/   # per-line authorship of the baseline (loop over the files)
 solana block-time 471094128 --url devnet # baseline deployment time

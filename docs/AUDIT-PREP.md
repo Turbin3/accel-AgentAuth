@@ -130,9 +130,9 @@ fixtures, then prints the hash of each.
 
 ### 4.3 sha256 of the artifacts as measured
 
-Built on 2026-10-11 from commit `c8f5a39`. The same hashes came out of three independent target
+Built on 2026-10-11 from commit `4420091`. The same hashes came out of three independent target
 directories on the same machine (the repository's `target/`, and two private ones), so the build is
-deterministic on this machine and toolchain; a fresh clone of `233b994` built in a fourth directory gave the same
+deterministic on this machine and toolchain; a fresh clone of `11c4019` built in a fourth directory gave the same
 hashes. **It has not been compared across machines.**
 
 | Artifact | Bytes | sha256 |
@@ -191,9 +191,9 @@ A missing `.so` is a hard failure; `AGENT_AUTH_ALLOW_SKIP=1` opts out and proves
 
 ### 5.1 Rust test inventory
 
-`cargo test --workspace --no-fail-fast`, 2026-10-11, in a clean clone of commit `233b994`: **778 passed,
+`cargo test --workspace --no-fail-fast`, 2026-10-11, in a clean clone of commit `11c4019`: **778 passed,
 0 failed, 10 ignored** (47 result lines). The on-chain program sources (`src/`, `programs/*/src`, `crates/`) are
-byte-identical between `c8f5a39`, on which the hashes in section 4.3 were first taken, and `233b994`; the
+byte-identical between `4420091`, on which the hashes in section 4.3 were first taken, and `11c4019`; the
 difference in test counts is new tests (mutation-survivor and witness tests, the RT-F7 pins).
 
 | Crate | Passed | Ignored | Contents |
@@ -259,10 +259,10 @@ upgrade authority; swap CU against real Raydium unmeasured.
 |---|---|---|
 | 2026-06-22 | Baseline: last pre-window commit of the capstone repository (not in-window work) | `ae67543` |
 | 2026-10-10/11 | Seven-lens review of the baseline core: 86 raw findings (23 medium, 38 low, 25 info) | [SECURITY.md](SECURITY.md) section 7 |
-| 2026-10-11 | Core hardening, ABI and layout locked | `cc6f1e6` |
-| 2026-10-11 | Relay, integrator crate, mock AMM | `b0e7923`, `8a15927`, `31f0200` |
-| 2026-10-11 | Core test suite replaced; 98 of 99 mutants killed | `326093f` |
-| 2026-10-11 | Relay red team (about 1.4M fuzzed transactions); two fixes (RT-F3, RT-F4), regression tests | `7769968` |
+| 2026-10-11 | Core hardening, ABI and layout locked | `c9e390c` |
+| 2026-10-11 | Relay, integrator crate, mock AMM | `4686a8d`, `b2f6b0e`, `21f0e87` |
+| 2026-10-11 | Core test suite replaced; 98 of 99 mutants killed | `b46d184` |
+| 2026-10-11 | Relay red team (about 1.4M fuzzed transactions); two fixes (RT-F3, RT-F4), regression tests | `d8bd5c5` |
 
 All of it is internal and AI-assisted; none of it substitutes for an independent audit.
 
