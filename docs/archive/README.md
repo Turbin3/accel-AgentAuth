@@ -1,6 +1,6 @@
 # Archive: pre-hackathon capstone artifacts (June 2026)
 
-These files come from the baseline snapshot (commit `7677fef`, files dated 2026-06-22; the design document's
+These files come from the capstone repository's last pre-window commit (`ae67543`, 2026-06-22; the design document's
 metadata says it was created 2026-06-04). They are kept for provenance and for the disclosure in
 [docs/DISCLOSURE.md](../DISCLOSURE.md). **They are superseded. Do not cite them.**
 

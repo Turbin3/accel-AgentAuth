@@ -96,7 +96,7 @@
           "tests/mutation_survivors.rs::funded_husk_create_needs_no_system_program"
         ],
         "status": "covered (fixed-binary half only)",
-        "note": "Part (a), the pre-fix reproducer built from commit 7677fef, is not an automated test; only the fixed behaviour is pinned."
+        "note": "Part (a), the pre-fix reproducer built from commit ae67543, is not an automated test; only the fixed behaviour is pinned."
       },
       {
         "id": "CORE-04",

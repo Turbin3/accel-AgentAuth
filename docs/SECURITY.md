@@ -131,7 +131,7 @@ The design source for this table is the relay specification, section 15 (threat 
 | D01 | Transfer-fee, hook, permanent-delegate, confidential or pausable mint | MIT | Only extension-free mints (`mint.data_len == 82`, 103) | T22-02..05 |
 | D03 | CPI Guard account | MIT | Longer than the accepted 170-byte shape (105) | T22-06 |
 | D04 | Freeze authority, pause, non-transferable | ACC | Liveness only | TR-30 |
-| D05 | Native SOL / wSOL tricks | MIT | Native mints (classic and Token-2022) are refused (RT-F3, fixed in commit 5ad0992) | PL-05, RT-F3 |
+| D05 | Native SOL / wSOL tricks | MIT | Native mints (classic and Token-2022) are refused (RT-F3, fixed in commit 7769968) | PL-05, RT-F3 |
 
 ### 4.5 Relay: economics and hygiene
 
@@ -215,7 +215,7 @@ pins and budgets it can.
 
 ## 7. The seven-lens review of the core program
 
-**Method.** Before the hardening work, the pre-hackathon core program (baseline commit `7677fef`, the
+**Method.** Before the hardening work, the pre-hackathon core program (baseline commit `ae67543`, the
 `agent_auth` binary of 29,608 bytes) was reviewed by seven independent reviewers, each assigned one
 lens, each required to produce a proof of concept or a measurement for every claim, using LiteSVM and
 the real compiled `.so`. The lenses were: lifecycle and griefing (LIFE); arithmetic, limits and
@@ -235,7 +235,7 @@ the baseline core never held funds.
 
 **Disposition** (counts of the 86 rows below): fixed 56, documentation correction 14, kept by design
 and pinned by a "limitation" test 8, deferred 4, no action 2, will not fix 2. The hardening is commit
-`8879732` (core), with the test rewrite in `84f1c09`. The ABI (`verify` tag 3, 49 bytes), the 2136-byte
+`cc6f1e6` (core), with the test rewrite in `326093f`. The ABI (`verify` tag 3, 49 bytes), the 2136-byte
 layout and error codes 1..18 are unchanged; codes 19..22 and instructions 5..6 (`set_active`,
 `update_permission`) are appended.
 
@@ -266,7 +266,7 @@ Evidence names are test functions under `tests/` (`regression_lifecycle`, `regre
 | LIFE-8 | low | A third party can take the write lock on a mandate | wontfix | Any account may take a write lock on any account; Solana runtime property, bounded to delay |
 | LIFE-9 | low | Inconsistent error codes in lifecycle instructions | fixed | regression_lifecycle::owner_instructions_share_one_error_contract |
 | LIFE-10 | info | Permission input semantics (empty list, duplicates, trailing bytes) | fixed | regression_lifecycle::add_permission_rules (duplicate 21, empty list 22) |
-| LIFE-11 | low | Weak lifecycle tests | fixed | legacy tests replaced (commit 84f1c09); see Mutation testing below |
+| LIFE-11 | low | Weak lifecycle tests | fixed | legacy tests replaced (commit 326093f); see Mutation testing below |
 | LIFE-12 | info | README lifecycle claims inaccurate | docs | old README text superseded by the documentation rewrite |
 | MATH-1 | medium | `0 = unlimited` is fail-open | documented | poc_regressions::limitation_zero_limits_mean_unlimited_not_zero_budget (locked ABI: 0 = unlimited is kept and pinned; the SDK refuses it unless --allow-unlimited) |
 | MATH-2 | low | Unlimited permission can be bricked by one huge amount | fixed | regression_verify::overflowing_request_on_a_limited_permission_is_over_the_limit_not_an_overflow, unlimited_permission_cannot_be_wedged… |
@@ -288,7 +288,7 @@ Evidence names are test functions under `tests/` (`regression_lifecycle`, `regre
 | SPEC-4 | medium | Pre-funding blocks create_mandate | fixed | regression_lifecycle::prefunded_pda_does_not_block_create |
 | SPEC-5 | medium | Discriminator convention unusable for non-Anchor targets | documented | ABI locked; convention documented in the registry schema and agent-auth-cpi disc8 helpers; no per-permission mask was added |
 | SPEC-6 | low | Documented build fails when Homebrew cargo shadows rustup | fixed | scripts/build-all.sh puts rustup first on PATH |
-| SPEC-7 | low | Tests overstate coverage (empty bodies, tautologies) | fixed | legacy tests replaced (commit 84f1c09) |
+| SPEC-7 | low | Tests overstate coverage (empty bodies, tautologies) | fixed | legacy tests replaced (commit 326093f) |
 | SPEC-8 | low | Integration tests pass silently without the .so | fixed | tests/common/integration.rs: a missing .so is a hard failure unless AGENT_AUTH_ALLOW_SKIP=1 |
 | SPEC-9 | low | Error-code contract inconsistent | fixed | error_matrix::every_instruction_times_every_failure_has_its_documented_code; tests/source_hygiene.rs::every_error_code_is_documented_in_the_contract_table |
 | SPEC-10 | low | README diagram uses wrong instruction numbers | docs | old README diagram superseded by docs/assets/diagrams/ |
@@ -306,7 +306,7 @@ Evidence names are test functions under `tests/` (`regression_lifecycle`, `regre
 | MEM-5 | low | state.rs panics on corrupt lengths | fixed | regression_verify::corrupt_headers_are_errors_not_panics |
 | MEM-6 | low | Inconsistent instruction-data length validation | fixed | regression_lifecycle::create_requires_exact_data_length, add_permission_requires_exact_data_length, remove_permission_requires_exact_data_length; regression_verify::verify_requires_exact_data_length |
 | MEM-7 | info | `active` write-once | fixed | regression_lifecycle::set_active_pauses_and_resumes… |
-| MEM-8 | info | Tautological security tests | fixed | legacy tests replaced (commit 84f1c09) |
+| MEM-8 | info | Tautological security tests | fixed | legacy tests replaced (commit 326093f) |
 | MEM-9 | info | Results of append/remove discarded (`let _ =`) | fixed | tests/source_hygiene.rs::src_has_no_unsafe_or_panicking_shortcuts; no `let _ =` remains in src/ |
 | CPI-1 | info | CU estimate wrong for verify, right for a CPI caller | docs | CU for verify alone versus a CPI caller: docs/BENCHMARKS.md |
 | CPI-2 | medium | Confused deputy: integrator takes the AgentAuth id from the transaction | fixed (integrator side) | crates/agent-auth-cpi pins AGENT_AUTH_ID; crates/agent-auth-cpi/tests/e2e.rs::wrong_agentauth_program_is_rejected_before_any_cpi |
@@ -355,9 +355,9 @@ unobservable) or a gap in the tests.
 
 | Stage | Result | Source |
 |---|---|---|
-| Legacy suite (baseline `7677fef`) against 93 hand-written mutants | 31 of 93 killed (33%). A null program that returns Ok for every instruction passed 27 of 41 legacy tests; one that always fails passed 24 of 41. 24 of the 41 tests never called program code. | TESTS-2, review measurements |
+| Legacy suite (baseline `ae67543`) against 93 hand-written mutants | 31 of 93 killed (33%). A null program that returns Ok for every instruction passed 27 of 41 legacy tests; one that always fails passed 24 of 41. 24 of the 41 tests never called program code. | TESTS-2, review measurements |
 | Legacy suite plus 66 tests added by the review | 92 of 93 killed (one equivalent survivor) | review measurements |
-| Current suite (commit `84f1c09`) against 99 hand-written mutants | **98 killed, 1 equivalent** | commit message of `84f1c09` |
+| Current suite (commit `326093f`) against 99 hand-written mutants | **98 killed, 1 equivalent** | commit message of `326093f` |
 
 What a mutant is: single-point edits such as deleting an owner-signer check, turning `>` into `>=`,
 swapping an error variant, using a wrong offset or slot, skipping a write or a zeroing. The mutants were
@@ -423,7 +423,7 @@ Token-2022). Every test asserts the safe outcome, so a failing test is a finding
 re-entrancy, privilege escalation, Token-2022 account shapes, owner-flow races, close and re-create
 sequences), plus seeded random fuzzing of account lists, account contents and instruction data with a
 ledger check (no lamport or token balance outside the policy may change). The commit message of
-`5ad0992` records about 1.4 million fuzzed transactions across the three token flavours; the preserved
+`7769968` records about 1.4 million fuzzed transactions across the three token flavours; the preserved
 100,000-iteration release log (`security/redteam-relay/log-fuzz-release-100000-iters.txt`) sums to 1,400,002
 (14 sections of 100,000, plus two abnormal counts).
 
@@ -437,10 +437,10 @@ account shapes. The CPI account lists the relay builds are exactly the pinned on
 |---|---|---|
 | RT-F1 | `per_tx_limit` is per `verify` call: 21 relay transfers fit in one transaction, the 22nd does not. The loss is still bounded by the lifetime limit and the SPL allowance. | Accepted, documented (spec E08, L4), pinned by a test |
 | RT-F2 | Revoke then re-create with the **same expiry** re-binds an unclosed policy. A different expiry is refused (118). The unwind closes the policy. | Accepted, documented (spec A12, L8); a real fix needs a generation id in the core, which the locked layout does not have |
-| RT-F3 | Token-2022's native mint was not refused like the classic native mint at `init_policy`. | **Fixed** in `5ad0992` |
-| RT-F4 | `set_paused` and `close_policy` with a read-only mutated account failed with a runtime error instead of a relay code. | **Fixed** in `5ad0992` (relay error 102) |
+| RT-F3 | Token-2022's native mint was not refused like the classic native mint at `init_policy`. | **Fixed** in `7769968` |
+| RT-F4 | `set_paused` and `close_policy` with a read-only mutated account failed with a runtime error instead of a relay code. | **Fixed** in `7769968` (relay error 102) |
 | RT-F5 | The relay's CPI account lists must be exactly the pinned ones (the AMM never receives the agent, mandate, owner, policy, relay or AgentAuth). | Held; property pinned by a test |
-| RT-F6 | A test gap. | Listed in the `5ad0992` commit message; `rt.rs` does not describe it further, so its detail is not recorded here |
+| RT-F6 | A test gap. | Listed in the `7769968` commit message; `rt.rs` does not describe it further, so its detail is not recorded here |
 | RT-F7 | One deep-fuzz iteration ended in a runtime error: the fuzzer had corrupted the relay's own stored authority bump. Not reachable through any instruction. | Triaged, no program change; atomic revert pinned by `rt2.rs` (see below) |
 
 **RT-F7 (info), the one abnormal termination of the deep fuzz run, now triaged.** A 300,000-iteration

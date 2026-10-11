@@ -8,10 +8,15 @@ need the founder's knowledge; they cannot be established from the repository alo
 
 ## 1. Pre-existing work (the baseline)
 
-The first commit of this repository, `7677fef` ("import pre-hackathon baseline snapshot", authored
-2026-10-10), imports a snapshot of the team's earlier capstone project. Its commit message states that
-no code was authored in that commit and that everything in it predates the window of 2026-09-14 to
-2026-10-13.
+The baseline is the team's earlier capstone repository, public at
+<https://github.com/Turbin3/accel-AgentAuth> (default branch `main`, head `ae67543`, "devnet: use
+jupiter's real route discriminator", 2026-06-22). This repository's history is that history plus the
+in-window commits on top of it: `ae67543` is the last pre-window commit, and `git log ae67543..HEAD` lists
+everything done in the window (2026-09-14 to 2026-10-13).
+
+The capstone repository has 42 commits, dated 2026-06-14 to 2026-06-22. GitHub's contributor list
+(read 2026-10-12) shows five accounts: DivineUX23 (17 commits), AdemolaSam (9), xavierScript (8),
+VictoryG0D (7) and V1C70RYG0D (1). Those commits are not in-window work and are not the founder's alone.
 
 What the baseline contained (29 files):
 
@@ -31,22 +36,24 @@ Evidence for the dates, from sources other than the commit message:
   hardened build in this repository. (Read-only commands run 2026-10-11.)
 - **Design document.** The `.docx` core properties record `created` and `modified` of
   **2026-06-04T19:05:04Z**.
-- **File dates.** The baseline import commit message says the files are dated 2026-06-22; the `.docx`
-  file in the working tree has a modification time of 2026-06-22.
+- **Commit dates.** `git log ae67543` runs from 2026-06-14 to 2026-06-22; the last pre-window commit is
+  2026-06-22.
 
-Founder to confirm: the original private history of the capstone (earlier commits, repository, or
-course submission) that these files were imported from, who authored the baseline, and whether any of
-it was submitted for a prior event or grant. The git history of this repository does not contain it.
-The git author of every commit in this repository (42 at `f57b8ce`) is the same account.
+Founder to confirm: who the five contributors are and which parts each wrote; whether the capstone was
+submitted to a program, grant or earlier event; whether the other contributors agree to this submission
+building on the shared work, and that no third party has rights or claims on the baseline (rules, section
+9). The baseline README declares the license as MIT but the capstone repository had no `LICENSE` file; the
+first in-window commit (`f9554f1`) adds the MIT `LICENSE` file, matching the declared license. The git
+author of every in-window commit is the same account (Sumit Kumar).
 
 ## 2. In-window work
 
-Everything after `7677fef` is in-window work. At commit `f57b8ce` there are 41 commits after the
+Everything after `ae67543` is in-window work. At commit `233b994` there are 41 commits after the
 baseline, from 2026-10-10 (IST) to 2026-10-11 06:18 (IST). Output of
-`git diff --numstat 7677fef..f57b8ce`, summed by area. Lines are raw added and deleted lines, and
+`git diff --numstat ae67543..233b994`, summed by area. Lines are raw added and deleted lines, and
 include generated and data files (lockfiles, IDL JSON, fixtures, mutation ledgers, transcripts), so
 they overstate hand-written code. Binary files (screenshots, rendered diagrams, `.bin` and `.so` fixtures) count as files with zero lines. Commits
-made after `f57b8ce` (documentation fixes from the clean-clone check) are not included.
+made after `233b994` (documentation fixes from the clean-clone check) are not included.
 
 | Area | Files | Lines added | Lines deleted |
 |---|---:|---:|---:|
@@ -97,8 +104,8 @@ overview images appear under their new path.
 
 ### What changed in the pre-existing core program
 
-The core program was modified in place, not rewritten. In commit `8879732` ("harden the AgentAuth
-program") and `84f1c09` (tests):
+The core program was modified in place, not rewritten. In commit `cc6f1e6` ("harden the AgentAuth
+program") and `326093f` (tests):
 
 - **Preserved:** the `verify` ABI (tag 3, 49 bytes), the 2136-byte account layout and error codes 1 to 18.
 - **Fixed:** pre-funded-PDA griefing in `create_mandate`; `revoke_mandate` is now a real close; one error
@@ -132,13 +139,8 @@ independent audit.
 
 **Founder to confirm wording.** In particular: how the team wants to describe the division of work
 between the human team and the assistant (direction, review, acceptance of each change); whether the
-event's rules require a specific AI-use disclosure; and who the contributors are. The repository history
-shows a single git author account for all commits and does not identify the team.
-
-One further point to be aware of: the baseline import commit `7677fef` carries the same
-`Co-Authored-By` trailer as the others, although its message says no code was authored in it. If that
-trailer should not be on a snapshot import, that is a history-rewrite question for the founder; this
-document does not alter history.
+event's rules require a specific AI-use disclosure; and who the contributors are. All in-window commits
+have a single git author account (Sumit Kumar) and do not identify the team.
 
 ## 4. Third-party code and data
 
@@ -155,8 +157,8 @@ document does not alter history.
 ## 5. Reproducing the numbers on this page
 
 ```sh
-git log --oneline 7677fef..HEAD | wc -l
-git diff --numstat 7677fef..f57b8ce      # per-file added/deleted lines; sum by directory
+git log --oneline ae67543..HEAD | wc -l
+git diff --numstat ae67543..233b994      # per-file added/deleted lines; sum by directory
 solana block-time 471094128 --url devnet # baseline deployment time
 solana program show AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if --url devnet
 unzip -p docs/archive/pre-hackathon/AgentAuthorizationProtocol_Overview.docx docProps/core.xml

@@ -106,7 +106,7 @@ On the live clusters, onboarding rent for one agent (mandate plus policy) is the
 
 ### 2.3 Built program sizes and hashes
 
-Command: `scripts/build-all.sh` (prints sha256, bytes, path); re-checked with `shasum -a 256 target/deploy/*.so`. The sizes match `data/*-metrics.json`, and the hashes match the table in [AUDIT-PREP.md](AUDIT-PREP.md). The core baseline imported before the hackathon window was 29,608 bytes (`core-metrics.json`).
+Command: `scripts/build-all.sh` (prints sha256, bytes, path); re-checked with `shasum -a 256 target/deploy/*.so`. The sizes match `data/*-metrics.json`, and the hashes match the table in [AUDIT-PREP.md](AUDIT-PREP.md). The core baseline from before the hackathon window (`ae67543`) was 29,608 bytes (`core-metrics.json`).
 
 | Program | Bytes | sha256 |
 |---|---|---|
@@ -117,7 +117,7 @@ Command: `scripts/build-all.sh` (prints sha256, bytes, path); re-checked with `s
 | `gated_example.so` | 25,904 | `2086bceb3792bda2ef84c9751a4d9366d235dbb1db70567714c34ab71acb828b` |
 | `evil_token.so` (test only) | 12,384 | `a2bfd0989af287eac1947cc70d0ca3896c4b7dd398a129f227f38155f1f9f28f` |
 
-Test `fe05` asserts the relay is at most 65,536 bytes and contains no std formatting or panic strings; the default build leaves 1,504 bytes of headroom. The hashes depend on the toolchain and source state; a different build environment can produce different bytes. A clean clone of commit `f57b8ce` built with `scripts/build-all.sh` in a different directory (`/private/tmp/aa-cleanclone`, Solana CLI 3.1.8, platform-tools v1.52, same machine) produced byte-identical files: the six sha256 values above matched exactly.
+Test `fe05` asserts the relay is at most 65,536 bytes and contains no std formatting or panic strings; the default build leaves 1,504 bytes of headroom. The hashes depend on the toolchain and source state; a different build environment can produce different bytes. A clean clone of commit `233b994` built with `scripts/build-all.sh` in a different directory (`/private/tmp/aa-cleanclone`, Solana CLI 3.1.8, platform-tools v1.52, same machine) produced byte-identical files: the six sha256 values above matched exactly.
 
 ## 3. Test counts
 
@@ -222,10 +222,10 @@ An attacker-minded relay suite was written independently of the relay's own test
 |---|---|---|---|
 | RT-F1 | low | `per_tx_limit` is per `verify` call: 21 relay transfers fit in one transaction | accepted, documented, pinned by a test; lifetime limit and SPL allowance still bound the loss |
 | RT-F2 | low | revoke then re-create with the same expiry re-binds an unclosed policy | accepted, documented; a fix needs a generation id the locked core layout does not have; the unwind closes the policy |
-| RT-F3 | medium | Token-2022 native mint was not refused at `init_policy` like the classic native mint | fixed in commit `5ad0992` |
-| RT-F4 | low | `set_paused` / `close_policy` with a read-only mutated account failed with a runtime error instead of a relay code | fixed in `5ad0992` (relay error 102) |
+| RT-F3 | medium | Token-2022 native mint was not refused at `init_policy` like the classic native mint | fixed in commit `7769968` |
+| RT-F4 | low | `set_paused` / `close_policy` with a read-only mutated account failed with a runtime error instead of a relay code | fixed in `7769968` (relay error 102) |
 | RT-F5 | none | the relay's CPI account lists must be exactly the pinned ones | held; pinned by a test |
-| RT-F6 | info | a test gap | listed in the `5ad0992` commit message; not otherwise recorded |
+| RT-F6 | info | a test gap | listed in the `7769968` commit message; not otherwise recorded |
 | RT-F7 | info | one abnormal termination in the deep run: the fuzzer overwrote the relay's own stored `authority_bump` | triaged, no program change; all 255 wrong bump values reverted atomically; pinned by 14 tests in `rt2.rs` |
 
 Severity labels here are this document's reading of the SECURITY.md descriptions, not a scored rating. The statement that stands is: no non-Custom failure was reachable through instruction inputs in the tested runs, and no path moved owner funds outside the policy in the recorded runs. That is a statement about tested inputs, not an audit.
@@ -236,4 +236,4 @@ Severity labels here are this document's reading of the SECURITY.md descriptions
 * No real-Raydium swap CU; the swap rows use the mock AMM.
 * No external audit. Mutation and fuzz results are evidence about test sensitivity and tested inputs.
 * The mutation sweeps were not re-run end to end after the last tests were added (core and relay).
-* The mutation, red-team and fuzz harnesses are committed in `security/` (commit `f57b8ce`). A sample of each was re-run from a clean clone (see `security/README.md`, "Verified"); the long sweeps and the 100,000-iteration fuzz run were not repeated.
+* The mutation, red-team and fuzz harnesses are committed in `security/` (commit `233b994`). A sample of each was re-run from a clean clone (see `security/README.md`, "Verified"); the long sweeps and the 100,000-iteration fuzz run were not repeated.

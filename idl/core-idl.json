@@ -3,7 +3,7 @@
   "name": "agent_auth",
   "version": "0.2.0",
   "docs": "Interface of the AgentAuth core program AFTER hardening. LOCKED: the 2136-byte layout and every existing offset, the verify ABI (tag 3, 49 bytes) and error codes 1..18. APPENDED: instructions 5..6 and error codes 19..22, and two header bytes taken from the reserved area (version @79, bump @80). Where this file says \"target\", the implementation must match it; any deviation must be reported and this file updated.",
-  "generatedBy": "baseline interface read from commit 7677fef (design/tools/gen_artifacts.py) + hardening decisions of 2026-10-10; the core-fix work package owns this file and must keep it equal to the implementation",
+  "generatedBy": "baseline interface read from commit ae67543 (design/tools/gen_artifacts.py) + hardening decisions of 2026-10-10; the core-fix work package owns this file and must keep it equal to the implementation",
   "addresses": {
     "devnet": "AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if",
     "mainnet": null
