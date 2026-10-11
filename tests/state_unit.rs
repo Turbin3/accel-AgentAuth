@@ -422,3 +422,35 @@ fn find_permission_compares_every_byte_of_the_key() {
     }
     assert_eq!(m.find_permission(&base), Some(0));
 }
+
+// --- round 2: N-S31 ---------------------------------------------------------------
+
+#[test]
+fn swap_remove_zeroes_every_byte_of_the_vacated_slot() {
+    // mutant N-S31: the tail slot is zeroed one byte short (`..tail + SIZE - 1`),
+    // leaving byte 127 = the last byte of the 8th discriminator. The older
+    // zero-tail test uses one-discriminator slots, so it cannot see that byte.
+    for idx in [0usize, 1, 2] {
+        let mut buf = blank();
+        let mut m = Mandate::from_bytes(&mut buf).unwrap();
+        m.append_permission(&[1; 32], 1, 1, &[[0xAA; 8]; 8])
+            .unwrap();
+        m.append_permission(&[2; 32], 2, 2, &[[0xBB; 8]; 8])
+            .unwrap();
+        m.append_permission(&[3; 32], u64::MAX, u64::MAX, &[[0xFF; 8]; 8])
+            .unwrap();
+        {
+            let mut p = m.permission_mut(2);
+            p.set_spend_total(u64::MAX);
+            p.set_call_count(u32::MAX);
+        }
+        m.swap_remove_permission(idx).unwrap();
+        assert_eq!(m.permissions_len(), 2);
+        let tail = HEADER_SIZE + 2 * PERMISSION_SIZE;
+        assert!(
+            buf[tail..tail + PERMISSION_SIZE].iter().all(|&b| b == 0),
+            "stale bytes in the vacated slot (idx {idx})"
+        );
+        assert!(buf[tail..].iter().all(|&b| b == 0));
+    }
+}
