@@ -695,7 +695,7 @@
     "method": "Test names matched to row ids by prefix (pl_05_*, tr_21_*, core_07_*, ...) and each match verified as `ok` in the log of this gate run; the 9 rows whose tests do not carry the id in their name were mapped by hand."
   },
   "mutation": {
-    "method": "Hand-written source mutants of programs/relay/src applied one at a time to a scratch copy, built with cargo build-sbf and run against the relay suite (tooling is being packaged under security/; the campaign ran outside the repository).",
+    "method": "Hand-written source mutants of programs/relay/src applied one at a time to a scratch copy, built with cargo build-sbf and run against the relay suite (catalogue, runner and per-mutant ledger: security/mutation-relay/; the original campaign ran in scratch copies outside the repository).",
     "total": 257,
     "round1": {
       "killed": 211,

@@ -192,7 +192,7 @@ Every figure is from a command run on 2026-10-11 on this repository at the state
 |---|---|---|
 | core `verify`, slot 1 to slot 16 (8th discriminator, limits set) | 480 to 738 CU | `cargo test --test regression_cu -- --nocapture` |
 | core `verify` failing on an unknown program (scans 16 slots) | 496 CU | same |
-| `create_mandate` fresh / pre-funded | 3,433 up to a worst case of 9,433 to 13,933 / 4,618 CU | same (60 random agent keys per run; the worst case is the bump search for a random key and differed between runs: 9,433, 10,933 in `core-metrics.json`, 13,933 on the 2026-10-11 re-run; pre-funded was 6,118 in `core-metrics.json`) |
+| `create_mandate` fresh / pre-funded | 3,433 up to a worst case of 9,433 to 15,433 / 4,618 to 6,118 CU | same (60 random agent keys per run; the worst case is the bump search for a random key and differed between runs: 9,433, 10,933 in `core-metrics.json`, 13,933 and 15,433 on later re-runs; pre-funded printed 6,118 in `core-metrics.json` and in the clean-clone run, 4,618 in others) |
 | `add_permission`, `update_permission`, `remove_permission`, `set_active` | 243 to 420, 204 to 339, 228 to 338, 124 to 126 CU | same |
 | `revoke_mandate` (stored bump) | 1,802 CU | same (a legacy version 0 mandate needs a bump search: 3,322 in `core-metrics.json`, 9,322 on the re-run) |
 | helper overhead of `agent-auth-cpi` over a bare verify CPI | 162 CU | `cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture` |

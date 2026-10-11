@@ -34,4 +34,4 @@ Format: `{schemaVersion, name, title, description, audience, risk_summary, permi
 
 ## Verification status
 
-All data is unaudited and was checked on 2026-10-10 and 2026-10-11. Anchor discriminators were recomputed from names with `scripts/disc.js`. Items marked `medium` confidence in the earlier verification pass (associated-token-account, memo) have one-sided evidence, see their `notes`. Re-verify before relying on a value in production.
+All data is unaudited and was checked on 2026-10-10 and 2026-10-11. Anchor discriminators were recomputed from names with `packages/registry/scripts/disc.js`. Items marked `medium` confidence in the earlier verification pass (associated-token-account, memo) have one-sided evidence, see their `notes`. Re-verify before relying on a value in production.

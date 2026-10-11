@@ -124,7 +124,7 @@ allow the wrong instruction, so treat it like security code. The full checklist 
    add decode and amount tests for the new program.
 8. Add an honest row to the coverage table in the registry README (confidence level and what was
    not checked).
-9. If the program should be usable through a preset, add or extend a file in `data/presets/`.
+9. If the program should be usable through a preset, add or extend a file in `packages/registry/data/presets/`.
 
 Adding a **hard-enforced action** to the relay is a different, much larger task (it needs a typed
 instruction that derives its own `verify` arguments, a pin model, balance-delta checks, an adversarial

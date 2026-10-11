@@ -16,6 +16,9 @@ All state comes from the chain through the SDK; there is no database.
 ## Run it
 
 ```sh
+# 0. Once, from a fresh clone: dependencies, programs, and the SDK the app imports (dist/ is not committed)
+pnpm install && scripts/build-all.sh && pnpm --filter "@agentauth-sol/demo^..." build
+
 # 1. Local validator + demo environment (optional but needed for the simulator and the e2e tests)
 scripts/localnet.sh start
 eval "$(scripts/localnet.sh env)"                  # AA_RPC_URL, AA_WS_URL, AA_DEMO_DIR

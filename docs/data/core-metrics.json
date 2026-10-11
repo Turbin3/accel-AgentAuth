@@ -81,9 +81,9 @@
       {
         "instruction": "create_mandate (pre-funded PDA)",
         "best": 4618,
-        "worst": 4618,
+        "worst": 6118,
         "ceiling": 25000,
-        "note": "re-measured on the final tree (the gate run recorded 6118 before the later source state; docs/BENCHMARKS.md section 1.1)"
+        "note": "depends on the random agent key used by the test (bump search): 4618 in most runs, 6118 in others, on the same binary (docs/BENCHMARKS.md section 1.1)"
       },
       {
         "instruction": "add_permission (1st slot / 16th slot, 8 discs)",

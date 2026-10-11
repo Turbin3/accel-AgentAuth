@@ -34,7 +34,7 @@ The project has three tiers. They must not be blurred (see also `docs/assets/dia
 | Tier | What it is | What it guarantees | What it does not guarantee |
 |---|---|---|---|
 | 1. The standard (core program `agent_auth`) | An owner-controlled mandate record per (owner, agent) and a `verify` instruction | Only the owner can create, change, pause or close the mandate. `verify` applies `active`, expiry, the program and discriminator allow-list, the per-transaction limit and the lifetime limit to the values it is given, and meters spend. | It cannot see what the caller does afterwards. It trusts the caller-reported program id, 8-byte discriminator and amount. An agent that does not call it, or reports less than it moves, is not stopped. **`verify` alone is advisory.** |
-| 2. The relay (`agent_auth_relay`) | A separate program that is the first integrator of `verify` | For exactly two typed actions it derives program, discriminator and amount itself, pins accounts in an owner-written policy, checks exact balance deltas, and spends only through an SPL delegation that is capped by the Token program. **Hard enforcement exists here:** `transfer` (SPL `TransferChecked` to allow-listed token accounts) and `swap` (one exact-in swap on one pinned pool, output forced into the owner's account, price floor). | Anything that is not `transfer` or the pinned `swap`. MEV protection. A compromised upgrade authority. |
+| 2. The relay (`agent_auth_relay`) | A separate program that is the in-repository reference integrator of `verify` | For exactly two typed actions it derives program, discriminator and amount itself, pins accounts in an owner-written policy, checks exact balance deltas, and spends only through an SPL delegation that is capped by the Token program. **Hard enforcement exists here:** `transfer` (SPL `TransferChecked` to allow-listed token accounts) and `swap` (one exact-in swap on one pinned pool, output forced into the owner's account, price floor). | Anything that is not `transfer` or the pinned `swap`. MEV protection. A compromised upgrade authority. |
 | 3. Third-party integrators (for example `programs/gated-example`) | A program that CPIs `verify` for its own instruction, using `crates/agent-auth-cpi` | It enforces its own gated instruction, if the integrator derived the values from its own instruction data, pinned the AgentAuth program id and bound `mandate.owner`. | Anything the integrator got wrong. The standard cannot check the integrator. |
 
 Everything that depends on an integrator calling `verify` and computing its arguments honestly is
@@ -154,7 +154,7 @@ The design source for this table is the relay specification, section 15 (threat 
 |---|---|---|
 | Agent process gets owner powers through the MCP server | MIT (design) | The `agent` profile holds only the agent key and exposes no owner tool; it refuses to start if `AGENTAUTH_OWNER_KEYPAIR` is set. The `owner` and `observer` profiles hold no key and return unsigned plans. This is a design property of `packages/mcp`; it is not a security boundary against a process that holds both keys |
 | Prompt-injected agent calls a tool with attacker-chosen arguments | **ACC** | The on-chain mandate and relay policy bound the damage. The MCP server does not and cannot prevent prompt injection |
-| Client-side guard bypassed | **ACC** | `@agentauth-sol/guard` is cooperative. Its own tests (`test/bypass.test.ts`, `test/e2e.localnet.test.ts`) show that a holder of the raw key signs without it |
+| Client-side guard bypassed | **ACC** | `@agentauth-sol/guard` is cooperative. Its own tests (`packages/guard/test/bypass.test.ts`, `packages/guard/test/e2e.localnet.test.ts`) show that a holder of the raw key signs without it |
 | Owner signs a malicious plan | ACC | Plans are previewed by the SDK `explain` helpers; a human decision remains |
 | Dashboard or SDK pre-flight disagrees with the chain | ACC | Pre-flight mirrors are conveniences. The chain decides |
 | Supply chain (npm, crates) | OOS | Nothing is published. Lockfiles are committed. No audit of dependencies was performed |
@@ -172,6 +172,32 @@ The design source for this table is the relay specification, section 15 (threat 
 
 ![Blast radius](assets/diagrams/blast-radius.png)
 
+<details><summary>Diagram source (Mermaid)</summary>
+
+```mermaid
+flowchart LR
+  subgraph who["What an attacker controls"]
+    K["Agent key stolen or<br/>prompt-injected agent"]
+    R["Relay bug"]
+    V["Core verify bug"]
+    U["Upgrade authority<br/>of a program"]
+  end
+  subgraph cap["What still bounds the loss"]
+    D["SPL delegated_amount<br/>(enforced by the Token program)"]
+    P["Relay policy pins<br/>recipients, pool, floor price"]
+    M["Mandate limits<br/>per_tx_limit, spend_limit, expiry"]
+  end
+  K -->|"relay transfer / swap only"| M
+  K --> P
+  K --> D
+  R --> D
+  V --> P
+  V --> D
+  U -.->|"NOT bounded: mitigated only by<br/>burned authority or multisig"| X["Residual trust"]
+```
+
+</details>
+
 The claim is a capped blast radius. It is not "the agent can no longer move the money": inside the
 pins and budgets it can.
 
@@ -179,7 +205,7 @@ pins and budgets it can.
 
 | Item | State at time of writing | Consequence |
 |---|---|---|
-| Core program `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if` on devnet | Upgradeable. Upgrade authority `8SRwaR9wr4n7a3tCWMgejAV5DAJnky8NXQTS8qWgsEyC`, a system-owned wallet, not a multisig. `solana program show ... --url devnet` on 2026-10-11 reports last deployed slot 471094128, data length 50,032. | The deployed bytes are the pre-hackathon baseline lineage (29,593 non-zero bytes, sha256 `bd52c6f4...b190`), **not** the hardened build in this repository (36,472 bytes, sha256 `1e459e34...09bc`). The hardened core has not been deployed to devnet. The authority can change the program at any time. |
+| Core program `AKkih5YdT2WZxBi6LcsTQ4FUs7hb4vBZR9WyThHUc2if` on devnet | Upgradeable. Upgrade authority `8SRwaR9wr4n7a3tCWMgejAV5DAJnky8NXQTS8qWgsEyC`, a system-owned wallet, not a multisig. `solana program show ... --url devnet` on 2026-10-11 reports last deployed slot 471094128, data length 50,032. | The deployed bytes are the pre-hackathon baseline lineage (29,593 bytes after trailing zero padding, sha256 `bd52c6f4...b190`), **not** the hardened build in this repository (36,472 bytes, sha256 `1e459e34...09bc`). The hardened core has not been deployed to devnet. The authority can change the program at any time. |
 | Relay `33VpeDjreoanKn8Qa5HLLF247W1ctwgMnixg36yhqkN6` | Not deployed on devnet (`solana program show` reports no account, 2026-10-11) | All relay evidence is LiteSVM and local validator evidence. |
 | Verifiable build | Not published. `solana-verify` 0.5.1 is installed locally; no `verify-from-repo` attestation exists. | The deployed bytes cannot be tied to source by a third party. See [AUDIT-PREP.md](AUDIT-PREP.md). |
 | "Immutable" | Not claimed | May be claimed only after `solana program show` proves the authority is burned. |
@@ -397,7 +423,9 @@ Token-2022). Every test asserts the safe outcome, so a failing test is a finding
 re-entrancy, privilege escalation, Token-2022 account shapes, owner-flow races, close and re-create
 sequences), plus seeded random fuzzing of account lists, account contents and instruction data with a
 ledger check (no lamport or token balance outside the policy may change). The commit message of
-`5ad0992` records about 1.4 million fuzzed transactions across the three token flavours.
+`5ad0992` records about 1.4 million fuzzed transactions across the three token flavours; the preserved
+100,000-iteration release log (`security/redteam-relay/log-fuzz-release-100000-iters.txt`) sums to 1,400,002
+(14 sections of 100,000, plus two abnormal counts).
 
 **What held.** In the runs recorded, no path moved owner funds outside the policy: not by aliasing,
 substitution, a hostile pinned AMM, re-entrancy, forged mandate or policy accounts, or Token-2022
@@ -416,8 +444,8 @@ account shapes. The CPI account lists the relay builds are exactly the pinned on
 | RT-F7 | One deep-fuzz iteration ended in a runtime error: the fuzzer had corrupted the relay's own stored authority bump. Not reachable through any instruction. | Triaged, no program change; atomic revert pinned by `rt2.rs` (see below) |
 
 **RT-F7 (info), the one abnormal termination of the deep fuzz run, now triaged.** A 300,000-iteration
-release-mode run (`RT_ITERS=300000 RT_SEED=424242`, log from 2026-10-11 00:59 IST) ended, after about 1.4
-million fuzzed transactions in total, with one abnormal termination: seed 424243, iteration 145,566, a
+release-mode run (`RT_ITERS=300000 RT_SEED=424242`, log from 2026-10-11 00:59 IST; that log is not preserved, see
+`security/redteam-relay/results-summary.md`) ended with one abnormal termination: seed 424243, iteration 145,566, a
 `swap` where the relay failed with the runtime message "Could not create program address with signer
 seeds: Provided seeds do not result in a valid address" instead of a relay error code. It was replayed
 deterministically (same outcome, same compute units, same log line). Root cause: the fuzzer had overwritten

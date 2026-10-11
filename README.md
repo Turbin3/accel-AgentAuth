@@ -41,7 +41,7 @@ Test totals come from `pnpm -r test` (exit 0) and `source scripts/env.sh; cargo 
 | Tier | What it is | What it guarantees | What it does not |
 |---|---|---|---|
 | **1. The standard** (core program) | mandate record + `verify` | only the owner can change it; `verify` applies active, expiry, program and `disc8` allow-list and the limits to the values it is given, and books them atomically | that the caller reports the truth, or even calls it |
-| **2. The relay** (hard) | `transfer` and one pinned `swap`, built on tier 1 | the relay derives program, `disc8` and amount from the action; accounts are pinned in an immutable policy; exact balance deltas are checked; the SPL delegation is an independent hard cap | arbitrary instructions, other mints than the pinned one, MEV, a malicious AMM upgrade authority |
+| **2. The relay** (hard) | `transfer` and one pinned `swap`, built on tier 1 | the relay derives program, `disc8` and amount from the action; accounts are pinned in a policy that cannot be edited after `init_policy` (change = close and re-init); exact balance deltas are checked; the SPL delegation is an independent hard cap | arbitrary instructions, other mints than the pinned one, MEV, a malicious AMM upgrade authority |
 | **3. A second integrator** (opt-in) | a program that CPIs `verify` for its own instruction (`agent-auth-cpi`, `gated-example`) | that one instruction, if the integrator pins the AgentAuth id, binds `mandate.owner` and derives the values | anything else the integrator does not gate |
 
 Everything that depends on a program calling `verify` is **advisory**. Read [docs/SPEC.md](docs/SPEC.md) section 8 and 9 before relying on it.
@@ -79,14 +79,15 @@ Prerequisites: Rust via rustup (`export PATH="$HOME/.cargo/bin:$PATH"`, Homebrew
 ```sh
 pnpm install
 scripts/build-all.sh                                   # all programs -> target/deploy, target/deploy-localnet
+pnpm --filter "@agentauth-sol/demo^..." --filter "@agentauth-sol/cli..." build   # SDK and CLI (dist/ is not committed)
 scripts/localnet.sh start                              # fresh validator, four programs preloaded
 eval "$(scripts/localnet.sh env)"                      # AA_RPC_URL, AA_WS_URL, AA_DEMO_DIR
 pnpm --filter @agentauth-sol/demo bootstrap            # keys, mints, token accounts, mock pool
 pnpm --filter @agentauth-sol/demo scenario --fast      # the scripted beat sequence; exit 0 = every outcome as expected
-pnpm --filter @agentauth-sol/cli build                 # then the CLI tour below
+                                                       # then the CLI tour below
 ```
 
-Every step except `pnpm install` was run on 2026-10-11 (dependencies were already installed on that machine). `scripts/build-all.sh` took 88 s (warm cargo cache), `localnet.sh start` 41 s, `bootstrap` 36 s and `scenario --fast` 33 s. Expected end of the scenario output:
+Every step was run on 2026-10-11 in a fresh `git clone` of the committed state (no `target/`, no `dist/`, no `keys/`; pnpm store and cargo registry caches warm). Wall times on one machine: `pnpm install` 4 s, `scripts/build-all.sh` 7 s, the SDK and CLI build 3 s, `localnet.sh start` 19 s, `bootstrap` 12 s, `scenario --fast` 19 s. A first run on a machine without cached dependencies takes longer. Expected end of the scenario output:
 
 ```
   phase             attempted  blocked  allowed  funds lost to the attacker
@@ -144,7 +145,7 @@ Copied from the run of `scenario --fast` and from [docs/DEMO.md](docs/DEMO.md), 
 | 7.2 | swap at a price pushed by a scripted searcher | BLOCKED `mock_amm 7001 ExceededSlippage` |
 | 8.1, 8.3 | one-transaction unwind (377 B), then the agent pays again | unwind succeeds; payment BLOCKED `relay 101 InvalidPolicy` |
 
-Final scoreboard of that run: mandate agent attempted 22, blocked 17, allowed 5, funds lost to the attacker 0. The agent can still pay its pinned payee up to the budget: that is the blast radius, not a bug. The `attacks` runner (54 scripted attacks with balance and delegation checks after each) takes about 3 minutes; its results are in [docs/DEMO.md](docs/DEMO.md).
+Final scoreboard of that run: mandate agent attempted 22, blocked 17, allowed 5, funds lost to the attacker 0. The agent can still pay its pinned payee up to the budget: that is the blast radius, not a bug. The `attacks` runner (54 scripted attacks with balance and delegation checks after each) took between 47 s and 2 min 2 s in the recorded runs; its results are in [docs/DEMO.md](docs/DEMO.md).
 
 ## The dashboard ("Mandate Studio")
 
@@ -206,7 +207,7 @@ Only numbers produced by a command on 2026-10-11 (LiteSVM unless stated, not mai
 | mutation testing | core 203/206 killed, 3 proven equivalent; relay 251/251 non-equivalent killed after witness tests (211/251 = 84.1% against the original suite; 6 proven equivalent; each kill verified individually, full sweep not re-run) | `security/mutation-*/run.py` |
 | relay red team | 1.4 million fuzzed transactions over 3 Token flavours (100,000 iterations x 14 sections), 2 fixes, no fund movement outside the policy in the recorded runs | `security/redteam-relay/` (not in the normal test path) |
 
-The old README's "estimated 1,500 to 2,500 CU" for `verify` was wrong; the figure above replaces it. The old Pinocchio-versus-Anchor CU comparison was never measured and has been removed.
+The old README's "estimated 1,500 to 2,500 CU" for `verify` was an estimate, not a measurement: the instruction itself measures 480 to 738 CU. A whole `verify` call from another program, including the CPI, measured 1,576 CU in the `agent-auth-cpi` end-to-end test (`cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture`). The old Pinocchio-versus-Anchor CU comparison was never measured and has been removed.
 
 ## Repository map
 

@@ -62,6 +62,8 @@ if ((await client.fetchMandate(mandate)) === null) {
     ],
     recipients: [env.tokenAccounts.recipientDusd],
     swap: demoSwapConfig(env),
+    // The 50 DUSD SPL allowance is deliberately larger than the 10 DUSD budget (AgentAuth is the binding cap).
+    allowOverride: true,
   })
   for (const step of plan.steps) await chain.send(step.instructions, owner)
   process.stdout.write(

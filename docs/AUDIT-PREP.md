@@ -6,8 +6,7 @@ questions we would most like answered. It does not describe an audit that has ha
 audit has been done**. See [SECURITY.md](SECURITY.md) for the threat model and the internal review
 history.
 
-Everything below was measured on 2026-10-11 at commit `e38124d` (the Rust sources had no uncommitted
-changes), on macOS with Solana CLI 3.1.8 (platform-tools v1.52, rustc 1.89.0).
+Everything below was measured on 2026-10-11, on macOS with Solana CLI 3.1.8 (platform-tools v1.52, rustc 1.89.0).
 
 ## 1. Scope
 
@@ -133,7 +132,8 @@ fixtures, then prints the hash of each.
 
 Built on 2026-10-11 from commit `e38124d`. The same hashes came out of three independent target
 directories on the same machine (the repository's `target/`, and two private ones), so the build is
-deterministic on this machine and toolchain. **It has not been compared across machines.**
+deterministic on this machine and toolchain; a fresh clone of `f57b8ce` built in a fourth directory gave the same
+hashes. **It has not been compared across machines.**
 
 | Artifact | Bytes | sha256 |
 |---|---:|---|
@@ -144,8 +144,8 @@ deterministic on this machine and toolchain. **It has not been compared across m
 | `deploy/gated_example.so` | 25,904 | `2086bceb3792bda2ef84c9751a4d9366d235dbb1db70567714c34ab71acb828b` |
 | `deploy/evil_token.so` (test only) | 12,384 | `a2bfd0989af287eac1947cc70d0ca3896c4b7dd398a129f227f38155f1f9f28f` |
 
-For comparison, the program deployed on devnet at `AKkih5Y...` is **not** this build: its non-zero
-bytes (29,593) have sha256 `bd52c6f45546fc7a41cc17368d1b18cb512c5e3a3b1ca6c6996e5412ee61b190`, and
+For comparison, the program deployed on devnet at `AKkih5Y...` is **not** this build: its bytes
+with the trailing zero padding removed (29,593) have sha256 `bd52c6f45546fc7a41cc17368d1b18cb512c5e3a3b1ca6c6996e5412ee61b190`, and
 the baseline build was 29,608 bytes with sha256
 `68ce438b080eac059f3bbe13304d0de644a5a66fbbd779d3cfeb8d5dc73856c0` (the on-chain data carries zero
 padding and the review found it matched the baseline build over the first 29,608 bytes).
@@ -191,14 +191,16 @@ A missing `.so` is a hard failure; `AGENT_AUTH_ALLOW_SKIP=1` opts out and proves
 
 ### 5.1 Rust test inventory
 
-`cargo test --workspace --no-fail-fast`, 2026-10-11, tree at `e38124d`: **708 passed, 0 failed, 10
-ignored**.
+`cargo test --workspace --no-fail-fast`, 2026-10-11, in a clean clone of commit `f57b8ce`: **778 passed,
+0 failed, 10 ignored** (47 result lines). The on-chain program sources (`src/`, `programs/*/src`, `crates/`) are
+byte-identical between `e38124d`, on which the hashes in section 4.3 were first taken, and `f57b8ce`; the
+difference in test counts is new tests (mutation-survivor and witness tests, the RT-F7 pins).
 
 | Crate | Passed | Ignored | Contents |
 |---|---:|---:|---|
-| `agent-auth` (core) | 132 | 8 | 11 unit tests; `error_matrix` 8 (290-row matrix); `regression_lifecycle` 32; `regression_verify` 13; `regression_cu` 4; `poc_regressions` 19; `state_unit` 20; `state_model` 2; `model_properties` 3 (differential against a model); `fuzz_program` 3 (2,400-transaction fuzz with structural invariants); `full_lifecycle` 3; `idl_conformance` 5; `layout` 1 and `layout_v1` 3; `source_hygiene` 5. Ignored: 6 devnet tests (need a funded devnet wallet) and 2 golden-file writers |
+| `agent-auth` (core) | 141 | 8 | 11 unit tests; `error_matrix` 8 (290-row matrix); `regression_lifecycle` 32; `regression_verify` 13; `regression_cu` 4; `poc_regressions` 19; `state_unit` 21; `mutation_survivors` 8; `state_model` 2; `model_properties` 3 (differential against a model); `fuzz_program` 3 (2,400-transaction fuzz with structural invariants); `full_lifecycle` 3; `idl_conformance` 5; `layout` 1 and `layout_v1` 3; `source_hygiene` 5. Ignored: 6 devnet tests (need a funded devnet wallet) and 2 golden-file writers |
 | `agent-auth-cpi` | 27 | 0 | 9 unit, 14 end-to-end tests against two fixture programs, 4 doc tests |
-| `agent-auth-relay` | 468 | 2 | 40 unit; integration suites `tr` 67, `sw` 58, `pl` 38, `dl` 40, `re` 39, `fe` 27, `rt` 22, `ar` 16, `uw` 16, `t22` 12, `conformance` 11, `smoke` 10, `inv` 8, and a 64-test harness self-check. Ignored: 2 real-Raydium swap tests (need a dumped devnet binary) |
+| `agent-auth-relay` | 529 | 2 | 40 unit; integration suites `tr` 67, `sw` 58, `witness` 45, `pl` 38, `dl` 40, `re` 39, `fe` 29, `rt` 22, `ar` 16, `uw` 16, `rt2` 14, `t22` 12, `conformance` 11, `smoke` 10, `inv` 8, and a 64-test harness self-check. Ignored: 2 real-Raydium swap tests (need a dumped devnet binary) |
 | `gated-example` | 21 | 0 | Integration tests through `agent-auth-cpi` |
 | `mock-amm` | 59 | 0 | 19 unit, 40 mode tests (the 13 adversarial modes) |
 | `evil-token` | 1 | 0 | |
@@ -234,7 +236,7 @@ values depend on the PDA bump where a search occurs):
 |---|---:|---:|
 | `verify` (slot 1 / slot 16, 8th discriminator, both limits) | 480 | 738 |
 | `create_mandate` (fresh, 60 random agents) | 3,433 | 15,433 |
-| `create_mandate` (pre-funded PDA) | 4,618 | 4,618 |
+| `create_mandate` (pre-funded PDA) | 4,618 | 6,118 (depends on the random key; both seen on one binary) |
 | `add_permission` | 243 | 420 |
 | `update_permission` | 204 | 339 |
 | `remove_permission` | 228 | 338 |

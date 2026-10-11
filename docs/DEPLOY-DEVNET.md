@@ -16,7 +16,7 @@ The on-chain core program's first 36,472 bytes hash to `957603806012...c358aa`, 
 ## 0. Before anything
 
 1. Build from a clean tree: `export PATH="$HOME/.cargo/bin:$PATH"; scripts/build-all.sh`. It prints the sha256 and size of every `.so`. On 2026-10-11 (this tree): `agent_auth.so` 36,472 B `1e459e34...09bc`; `agent_auth_relay.so` 64,032 B `ed6b884c...ea4f`; `mock_amm.so` 42,600 B; `gated_example.so` 25,904 B. The localnet relay (`deploy-localnet/agent_auth_relay.so`, 64,104 B) is a different file.
-2. **Back up the program keypairs** `keys/agent_auth_relay-keypair.json`, `keys/mock_amm-keypair.json`, `keys/gated_example-keypair.json` (they are gitignored). They define the program ids. The keypair file is needed only for the first deploy of an id, but losing it loses the ability to ever redeploy that id if the program is closed, and the ids are baked into the SDK, the CLI, the IDL and the relay. Keep copies offline. Never commit or paste them.
+2. **Back up the program keypairs** `keys/agent_auth_relay-keypair.json`, `keys/mock_amm-keypair.json`, `keys/gated_example-keypair.json` (they are gitignored, so a fresh clone has none and the dry run prints a WARN for each missing keypair). They define the program ids. The keypair file is needed only for the first deploy of an id, but losing it loses the ability to ever redeploy that id if the program is closed, and the ids are baked into the SDK, the CLI, the IDL and the relay. Keep copies offline. Never commit or paste them.
 3. The core program has **no keypair in `keys/`**. It already exists on devnet and is upgraded by id; the signer you need is its upgrade authority.
 4. Fund the payer on devnet. `solana rent` (run by the dry run) gives the rent-exempt minimum for each programdata account: about 0.186 SOL for the core, 0.326 SOL for the relay, 0.217 SOL for the mock AMM and 0.132 SOL for gated-example (2026-10-11). A deploy writes through a temporary buffer account, so the peak need is roughly twice the figure for a first deploy; the buffer's rent is refunded. Devnet faucet limits are small and rate limited (check the current limits; use the web faucet or a funded wallet if `solana airdrop` is refused).
 5. Use a dedicated devnet RPC for the real run and for any recording; the public endpoint rate limits.
@@ -53,11 +53,11 @@ WARN: core: no --upgrade-authority given; the payer will be tried as the authori
 DRY RUN complete. Nothing was sent, no key was read or printed.
 ```
 
-The guard rails were also exercised: `--burn-authority` without `--execute` is refused; `--execute` without a terminal is refused ("Nothing was sent"); a mainnet RPC is refused. I did not run `--execute`.
+The guard rails were also exercised: `--burn-authority` without `--execute` is refused; `--execute` without a terminal is refused ("Nothing was sent"); a mainnet RPC is refused. `--execute` was not run.
 
 ## 2. Upgrading the existing core program
 
-The upgrade needs the **current upgrade-authority keypair**. The authority observed by read-only RPC is `8SRwaR9wr4n7a3tCWMgejAV5DAJnky8NXQTS8qWgsEyC`; the founder must hold the key for it (we do not know whether the team does; see the open questions in the hand-off). If it is lost the program cannot be upgraded and the hardened core can only go to a new program id, which would change the id baked into every client.
+The upgrade needs the **current upgrade-authority keypair**. The authority observed by read-only RPC is `8SRwaR9wr4n7a3tCWMgejAV5DAJnky8NXQTS8qWgsEyC`; the founder must hold the key for it (whether the team holds it is not known to this documentation). If it is lost the program cannot be upgraded and the hardened core can only go to a new program id, which would change the id baked into every client.
 
 ```sh
 # 1. keep the CURRENT on-chain binary so you can roll back while you still hold the authority
@@ -90,7 +90,7 @@ scripts/devnet-deploy.sh --programs relay --payer /path/to/payer.json --execute
 ```
 
 * The relay deploys from `target/deploy/agent_auth_relay.so`, built with the **default features** (`devnet`): its AMM allowlist is the Raydium CPMM **devnet** program `DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb` only. Whether a usable Raydium CPMM pool exists on devnet, and the CU of a swap against the real binary, have not been checked: the relay's tests and the demo swap use the mock AMM. Do not describe the swap as working against Raydium until you have run it.
-* **The `test-amm` build (`target/deploy-localnet/agent_auth_relay.so`) must not be deployed to the relay id.** It additionally allowlists the mock AMM, which has adversarial test modes; an owner (or a careless UI) could then pin a hostile pool in a policy, and the statement "the relay only talks to a real AMM" would no longer hold. The trade-off: a devnet demo of the swap beat needs the mock AMM, which needs that build. If you want it, do it as a clearly labelled demo on its **own** program id: generate a new keypair, deploy the test-amm build to it (the relay uses the runtime program id for its PDAs, so the same binary works at any id), deploy `mock_amm`, and point the SDK at it with `createClient({ cluster: 'devnet', programIds: { relay: <demo relay id>, mockAmm: ... } })`. The `apps/demo` scripts were not written for such overrides and I have not run them that way. `devnet-deploy.sh` deliberately only handles the production relay build and refuses the test-amm binary.
+* **The `test-amm` build (`target/deploy-localnet/agent_auth_relay.so`) must not be deployed to the relay id.** It additionally allowlists the mock AMM, which has adversarial test modes; an owner (or a careless UI) could then pin a hostile pool in a policy, and the statement "the relay only talks to a real AMM" would no longer hold. The trade-off: a devnet demo of the swap beat needs the mock AMM, which needs that build. If you want it, do it as a clearly labelled demo on its **own** program id: generate a new keypair, deploy the test-amm build to it (the relay uses the runtime program id for its PDAs, so the same binary works at any id), deploy `mock_amm`, and point the SDK at it with `createClient({ cluster: 'devnet', programIds: { relay: <demo relay id>, mockAmm: ... } })`. The `apps/demo` scripts were not written for such overrides and have not been run that way. `devnet-deploy.sh` deliberately only handles the production relay build and refuses the test-amm binary.
 * `mock_amm` and `gated_example` are optional and for demos only (`--programs relay,mock_amm,gated_example`). `gated_example` needs its one-time `init` instruction (tag 0, accounts `[authority S+W, config W, system]`) to record whose mandates it honours; the demo `bootstrap` does this on localnet.
 * Upgrade authority: a first deploy sets it to the payer (or to `--upgrade-authority`). See section 6 before deciding what to do with it.
 
@@ -103,7 +103,7 @@ Be clear about what works. The demo tooling (`apps/demo`) is a localnet tool:
 * `bootstrap` creates its own mints (DUSD, DOUT), a mock pool, and airdrops up to 100 SOL to each cast member. The devnet faucet will not give that, and the mock-AMM pool needs the test-amm relay (section 3). The runners also refuse a non-loopback RPC unless `AA_ALLOW_REMOTE=1`.
 * `contrast` and `scenario` assert a swap on the mock pool. Against the production relay (Raydium-only allowlist) the swap beats fail with relay 103, by design. These are not expected to pass on devnet as they are.
 
-What I would do for a devnet recording, without having run it:
+A suggested sequence for a devnet recording (not run):
 
 1. Cast: your own funded owner, a fresh agent keypair (fee SOL only), a recipient token account.
 2. Mint: the devnet USDC mint `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` (read-only `solana account` shows it exists and is owned by the Token program; it is in the registry's mint table; get test USDC from Circle's devnet faucet), or create your own mint.

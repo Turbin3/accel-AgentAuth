@@ -3,7 +3,9 @@
 AgentAuth is an unaudited devnet prototype. Everything here targets a **local** validator; nothing deploys or spends real funds.
 
 ```sh
+pnpm install
 scripts/build-all.sh                              # every program -> target/deploy, target/deploy-localnet
+pnpm --filter "@agentauth-sol/demo^..." build       # the SDK the demo imports (dist/ is not committed)
 scripts/localnet.sh start                         # fresh validator on :8899/:8900/:9900, 4 programs preloaded
 pnpm --filter @agentauth-sol/demo bootstrap       # keys, SOL, mints, token accounts, mock pool -> .demo/state.json
 pnpm --filter @agentauth-sol/demo smoke --relay   # create_mandate + verify round trip, relay transfer + swap, unwind

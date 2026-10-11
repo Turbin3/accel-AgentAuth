@@ -10,7 +10,9 @@ Real, unedited transcripts (ANSI colour and blank lines stripped, nothing else r
 
 ```sh
 export PATH="$HOME/.cargo/bin:$PATH"
+pnpm install
 scripts/build-all.sh                              # once: programs -> target/deploy, target/deploy-localnet
+pnpm --filter "@agentauth-sol/demo^..." build       # once: the SDK the runners import (dist/ is not committed)
 scripts/localnet.sh start                         # AA_LOCALNET_INSTANCE=<0-9> for a parallel validator
 eval "$(scripts/localnet.sh env)"                 # AA_RPC_URL, AA_WS_URL, AA_DEMO_DIR
 pnpm --filter @agentauth-sol/demo bootstrap

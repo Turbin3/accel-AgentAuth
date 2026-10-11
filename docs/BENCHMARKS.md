@@ -29,8 +29,8 @@ Source: `tests/regression_cu.rs::compute_units_per_instruction`. The "ceiling" c
 |---|---|---|---|---|
 | `verify` | 480 | 738 | 1200 | permission in slot 1 / slot 16, 8th discriminator, limits set, books the spend |
 | `verify` (failing) | 496 | 496 | 1200 | unknown program, scans all 16 slots |
-| `create_mandate` | 3433 | 10933 | 25000 | fresh PDA, 60 random agents (the spread is `find_program_address` bump search) |
-| `create_mandate` (pre-funded PDA) | 4618 | 4618 | 25000 | someone sent lamports to the PDA first |
+| `create_mandate` | 3433 | 9433 to 15433 (varies per run) | 25000 | fresh PDA, 60 random agents (the spread is `find_program_address` bump search) |
+| `create_mandate` (pre-funded PDA) | 4618 | 4618 or 6118 (one random key per run) | 25000 | someone sent lamports to the PDA first |
 | `add_permission` | 243 | 420 | 1200 | 1st slot / 16th slot, 8 discriminators |
 | `update_permission` | 204 | 339 | 1000 | slot 1 / slot 16 |
 | `remove_permission` | 228 | 338 | 1000 | last of 16 / first of 15 |
@@ -38,7 +38,7 @@ Source: `tests/regression_cu.rs::compute_units_per_instruction`. The "ceiling" c
 | `revoke_mandate` | 1802 | 1802 | 3000 | 12 random agents |
 | `revoke_mandate` (legacy v0 mandate) | 3322 | 3322 | 20000 | account from the pre-hardening binary, bump search |
 
-Difference to flag: `data/core-metrics.json` records the pre-funded `create_mandate` row as 6118 CU; the re-run on the final tree printed 4618 CU. All other rows are identical between the gate file and the re-run. The table above uses the re-run. The old README's "estimated 1,500 to 2,500 CU" for `verify` was an estimate and was wrong; the measured range is 480 to 738 CU.
+The two `create_mandate` rows depend on the random agent keys the test generates (the on-chain `find_program_address` bump search costs about 1,500 CU per extra candidate bump), so they differ between runs of the same binary: the worst case of the fresh row was 9,433, 10,933, 12,433, 13,933 and 15,433 across the runs recorded in the gate file, earlier re-runs and the clean-clone re-run of 2026-10-11, and the pre-funded row printed 4,618 in most runs and 6,118 in others. The ceilings (25,000) hold in all of them. All other rows were identical between the gate file, the re-runs and the clean-clone run. The old README's "estimated 1,500 to 2,500 CU" for `verify` was an estimate, not a measurement; the instruction measures 480 to 738 CU (a whole call from another program, CPI included, measured 1,576 CU, section 1.3).
 
 ### 1.2 Relay (`agent_auth_relay`)
 
@@ -50,7 +50,7 @@ Source: `programs/relay/tests/fe.rs` (`fe02_*`), re-run, identical to `data/rela
 | `swap` (pinned pool, mock AMM) | 24,881 | 12,162 | 15,445 |
 | `transfer` + `swap` in one transaction | 35,530 | 16,670 | 21,605 |
 | unwind (2 Token `Revoke` + `revoke_mandate` + `close_policy`) | 7,718 | 2,582 | not measured |
-| `init_policy` (swap enabled) | 8,476 to 15,976 (12 runs, median about 11,476); one re-run printed 14,476 | 8,476 to 14,476 (median about 9,976); re-run printed 8,476 | 8,492 to 15,992 (median about 11,492); re-run printed 8,492 |
+| `init_policy` (swap enabled) | 8,476 to 15,976 (12 runs, median about 11,476); re-runs printed 8,476 and 14,476 | 8,476 to 14,476 (median about 9,976); re-runs printed 8,476 and 14,476 | 8,492 to 15,992 (median about 11,492); re-runs printed 8,492 |
 
 Notes (all from `relay-metrics.json`, `compute_units.notes`, and the re-run):
 
@@ -63,7 +63,7 @@ Notes (all from `relay-metrics.json`, `compute_units.notes`, and the re-run):
 
 ### 1.3 Integrator crate
 
-`agent-auth-cpi` adds 162 CU over a bare `verify` CPI. Command: `cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture`. This figure was produced by the earlier README run on 2026-10-11 and was not re-run for this document.
+`agent-auth-cpi` adds 162 CU over a bare `verify` CPI. Command: `cargo test -p agent-auth-cpi --test e2e cu_overhead -- --nocapture`. Re-run in a clean clone on 2026-10-11: a System transfer alone 1,552 CU; transfer plus a raw `verify` CPI 3,128 CU (the `verify` call, CPI included, costs 1,576 CU); transfer plus the crate's helper 3,290 CU (1,738 CU); overhead 162 CU. The instruction itself is 480 to 738 CU (section 1.1); the rest of the 1,576 CU is the CPI.
 
 ## 2. Transaction size, rent, program size
 
@@ -117,7 +117,7 @@ Command: `scripts/build-all.sh` (prints sha256, bytes, path); re-checked with `s
 | `gated_example.so` | 25,904 | `2086bceb3792bda2ef84c9751a4d9366d235dbb1db70567714c34ab71acb828b` |
 | `evil_token.so` (test only) | 12,384 | `a2bfd0989af287eac1947cc70d0ca3896c4b7dd398a129f227f38155f1f9f28f` |
 
-Test `fe05` asserts the relay is at most 65,536 bytes and contains no std formatting or panic strings; the default build leaves 1,504 bytes of headroom. The hashes depend on the toolchain and source state; a different build environment can produce different bytes.
+Test `fe05` asserts the relay is at most 65,536 bytes and contains no std formatting or panic strings; the default build leaves 1,504 bytes of headroom. The hashes depend on the toolchain and source state; a different build environment can produce different bytes. A clean clone of commit `f57b8ce` built with `scripts/build-all.sh` in a different directory (`/private/tmp/aa-cleanclone`, Solana CLI 3.1.8, platform-tools v1.52, same machine) produced byte-identical files: the six sha256 values above matched exactly.
 
 ## 3. Test counts
 
@@ -154,7 +154,7 @@ Command (re-run): `pnpm -r test`, exit 0.
 
 ### 3.3 Scripted demo runners
 
-These need a local validator (see the README quickstart) and were not re-run for this document. Figures are from [DEMO.md](DEMO.md) and the README run of 2026-10-11: `scenario` passed with 34 transactions (about 33 s with `--fast`); `attacks` runs 54 scripted attacks (about 3 minutes). The attacker is a script.
+These need a local validator (see the README quickstart) and were re-run (`contrast`, `scenario --fast`, `attacks`: all exit 0) in a clean clone on 2026-10-11. Figures are from [DEMO.md](DEMO.md) and the README runs of 2026-10-11: `scenario` passed with 34 transactions (19 s to 33 s with `--fast`); `attacks` runs 54 scripted attacks (47 s to 2 min 2 s in the recorded runs; PASSED, 70 transactions in the clean-clone run). The attacker is a script.
 
 ### 3.4 Property and fuzz tests that run in the normal suite
 
@@ -214,7 +214,7 @@ Relay red-team mutant set: 15 hand-written mutants (`results-redteam15.csv`), 14
 
 An attacker-minded relay suite was written independently of the relay's own tests and run against the compiled `.so` files in LiteSVM, over classic spl-token, p-token and Token-2022. Files: `security/redteam-relay/` (`redteam_attacks.rs`, `redteam_attacks2.rs`, `redteam_fuzz.rs`, `redteam_util/`). Every assertion states the safe outcome; a failing assertion is a finding. The fuzzers check a ledger: no lamport or token balance outside the policy may change.
 
-**Fuzz size.** The release-mode run is `RT_ITERS=100000` per section (log `output-fuzz-release-100000.log` in the build working directory): 14 sections (five fuzz families FZ-01 to FZ-05 across the three Token flavours, with FZ-05 run on two flavours), 100,000 iterations each, so **1,400,000 fuzzed transactions in that run**. A summed histogram of the log gives 1,400,002; the two extra counts are in the `internal-corruption-abnormal` bucket below. This is the "about 1.4 million" quoted in [SECURITY.md](SECURITY.md) section 9. Default sizes when `RT_ITERS` is unset are 1,500 to 4,000 per section (`redteam_fuzz.rs`). The suite lives in `security/`, outside the normal `cargo test` path, so these 1.4 million are **not** reproduced by `cargo test --workspace`; committing the harness into the test tree is an open item.
+**Fuzz size.** The release-mode run is `RT_ITERS=100000` per section (preserved log: `security/redteam-relay/log-fuzz-release-100000-iters.txt`): 14 sections (five fuzz families FZ-01 to FZ-05 across the three Token flavours, with FZ-05 run on two flavours), 100,000 iterations each, so **1,400,000 fuzzed transactions in that run**. A summed histogram of the log gives 1,400,002; the two extra counts are in the `internal-corruption-abnormal` bucket below. This is the "about 1.4 million" quoted in [SECURITY.md](SECURITY.md) section 9. Default sizes when `RT_ITERS` is unset are 1,500 to 4,000 per section (`redteam_fuzz.rs`). The suite is committed under `security/redteam-relay/` but deliberately outside the normal `cargo test` path (a default test run must stay fast), so these 1.4 million are **not** reproduced by `cargo test --workspace`; `security/redteam-relay/run.sh` reproduces the smoke size (`RT_ITERS=2000`) and `run.sh deep` the long run.
 
 **Findings** (from [SECURITY.md](SECURITY.md) section 9):
 
@@ -236,4 +236,4 @@ Severity labels here are this document's reading of the SECURITY.md descriptions
 * No real-Raydium swap CU; the swap rows use the mock AMM.
 * No external audit. Mutation and fuzz results are evidence about test sensitivity and tested inputs.
 * The mutation sweeps were not re-run end to end after the last tests were added (core and relay).
-* The mutation, red-team and fuzz harnesses are in `security/`, which was untracked at the time of writing; the claim is reproducible only if that directory is committed.
+* The mutation, red-team and fuzz harnesses are committed in `security/` (commit `f57b8ce`). A sample of each was re-run from a clean clone (see `security/README.md`, "Verified"); the long sweeps and the 100,000-iteration fuzz run were not repeated.

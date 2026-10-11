@@ -6,6 +6,8 @@ Local demo environment and the scripted, narrated demo scenarios for AgentAuth. 
 
 ```sh
 export PATH="$HOME/.cargo/bin:$PATH"
+pnpm install && scripts/build-all.sh              # once: dependencies and the programs
+pnpm --filter "@agentauth-sol/demo^..." build       # once: the SDK the runners import (dist/ is not committed)
 scripts/localnet.sh start                         # fresh validator (AA_LOCALNET_INSTANCE=<0-9> for a parallel one)
 eval "$(scripts/localnet.sh env)"                 # AA_RPC_URL, AA_WS_URL, AA_DEMO_DIR
 pnpm --filter @agentauth-sol/demo bootstrap       # keys, mints, token accounts, mock pool -> .demo/

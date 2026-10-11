@@ -21,7 +21,7 @@ AgentAuth itself is an unaudited devnet prototype; see [SECURITY.md](SECURITY.md
   up to 16 target programs, up to 8 eight-byte discriminators per program, and a per-transaction and a
   lifetime spend limit per program. A `verify` instruction any program can call by CPI. `verify`
   trusts caller-reported values, so on its own it is **advisory**.
-- **Relay (hard enforcement for two actions).** A separate program that is the first integrator of
+- **Relay (hard enforcement for two actions).** A separate program that is the in-repository reference integrator of
   `verify`. For SPL `TransferChecked` to allow-listed token accounts and for one pinned single-pool
   swap it derives the values itself and moves funds as the SPL delegate of the owner's own token account.
   Assets stay in the owner's accounts; the Token program's `delegated_amount` is the final cap.
@@ -37,14 +37,14 @@ delegated signer can act without passing the check.
 |---|---|---|---|---|---|---|
 | **AgentAuth core** (this repo) | None: mandate is a record | On-chain, only if the target or agent calls `verify` | Yes: 8-byte discriminator allow-list per program (caller-reported) | Yes: CPI-callable `verify` | **Yes** (advisory) | Unaudited devnet prototype |
 | **AgentAuth relay** (this repo) | None: assets stay in the owner's accounts; the relay's PDA is the SPL delegate | On-chain, relay derives and enforces: `transfer`, one pinned `swap` | Two typed actions only | Relay is an integrator, not a hook | No, for those two actions; bounded by `delegated_amount` | Unaudited, LiteSVM and local validator only |
-| [Squads v4 SpendingLimit](https://github.com/Squads-Protocol/v4/blob/af94153ff77a28b6effe46b9c94baaa93742b48c/programs/squads_multisig_program/src/state/spending_limit.rs) | Vault PDA | On-chain (`spending_limit_use`) | No: mint, amount, period, members, destinations | No | No | Immutable since 2024-11-20 ([source](https://docs.squads.so/main/basics/security)); ~157.9k multisigs, ~35.5k spending limits; 4 audit firms and formal verification (per the audit) |
+| [Squads v4 SpendingLimit](https://github.com/Squads-Protocol/v4/blob/af94153ff77a28b6effe46b9c94baaa93742b48c/programs/squads_multisig_program/src/state/spending_limit.rs) | Vault PDA | On-chain (`spending_limit_use`) | No: mint, amount, period, members, destinations | No | No | Immutable since November 2024 ([source](https://docs.squads.so/main/basics/security)); ~157.9k multisigs, ~35.5k spending limits; 4 audit firms and formal verification (per the audit) |
 | [Squads Smart Account Program, ProgramInteractionPolicy](https://github.com/Squads-Protocol/smart-account-program/blob/80bf1f7ad28fd1176c364879776982730b8e9c80/programs/squads_smart_account_program/src/state/policies/implementations/program_interaction.rs) | Smart-account vault PDA (assets move in) | On-chain, atomic with execution; pre/post hooks | **Yes**: program id, account and data constraints (byte-slice values documented "for discriminators"), deny-by-default once constraints are non-empty | Partial: hooks call a configured program; signers must go through Squads | No | Mainnet [`SMRTzf...`](https://explorer.solana.com/address/SMRTzfY6DfH5ik3TKiyLFfXexV8uSG3d2UksSCYdunG), redeployed 2026-08-31; 23,437 policy accounts, 19,432 with at least one instruction constraint (own on-chain decode); no public audit of the policy module found |
 | [Swig](https://github.com/anagrambuild/swig-wallet) | Wallet PDA (assets must move in) | On-chain execution engine (parses nested instructions, CPIs, checks balance deltas) | No discriminator action: program-level scopes plus `ProgramScope` (program, account, numeric byte range) | No | No | Mainnet; Accretion (2025) and Halborn (2026) audits; AGPL-3.0 |
 | [Solana Subscriptions & Allowances](https://github.com/solana-foundation/subscriptions) | Non-custodial: SPL delegate is a per-(user, mint) authority PDA | On-chain: the program moves the tokens | No | No | No, for delegated pulls | Mainnet since 2026-06-02; 3 Cantina engagements, the latest has 1 High acknowledged and not fixed (per the audit); Solana Foundation |
-| [Phantom MCP server](https://docs.phantom.com/phantom-mcp-server) | Phantom KMS (TEE) | Off-chain at Phantom | None documented | No third-party pre-sign hook | Yes (vendor-defined, off-chain) | Published package `@phantom/mcp-server` |
-| [Privy policy engine](https://docs.privy.io/controls/policies/overview) | Vendor enclave (2-of-2 key share; vendor says non-custodial) | Off-chain in a vendor enclave | Yes, off-chain: program id plus Anchor-IDL-decoded name, discriminator, args, accounts; default-deny | No | Yes (key usable only through the vendor) | Production |
-| [Turnkey policy engine](https://docs.turnkey.com/features/policies/smart-contract-interfaces) | Vendor enclave (vendor says non-custodial) | Off-chain in a vendor enclave | Yes, off-chain: IDL upload gives parsed instruction data; raw instruction hex | No | Yes | Production |
-| [Coinbase CDP policy engine](https://docs.cdp.coinbase.com/wallets/security-and-policies/policy-engine/solana-idl-policies) | Keys in Coinbase TEE infrastructure | Off-chain in Coinbase TEE | Yes, off-chain, for API-key wallets (`solData` IDL criterion). The Agentic Wallet CLI exposes per-call and per-session caps only | No | Yes | Production; Agentic Wallets launched 2026-02-11 |
+| [Phantom MCP server](https://docs.phantom.com/phantom-mcp-server) | Phantom KMS (key storage and signing service) | Off-chain at Phantom (the KMS enforces policy before signing) | None documented | No third-party pre-sign hook | Yes (vendor-defined, off-chain) | Published package `@phantom/mcp-server` |
+| [Privy policy engine](https://docs.privy.io/controls/policies/overview) | Vendor-operated key infrastructure | Off-chain, evaluated in the vendor's enclave (per the linked page) | Yes, off-chain: program id plus Anchor-IDL-decoded name, discriminator, args, accounts; default-deny | No | Yes (key usable only through the vendor) | Production |
+| [Turnkey policy engine](https://docs.turnkey.com/features/policies/smart-contract-interfaces) | Vendor-operated signing infrastructure | Off-chain in the vendor's policy engine | Yes, off-chain: IDL upload gives the instruction name and parsed arguments to policy conditions | No | Yes | Production |
+| [Coinbase CDP policy engine](https://docs.cdp.coinbase.com/wallets/security-and-policies/policy-engine/solana-idl-policies) | Coinbase-operated wallet infrastructure | Off-chain in the Coinbase policy engine | Yes, off-chain, for API-key wallets (`solData` IDL criterion). The Agentic Wallet CLI exposes per-call and per-session caps only | No | Yes | Production; Agentic Wallets launched 2026-02-11 |
 | [MetaMask Delegation Framework](https://github.com/MetaMask/delegation-framework) (ERC-7710 / 7715, EVM) | Non-custodial smart account | On-chain manager performs the call | Yes: `AllowedTargets`, `AllowedMethods`, `AllowedCalldata` | No check-only method by design | No | 37 enforcers; ERC-7710/7715 still Draft |
 | [Zodiac Roles](https://github.com/gnosisguild/zodiac-modifier-roles) (EVM) | Safe (non-custodial) | On-chain module performs the call | Yes: function-level scope and 19 condition operators | No | No | Used by ENS, Balancer, Gnosis; usage figures self-reported; a June 2026 ERC-1271 authentication bug was reported |
 | [AgentTrust](https://github.com/agenttrust-labs/agenttrust) (hackathon) | User wallet | On-chain verify hook `gate_payment_strict` (return data or revert) | No on-chain; an off-chain x402 parser hard-codes SPL `transferChecked` | Yes: CPI-callable by any signer | Yes: gate and transfer are bound only by SDK composition; its own proof document shows a split-transaction case | 3 Anchor programs on devnet; 52 localnet tests; Kani proofs on pure logic (7 of 7) |
@@ -62,7 +62,7 @@ token transfers) and many vault-PDA relay projects. See the audit's full matrix 
 ## What each does better
 
 **Squads.** Squads has the track record this project does not have: v4 has been immutable since
-2024-11-20, is used by ~157.9k multisigs, and has been through multiple audits and formal verification.
+November 2024, is used by ~157.9k multisigs, and has been through multiple audits and formal verification.
 Its Smart Account Program already ships instruction constraints richer than a discriminator list
 (account and data constraints, deny-by-default), runs them atomically with execution with post-checks on
 balance deltas, and is on mainnet with 19,432 policy accounts that have an instruction constraint. Squads
@@ -84,7 +84,7 @@ for two typed actions.
 **Phantom MCP, Privy, Turnkey, Coinbase.** These are production products with distribution, support and
 simple developer experience. Privy, Turnkey and Coinbase evaluate policies, including program and
 IDL-decoded instruction conditions with argument and account constraints, which are more expressive than a
-discriminator list. The trade is that policy is evaluated in a vendor-operated enclave: it is not publicly
+discriminator list. The trade is that policy is evaluated off-chain in a vendor-operated service: it is not publicly
 readable on-chain, cannot be checked by other programs, and the signing path depends on the vendor.
 Rolling aggregations are documented only for Ethereum methods at Privy, and Coinbase's agentic-wallet CLI
 exposes per-call and per-session caps only (per the audit). These are descriptions of what the documentation
@@ -96,7 +96,7 @@ art, and AgentAuth did not invent it. On EVM the manager performs the call, so e
 construction; the equivalent on Solana is what the relay does for two actions. ERC-7710/7715 are still
 Draft and define only redeem and request interfaces. Zodiac has the most credible institutional adoption
 (ENS, Balancer, Gnosis) and condition operators far beyond this project. The EVM experience also carries a
-warning: Coinbase deleted its generic permissioned-call design on 2024-10-07
+warning: Coinbase removed its V0 permissioned-call implementation, tests and docs in a commit dated 2024-10-08 UTC
 ([commit](https://github.com/coinbase/smart-wallet-permissions/commit/012b76cb51aca5cabe97bee2768191bdf0b4bf31)).
 
 **AgentTrust.** The closest in shape to the core: a non-custodial, CPI-callable verify hook. It offers

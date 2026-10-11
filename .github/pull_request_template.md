@@ -4,7 +4,7 @@
 
 ## Honesty check
 
-- [ ] Any new claim in docs or code comments is backed by code, a test, or a command I ran (quote the command).
+- [ ] Any new claim in docs or code comments is backed by code, a test, or a command that was actually run (quote the command).
 - [ ] Enforcement is labelled correctly: hard (relay `transfer`, pinned `swap`) or advisory (everything that depends on an integrator calling `verify`).
 - [ ] No "audited", "trustless", "mainnet-ready" or similar wording.
 

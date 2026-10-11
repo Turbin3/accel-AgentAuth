@@ -48,7 +48,7 @@ version or a new program, and has to be designed as such.
 | Item | Why | Depends on |
 |---|---|---|
 | Write the interface as a SIMD or SRFC proposal ("delegated-signer authorization check") | The value of a check is that many programs call it. A public interface lets other mandate implementations be compatible | Stable ABI, at least two independent integrators, an external review. Note that an earlier SIMD in an adjacent area (SIMD-0520, identity registry) was closed unmerged on 2026-05-04, so the process has to be approached with care |
-| An integrator guide with audited-pattern examples | The most common failure is an integrator that trusts caller-reported values or takes the program id from the transaction (CPI-2, CPI-3) | The integrator crate staying stable; feedback from real integrators |
+| An integrator guide with worked, tested examples of the safe pattern | The most common failure is an integrator that trusts caller-reported values or takes the program id from the transaction (CPI-2, CPI-3) | The integrator crate staying stable; feedback from real integrators |
 | A conformance test kit for implementers | Lets other programs claim compatibility honestly | The interface proposal |
 
 ## 5. Integrations
